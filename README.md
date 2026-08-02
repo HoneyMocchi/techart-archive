@@ -2,6 +2,11 @@
 
 UE5.8 커스텀 엔진(툰 쉐이딩) 작업과 관련된 학습/구현 문서 아카이브입니다.
 
+### ▶ [테크아트 라이브러리 바로가기](https://honeymocchi.github.io/techart-archive/)
+
+문서 6종과 그래픽스 파운데이션 랩을 한 화면에서 읽는 웹 라이브러리입니다. 다크 모드, 목차 점프, 인터랙티브 캔버스 실험을 지원합니다.
+— 랩만 단독으로 보려면: [그래픽스 파운데이션 랩](https://honeymocchi.github.io/techart-archive/graphics-lab/)
+
 ## 목차
 
 | 문서 | 내용 |
