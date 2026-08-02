@@ -1,18 +1,26 @@
-# Documentation
+# TechArt Archive
 
-엔진 커스텀(툰 쉐이딩) 작업과 관련된 학습/구현 문서 아카이브입니다.
+UE5.8 커스텀 엔진(툰 쉐이딩) 작업과 관련된 학습/구현 문서 아카이브입니다.
 
 ## 목차
 
 | 문서 | 내용 |
 |---|---|
-| [ToonLit_Study_Report.md](ToonLit_Study_Report.md) | ToonLit 쉐이딩 모델 구현 보고서 — 얼굴 2D 오프셋 그림자, Toon Profile, 눈썹 fade 구조와 변경 파일 목록 |
-| [ShadingModel_System_Study.md](ShadingModel_System_Study.md) | 레거시 쉐이딩 모델 시스템 — 16개 ID 제한의 원인, ShadingModels.ush 읽는 법, Material IR(5.8 신규) |
-| [Substrate_Study_Report.md](Substrate_Study_Report.md) | Substrate 시스템 분석 — 레거시와의 구조 차이, 타일 분류 최적화, 모바일 지원, 대체 이유, 툰 쉐이딩 시사점 |
-| [Compile_Performance_Notes.md](Compile_Performance_Notes.md) | 엔진 컴파일 성능 — CPU 선택 기준(코어/클럭/캐시), 빌드 중 절전 방지 래퍼 |
+| [쉐이딩모델 시스템 정리](쉐이딩모델%20시스템%20정리.md) | 레거시 쉐이딩 모델 시스템 — 16개 ID 제한의 원인, ShadingModels.ush 읽는 법, Material IR(5.8 신규) |
+| [Substrate 시스템 분석](Substrate%20시스템%20분석.md) | 레거시와의 구조 차이, 타일 분류 최적화, 모바일 지원, 대체 이유, 툰 쉐이딩 시사점 |
+| [툰릿 구현 보고서](툰릿%20구현%20보고서.md) | ToonLit 쉐이딩 모델 구현 — 얼굴 2D 오프셋 그림자, Toon Profile, 눈썹 fade 구조와 변경 파일 목록 |
+| [메시 렌더링 파이프라인](메시%20렌더링%20파이프라인.md) | StaticMesh / SkeletalMesh가 실제로 그려지기까지 — 버텍스 팩토리, FMeshBatch, 드로우 커맨드 캐싱 |
+| [렌더링 내부구조 스터디](렌더링%20내부구조%20스터디.md) | 머티리얼 작성부터 화면 출력까지 — 머티리얼 번역, 셰이더 컴파일, 패스 구성 전체 흐름 |
+| [컴파일 성능 노트](컴파일%20성능%20노트.md) | 엔진 컴파일 성능 — CPU 선택 기준(코어/클럭/캐시), 빌드 중 절전 방지 래퍼 |
 
 ## 읽는 순서 (처음이라면)
 
-1. `ShadingModel_System_Study.md` — 레거시 시스템의 구조와 한계
-2. `ToonLit_Study_Report.md` — 그 위에 구현한 커스텀 모델
-3. `Substrate_Study_Report.md` — 레거시를 대체하는 차세대 시스템과 앞으로의 방향
+1. `쉐이딩모델 시스템 정리.md` — 레거시 시스템의 구조와 한계
+2. `툰릿 구현 보고서.md` — 그 위에 구현한 커스텀 모델
+3. `Substrate 시스템 분석.md` — 레거시를 대체하는 차세대 시스템과 앞으로의 방향
+4. `메시 렌더링 파이프라인.md` / `렌더링 내부구조 스터디.md` — 파이프라인 전체 그림으로 확장
+
+## 열람 방법
+
+- **웹 라이브러리**: `ue-study-library.html` — 로컬 HTTP 서버(VSCode Live Preview 등)로 열면 md 수정이 자동 반영됩니다. file://로 열 때는 `Sync-StudyLibrary.ps1`로 내장 스냅샷을 갱신합니다.
+- **모바일**: GitHub 앱에서 이 리포를 열면 md가 렌더링됩니다. PC에서 저장하면 최대 5분 내 자동 푸시됩니다(`AutoPush-Docs.ps1` + 스케줄 작업 "MainDev Docs AutoPush").
