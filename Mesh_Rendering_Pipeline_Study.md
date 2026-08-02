@@ -1,0 +1,266 @@
+# StaticMesh / SkeletalMesh 렌더링 파이프라인 학습 보고서
+
+이 문서는 UE 5.8 (`d:\UE5\UE5_5.8_MainDev`) 엔진 소스를 직접 추적해서 StaticMesh와 SkeletalMesh가 실제로 어떻게 렌더링되는지 정리한 공부용 보고서다. 아래의 모든 파일 경로와 라인 번호는 이 엔진 포크 기준이며, 엔진 버전이 올라가면 라인 번호는 달라질 수 있다.
+
+## 핵심 요약
+
+- 두 메시 타입은 **"정점을 어디서 어떻게 가져오느냐(버텍스 팩토리)"만 다르고, `FMeshBatch`가 만들어진 순간부터는 완전히 같은 파이프라인**을 탄다.
+- StaticMesh는 씬에 등록될 때 드로우 커맨드를 **한 번만 만들어 캐싱**하고 매 프레임 재사용한다.
+- SkeletalMesh는 본 행렬로 정점이 매 프레임 변하므로, 스키닝 상태를 전담하는 `FSkeletalMeshObject`가 따로 있고, 기본적으로 매 프레임 `FMeshBatch`를 새로 만든다. (5.8부터는 조건부로 캐싱도 가능하다.)
+- ToonLit 셰이딩 모델은 이 파이프라인의 픽셀 셰이더 단계(BasePass + `ShadingModels.ush`)에서 동작하므로, 버텍스 팩토리가 무엇이든(스태틱/스켈레탈 구분 없이) 동일하게 적용된다.
+
+## 0. 전제 지식: 게임 스레드와 렌더 스레드의 분리
+
+언리얼은 게임 스레드와 렌더 스레드가 분리되어 있어서 컴포넌트(`UStaticMeshComponent` 등)는 직접 그려지지 않는다. 대신 다음 3단 구조를 거친다.
+
+1. 컴포넌트가 자신의 렌더 스레드 대리자인 **씬 프록시**(`FPrimitiveSceneProxy`)를 만들어 씬(`FScene`)에 등록한다.
+2. 프록시가 "이 정점버퍼 + 이 인덱스버퍼 + 이 머티리얼로 그려라"는 **`FMeshBatch`** 를 내놓는다.
+3. 각 패스(BasePass, Depth, Shadow, Velocity...)의 **`FMeshPassProcessor`** 가 그것을 실제 GPU 명령인 **`FMeshDrawCommand`** (PSO + 셰이더 바인딩 + 드로우콜)로 변환해 RHI에 제출한다.
+
+여기서 **버텍스 팩토리(Vertex Factory)** 는 "버텍스 셰이더가 정점 데이터를 어떻게 읽고 변형할 것인가"를 캡슐화한 객체다. 메시 타입별 차이는 전부 이 안에 숨는다.
+
+---
+
+## 1. StaticMesh 렌더링 경로
+
+### 1-1. 프록시 생성 (게임 스레드)
+
+컴포넌트가 씬에 등록될 때의 진입점:
+
+- `UPrimitiveComponent::CreateRenderState_Concurrent()` → `Scene->AddPrimitive(this)`
+  - `Engine/Source/Runtime/Engine/Private/Components/PrimitiveComponent.cpp:648`
+- `UStaticMeshComponent::CreateSceneProxy()`
+  - `Engine/Source/Runtime/Engine/Private/StaticMeshSceneProxy.cpp:2986`
+  - 5.8에서는 예전의 `StaticMeshRender.cpp`가 사라지고 `StaticMeshSceneProxy.cpp/.h`로 분리됐다.
+  - 실제 로직은 템플릿 헬퍼 `FStaticMeshComponentHelper::CreateSceneProxy<T>()`에 있다.
+    - `Engine/Source/Runtime/Engine/Public/StaticMeshComponentHelper.h:469`
+- Nanite 분기: `ShouldCreateNaniteProxy()` 판정 후 `Nanite::FSceneProxy` 또는 일반 `FStaticMeshSceneProxy`를 생성한다.
+  - 분기: `StaticMeshComponentHelper.h:533`
+  - 생성: `StaticMeshSceneProxy.cpp:2967` (`::new Nanite::FSceneProxy` 또는 `::new FStaticMeshSceneProxy`)
+- 프록시 생성자(`StaticMeshSceneProxy.cpp:230`)는 `UStaticMesh`의 `RenderData`(LOD별 정점/인덱스 버퍼) 포인터와 `MaterialRelevance`를 캐싱한다.
+
+프록시 생성이 거부되는 경우(nullptr 반환 → 렌더링 안 됨): StaticMesh가 null, 컴파일 중(`IsCompiling()`), `RenderData` 미초기화, PSO 프리캐시 대기, LOD 정점 0개. (`StaticMeshComponentHelper.h:481-583`)
+
+### 1-2. 렌더러 씬 등록 (렌더 스레드)
+
+```
+FScene::AddPrimitive                          RendererScene.cpp:1341
+  └─ FScene::BatchAddPrimitivesInternal       RendererScene.cpp:1382
+       ├─ CreateSceneProxy() 호출              :1455
+       ├─ new FPrimitiveSceneInfo              :1471
+       └─ ENQUEUE_RENDER_COMMAND(AddPrimitiveCommand)  :1507
+            └─ PrimitiveUpdates.EnqueueAdd     :1073  ← 즉시 반영이 아니라 큐에 쌓임
+```
+
+실제 씬 반영은 **매 프레임 시작 시 일괄 처리**된다:
+
+- `FScene::UpdateAllPrimitiveSceneInfos()` — `Engine/Source/Runtime/Renderer/Private/RendererScene.cpp:5385`
+  - `FPrimitiveSceneInfo::AddToScene` (`PrimitiveSceneInfo.cpp:1822`)
+  - GPU Scene 인스턴스 할당, `AddStaticMeshes()` 호출 등
+
+### 1-3. 핵심: 드로우 커맨드를 미리 캐싱한다 (Cached Mesh Draw Commands)
+
+StaticMesh가 빠른 이유다. 매 프레임 그리기 명령을 새로 만들지 않고 **씬에 추가될 때 한 번만** 만들어 캐시에 넣는다.
+
+```
+FPrimitiveSceneInfo::AddStaticMeshes            PrimitiveSceneInfo.cpp:1604
+  → FStaticMeshSceneProxy::DrawStaticElements   StaticMeshSceneProxy.cpp:1402
+      → GetMeshElement (LOD/섹션별 FMeshBatch)   StaticMeshSceneProxy.cpp:753
+      → PDI->DrawMesh → FStaticMeshBatch 저장    PrimitiveSceneInfo.cpp:120 (FBatchingSPDI::DrawMesh)
+  → FPrimitiveSceneInfo::CacheMeshDrawCommands  PrimitiveSceneInfo.cpp:583
+      → 패스마다 FMeshPassProcessor 생성           :642
+      → FBasePassMeshProcessor::AddMeshBatch     BasePassRendering.cpp:1922
+      → BuildMeshDrawCommands                    MeshPassProcessor.inl:57
+      → FMeshDrawCommand를 Scene.CachedDrawLists에 캐싱
+```
+
+- `GetMeshElement`(`StaticMeshSceneProxy.cpp:753`)에서 `FMeshBatch`에 채우는 버텍스 팩토리가 **`FLocalVertexFactory`** 다. "정점버퍼에 이미 최종 위치가 들어있으니 그냥 읽어라"는 가장 단순한 팩토리다.
+  - 정점 데이터: `FStaticMeshLODResources` (`Engine/Source/Runtime/Engine/Public/StaticMeshResources.h:478`)
+  - 버텍스 팩토리 2종: 일반용 + 버텍스컬러 오버라이드용 (`StaticMeshResources.h:649-652`)
+  - 버퍼 바인딩: `FStaticMeshVertexFactories::InitVertexFactory` (`Engine/Source/Runtime/Engine/Private/StaticMesh.cpp:1080`) — Position/Tangent/TexCoord/LightMap/Color 버퍼를 바인딩하고 `SetData` 후 `InitResource`.
+- `FMeshBatch` → `FMeshDrawCommand` 변환의 실체는 `FMeshPassProcessor::BuildMeshDrawCommands<>` (`Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.inl:57`)다. 여기서 셰이더 선택, PSO 구성, 버텍스 스트림 바인딩, GPU Scene용 PrimitiveId 스트림 연결이 전부 결정된다.
+
+### 1-4. 매 프레임: 컬링 → relevance → 캐시 조회 → 제출
+
+가시성 판정은 `Engine/Source/Runtime/Renderer/Private/SceneVisibility.cpp`에 있다.
+
+1. **프러스텀 컬링**: `FrustumCull()` (`SceneVisibility.cpp:860`)
+2. **Relevance 계산**: `FRelevancePacket::ComputeRelevance()` (`SceneVisibility.cpp:1520`)에서 살아남은 프리미티브마다 `GetViewRelevance` 호출.
+   - `FStaticMeshSceneProxy::GetViewRelevance` — `StaticMeshSceneProxy.cpp:2434`
+   - 일반 게임 상황이면 `bStaticRelevance = true` → **캐시된 커맨드를 그대로 재사용**.
+   - 와이어프레임/콜리전 표시/선택 상태 + 버텍스컬러 뷰 같은 에디터 상황에서만 `bDynamicRelevance = true` → 매 프레임 `GetDynamicMeshElements`(`StaticMeshSceneProxy.cpp:1705`)를 다시 부른다.
+3. **LOD 선택** 후 `FDrawCommandRelevancePacket::AddCommandsForMesh` (`SceneVisibility.cpp:1269`)가 `Scene.CachedDrawLists[PassType]`에서 `FMeshDrawCommand*`를 꺼내 이번 프레임의 가시 목록(`FVisibleMeshDrawCommand`)에 넣는다. 캐시 미스면 동적 빌드 요청으로 넘어간다.
+4. **제출**:
+   - `FParallelMeshDrawCommandPass::BuildRenderingCommands` → GPU Scene 인스턴스 컬링 (`MeshDrawCommands.cpp:1643`)
+   - `DispatchDraw` → `SubmitMeshDrawCommandsRange` (`MeshPassProcessor.cpp:1646`)
+   - `FMeshDrawCommand::SubmitDraw` → `SubmitDrawBegin`(PSO/스트림/바인딩) + `SubmitDrawEnd`(실제 `DrawIndexedPrimitive`) (`MeshPassProcessor.cpp:1248, 1332`)
+   - GPU 컬링을 거치면 인다이렉트 드로우(`SubmitDrawIndirectEnd`, `:1408`)로 나가기도 한다.
+
+---
+
+## 2. SkeletalMesh 렌더링 경로
+
+### 2-1. 렌더 스레드 객체가 둘이다
+
+SkeletalMesh는 정점 위치가 매 프레임 본에 의해 바뀌므로 프록시 하나로는 부족하다.
+
+- `FSkeletalMeshSceneProxy` — StaticMesh 프록시와 같은 역할 (머티리얼, relevance, FMeshBatch 생성)
+  - `Engine/Source/Runtime/Engine/Private/SkeletalMeshSceneProxy.cpp`
+- **`FSkeletalMeshObject`** — 스키닝 상태 전담 (본 행렬 버퍼, 버텍스 팩토리, 모프 버퍼, 스킨캐시 엔트리)
+  - 인터페이스: `Engine/Source/Runtime/Engine/Public/SkeletalRenderPublic.h:122`
+  - `MeshObject`는 프록시보다 **먼저** 생성되고, `MeshObject == nullptr`이면 프록시 생성이 거부된다.
+
+### 2-2. 스키닝 방식 결정
+
+`USkinnedMeshComponent::CreateRenderState_Concurrent()` (`Engine/Source/Runtime/Engine/Private/Components/SkinnedMeshComponent.cpp:1193`)에서 `MeshObject` 변형을 고른다.
+
+| 변형 | 조건 | 방식 / 버텍스 팩토리 |
+|---|---|---|
+| `FSkeletalMeshObjectGPUSkin` | 기본값 | GPU 스키닝. `TGPUSkinVertexFactory` 또는 `FGPUSkinPassthroughVertexFactory` |
+| `FSkeletalMeshObjectCPUSkin` | `ShouldCPUSkin()` (모프 디버깅 등) | CPU에서 정점 계산(`SkeletalRenderCPUSkin.cpp:219 CacheVertices`) 후 업로드. `FLocalVertexFactory` |
+| `FSkeletalMeshObjectStatic` | `bRenderStatic` | 포즈 고정, 사실상 StaticMesh 취급. `FLocalVertexFactory` |
+| `FSkeletalMeshObjectNanite` | `ShouldNaniteSkin()` | 5.8 신규 Nanite 스키닝 경로 |
+
+프록시 생성은 `USkinnedMeshComponent::CreateSceneProxy()` (`SkinnedMeshComponent.cpp:607`). `USkeletalMeshComponent`는 이걸 오버라이드하지 않고 그대로 상속한다.
+
+### 2-3. 매 프레임: 본 행렬을 렌더 스레드로 보내기
+
+```
+[게임 스레드]
+USkeletalMeshComponent::RefreshBoneTransforms    SkeletalMeshComponent.cpp:2862
+  → FinalizeBoneTransform                        SkeletalMeshComponent.cpp:5167
+  → MarkRenderDynamicDataDirty                   SkeletalMeshComponent.cpp:1250
+USkinnedMeshComponent::SendRenderDynamicData_Concurrent   SkinnedMeshComponent.cpp:1496
+  → MeshObject->Update(...)                      SkeletalRenderGPUSkin.cpp:781
+```
+
+본 행렬 계산의 핵심 수식은 `UpdateRefToLocalMatricesInner` (`Engine/Source/Runtime/Engine/Private/SkeletalRender.cpp:384`)에 있다:
+
+```
+ReferenceToLocal[i] = RefBasesInvMatrix[i] * ComponentSpaceTransform[i]
+```
+
+즉 "레퍼런스 포즈 기준 위치 → 현재 포즈 위치"로 옮기는 행렬을 본마다 만든다. 버텍스 셰이더는 이 행렬을 본 가중치로 섞어서 정점을 변형한다.
+
+**5.8의 특이점**: 예전처럼 컴포넌트마다 `ENQUEUE_RENDER_COMMAND`를 하나씩 던지지 않는다. `MeshObject->Update`는 `UpdateHandle.Update(NewDynamicData)`로 **`FSkeletalMeshUpdater`라는 배치 시스템의 채널에 쌓기만** 하고, 렌더 스레드에서 모든 스켈레탈메시 업데이트가 한 번에 처리된다.
+
+```
+[렌더 스레드]
+FScene::UpdateAllPrimitiveSceneInfos             RendererScene.cpp:5552
+  → FSkeletalMeshUpdater::Submit                 SkeletalMeshUpdater.cpp:535
+     → ProcessStage_Inline / _SkinCache / _MeshDeformer    SkeletalRenderGPUSkin.cpp:453-468
+        → FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData   SkeletalRenderGPUSkin.cpp:970
+           (모프/클로스 처리, 본 버퍼 할당, 스킨캐시 등록: GPUSkinCache->ProcessEntry :1223)
+     → ProcessStage_Upload
+        → FSkeletalMeshObjectGPUSkin::UpdateBufferData     SkeletalRenderGPUSkin.cpp:897
+           (본 행렬을 GPU 버퍼에 실제 업로드)
+  → FGPUSkinCache::Dispatch                      RendererScene.cpp:5559
+```
+
+원시 업로드 코드는 `FShaderDataType::UpdateBoneData` (`Engine/Source/Runtime/Engine/Private/GPUSkinVertexFactory.cpp:301`)다. 버퍼를 lock하고 `StoreCompressedBoneTransform`으로 3x4 압축 행렬을 쓴다. **섹션별 `BoneMap`으로 그 섹션이 실제로 쓰는 본만 골라 올리는 것**이 포인트다.
+
+### 2-4. GPU 스키닝 — 두 가지 모드
+
+#### (a) 인라인 스키닝 — `TGPUSkinVertexFactory`
+
+- C++: `Engine/Source/Runtime/Engine/Public/GPUSkinVertexFactory.h:572` (베이스는 `:265 FGPUBaseSkinVertexFactory` — 현재/이전 프레임 본 버퍼를 더블 버퍼링으로 보유)
+- HLSL: `Engine/Shaders/Private/GpuSkinVertexFactory.ush`
+  - 본 행렬은 `float3x4` (`:256 #define FBoneMatrix float3x4`)
+  - `CalcBoneMatrix` (`:540`)가 `BoneMatrices` SRV에서 본 행렬을 읽어 가중합. 실제 가중합은 `GpuSkinCommon.ush:230 ComputeBoneMatrixWithLimitedInfluences` / `:249 ...UnlimitedInfluences`
+  - `SkinPosition` (`:581`)이 위치 변환. `CalcPreviousBoneMatrix` (`:560`)는 모션 벡터용으로 이전 프레임 본 행렬을 쓴다.
+- **버텍스 셰이더가 매번 직접 스키닝한다.** 문제는 이 계산을 Depth, Shadow 캐스케이드마다, BasePass, Velocity 등 **패스마다 반복**한다는 것.
+
+#### (b) GPU Skin Cache — 한 번 스키닝하고 여러 번 소비
+
+그래서 있는 것이 `FGPUSkinCache` (`Engine/Source/Runtime/Renderer/Private/GPUSkinCache.cpp`)다.
+
+- 프레임 초에 컴퓨트 셰이더가 **스키닝을 딱 한 번 수행해서 결과를 RW 버퍼에 써둔다**.
+  - 디스패치: `FGPUSkinCache::Dispatch` (`GPUSkinCache.cpp:1519`) → `DispatchPassSetup`(`:1593`) / `DispatchPassExecute`(`:1769`, 셰이더 퍼뮤테이션별 정렬로 PSO 스위치 최소화)
+  - 컴퓨트 셰이더: `SkinCacheUpdateBatchCS` (`Engine/Shaders/Private/GpuSkinCacheComputeShader.usf:195`)
+  - 탄젠트 재계산 패스: `RecomputeTangentsPerTrianglePass.usf` / `RecomputeTangentsPerVertexPass.usf`
+  - 비동기 컴퓨트로도 돌 수 있다 (`GPUSkinCache.cpp:1538-1566`).
+- 이후 모든 패스는 **`FGPUSkinPassthroughVertexFactory`** (`GPUSkinVertexFactory.h:852`)로 그 버퍼를 그냥 읽는다. 스킨캐시 출력 버퍼 연결은 `UpdateVertexFactoryDeclaration` (`GPUSkinCache.cpp:653`).
+- **이 패스스루 팩토리는 `FLocalVertexFactory`의 자식**이라서, 이 시점부터 SkeletalMesh는 렌더러 입장에서 StaticMesh와 구분되지 않는다.
+- 레이트레이싱은 스킨된 최종 위치가 버퍼로 필요하므로, 메시가 인라인 모드여도 스킨캐시를 강제로 켠다 (`FSkeletalMeshObjectGPUSkin::IsSkinCacheEnabled`, `SkeletalRenderGPUSkin.cpp:890`).
+
+어떤 팩토리를 프록시에 줄지는 `GetSkinVertexFactory` (`SkeletalRenderGPUSkin.cpp:2012`)가 결정한다: MeshDeformer / RayTracing / GPUSkinCache 모드면 패스스루, 아니면 `TGPUSkinVertexFactory`.
+
+### 2-5. FMeshBatch 생성
+
+전통적으로 SkeletalMesh는 다이내믹 relevance라서 매 프레임 `FMeshBatch`를 새로 만든다.
+
+```
+GatherDynamicMeshElements → GetDynamicMeshElements    SceneVisibility.cpp:4207 / SkeletalMeshSceneProxy.cpp:642
+  → GetMeshElementsConditionallySelectable            SkeletalMeshSceneProxy.cpp:648
+     (LOD는 뷰별이 아니라 MeshObject->GetLOD()가 결정 :668)
+  → GetDynamicElementsSection                         SkeletalMeshSceneProxy.cpp:914
+     → CreateBaseMeshBatch                            SkeletalMeshSceneProxy.cpp:848
+     → Collector.AddMesh                              SkeletalMeshSceneProxy.cpp:1001
+```
+
+`CreateBaseMeshBatch`의 핵심 한 줄:
+
+```cpp
+Mesh.VertexFactory = MeshObject->GetSkinVertexFactory(View, LODIndex, SectionIndex, VFMode);
+```
+
+**스키닝 구현 전체가 이 포인터 하나로 추상화된다.** 이후 파이프라인은 버텍스 팩토리가 무엇인지 신경쓰지 않는다.
+
+**5.8의 특이점**: `GetViewRelevance` (`SkeletalMeshSceneProxy.cpp:1390`)에서 `GSkeletalMeshUseCachedMDCs`가 켜져 있고 디버그/에디터 기능이 다이내믹을 강제하지 않으면 **SkeletalMesh도 static relevance + 캐시된 드로우 커맨드**를 쓴다 (`DrawStaticElements`, `SkeletalMeshSceneProxy.cpp:574`). "스켈레탈 = 무조건 다이내믹"이라는 옛 문서 설명은 이제 정확하지 않다.
+
+### 2-6. 모프 타겟과 클로스
+
+- **모프 타겟**: 델타를 `FMorphVertexBuffer`(모션블러용 더블 버퍼링, `SkeletalRenderGPUSkin.cpp:261`)에 컴퓨트 셰이더(`FGPUMorphUpdateCS`, `SkeletalRenderGPUSkin.cpp:1757`)로 누적한 뒤, 버텍스 셰이더가 `GPUSKIN_MORPH_BLEND` 분기에서 `DeltaPosition`을 더한다 (`GpuSkinVertexFactory.ush:506 MorphPosition`).
+- **클로스**: 시뮬레이션 결과 위치/노멀이 `ClothingSimData`로 넘어와 전용 팩토리 `TGPUSkinAPEXClothVertexFactory`(`GPUSkinVertexFactory.h:738`)가 버텍스 셰이더에서 심 메시 → 렌더 메시 블렌딩을 하거나, 스킨캐시가 켜져 있으면 컴퓨트 셰이더에서 처리한다.
+
+---
+
+## 3. 두 경로의 합류점
+
+`FMeshBatch`가 존재하는 순간부터는 어떤 것도 메시 타입에 특화되어 있지 않다.
+
+```
+StaticMesh:    FLocalVertexFactory ────────────────────┐
+SkeletalMesh:  TGPUSkinVertexFactory (인라인 스키닝) ────┤→ FMeshBatch
+               FGPUSkinPassthroughVertexFactory (스킨캐시)┘     │
+                                                               ▼
+  FBasePassMeshProcessor::AddMeshBatch          BasePassRendering.cpp:1922
+  (Depth/Shadow/Velocity 등 패스마다 동일한 프로세서 존재)
+                                                               ▼
+  FMeshPassProcessor::BuildMeshDrawCommands     MeshPassProcessor.inl:57
+  (FMeshBatch.VertexFactory → 버텍스 스트림 + 셰이더 바인딩 + PSO)
+                                                               ▼
+  FParallelMeshDrawCommandPass::DispatchPassSetup   MeshDrawCommands.cpp:1373
+  (정렬 / 인스턴스 컬링 / 머지)
+                                                               ▼
+  FMeshDrawCommand::SubmitDrawEnd               MeshPassProcessor.cpp:1332
+  (실제 RHI DrawIndexedPrimitive)
+```
+
+정리하면 차이는 딱 두 가지다.
+
+1. **정점이 어디서 오나** — StaticMesh: 고정 버퍼 / SkeletalMesh: 본 행렬로 매 프레임 변형 (VS 인라인 또는 스킨캐시 컴퓨트)
+2. **FMeshBatch를 언제 만드나** — StaticMesh: 씬 등록 시 1회 캐싱 / SkeletalMesh: 기본은 매 프레임, 5.8부터 조건부 캐싱 가능
+
+## 4. ToonLit 관점에서의 시사점
+
+- 셰이딩(라이팅) 계산은 이 파이프라인의 **픽셀 셰이더 단계**에서 일어난다: BasePass 머티리얼 평가 → GBuffer 기록(`ShadingModelsMaterial.ush`) → 디퍼드 라이팅에서 `ToonLitBxDF`(`ShadingModels.ush`) 평가.
+- 버텍스 팩토리는 정점 위치/노멀을 만드는 단계까지만 관여하므로, **ToonLit은 StaticMesh든 SkeletalMesh든 동일하게 동작한다.** 캐릭터(스켈레탈)와 소품(스태틱)에 같은 머티리얼을 써도 셰이딩 결과가 갈리지 않는 이유다.
+- 스켈레탈 캐릭터에서 노멀 기반 효과(림, 아웃라인 등)를 쓸 때, GPU Skin Cache의 탄젠트 재계산(RecomputeTangents) 여부에 따라 노멀 품질이 달라질 수 있다는 점은 기억해둘 것.
+
+## 참고: 주요 파일 한눈에 보기
+
+| 역할 | 파일 |
+|---|---|
+| StaticMesh 프록시 | `Engine/Source/Runtime/Engine/Private/StaticMeshSceneProxy.cpp` |
+| StaticMesh 정점 리소스 | `Engine/Source/Runtime/Engine/Public/StaticMeshResources.h`, `Private/StaticMesh.cpp` |
+| SkeletalMesh 프록시 | `Engine/Source/Runtime/Engine/Private/SkeletalMeshSceneProxy.cpp` |
+| 스키닝 객체 (GPU) | `Engine/Source/Runtime/Engine/Private/SkeletalRenderGPUSkin.cpp/.h` |
+| 스켈레탈 배치 업데이터 (5.5+) | `Engine/Source/Runtime/Engine/Private/SkeletalMeshUpdater.cpp` |
+| GPU 스킨 버텍스 팩토리 | `Engine/Source/Runtime/Engine/Private/GPUSkinVertexFactory.cpp`, `Public/GPUSkinVertexFactory.h` |
+| 스키닝 셰이더 | `Engine/Shaders/Private/GpuSkinVertexFactory.ush`, `GpuSkinCommon.ush` |
+| GPU Skin Cache | `Engine/Source/Runtime/Renderer/Private/GPUSkinCache.cpp`, `Engine/Shaders/Private/GpuSkinCacheComputeShader.usf` |
+| 씬 등록 / 프레임 업데이트 | `Engine/Source/Runtime/Renderer/Private/RendererScene.cpp`, `PrimitiveSceneInfo.cpp` |
+| 가시성 / relevance | `Engine/Source/Runtime/Renderer/Private/SceneVisibility.cpp` |
+| 메시 패스 프로세서 | `Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.inl`, `Private/MeshPassProcessor.cpp`, `Private/BasePassRendering.cpp` |
+| 드로우 커맨드 실행 | `Engine/Source/Runtime/Renderer/Private/MeshDrawCommands.cpp` |

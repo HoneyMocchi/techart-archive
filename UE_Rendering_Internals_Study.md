@@ -1,0 +1,443 @@
+# UE5.8 렌더링 내부 파이프라인 스터디 — 머티리얼 작성부터 화면 출력까지
+
+> 이 문서는 `d:\UE5\UE5_5.8_MainDev` (커스텀 엔진 포크, ToonLit 셰이딩 모델 포함) 소스를 직접 탐색해서 작성한 것.
+> 모든 경로는 엔진 루트 기준 상대 경로.
+
+---
+
+## 0. 전체 그림 (30초 요약)
+
+```
+[에디터에서 머티리얼 저장]
+ UMaterial 노드 그래프
+   ↓ ① 번역 (FHLSLMaterialTranslator 또는 Material IR)
+ HLSL 코드 조각 → MaterialTemplate.ush의 구멍(%{...})에 끼움
+   ↓ "/Engine/Generated/Material.ush" 라는 가상 파일이 됨
+   ↓ ② 컴파일 (퍼뮤테이션 × 버텍스 팩토리 조합만큼)
+ ShaderCompileWorker.exe → DXC/FXC → 바이트코드 → DDC 캐시
+   ↓ ③ 런타임
+ FMeshDrawCommand (PSO + 셰이더 바인딩) → RHI → GPU
+
+[매 프레임]
+ BasePass: 머티리얼 코드 실행 → GBuffer(두꺼운 텍스처들)에 픽셀 정보 기록
+ Lighting: GBuffer를 읽어서 라이트마다 셰이딩 모델별 BxDF 실행 → SceneColor에 누적
+ PostProcess: 톤매핑 → 백버퍼 → 화면
+```
+
+핵심 멘탈 모델 세 가지:
+1. **번역기는 셰이더 전체를 만들지 않는다.** 손으로 쓴 거대한 템플릿(`MaterialTemplate.ush`)의 ~40개 구멍만 채운다.
+2. **디퍼드 렌더링 = "지오메트리는 한 번만 그리고, 조명은 나중에".** 그 중간 저장소가 GBuffer다.
+3. **비싼 건 전부 미리 캐시된다.** 프레임마다 하는 일은 대부분 포인터 수집과 정렬뿐이다.
+
+---
+
+## 1. 머티리얼 그래프 → HLSL 번역
+
+### 1a. 세 가지 클래스 구분 (초보자가 제일 헷갈리는 부분)
+
+| 클래스 | 정체 | 위치 |
+|---|---|---|
+| `UMaterial` | 에디터용 UObject 에셋. 노드 그래프와 입력 핀 소유 | `Engine/Source/Runtime/Engine/Public/Materials/Material.h` |
+| `FMaterial` | 컴파일러와 렌더러 둘 다 쓰는 추상 인터페이스. 컴파일된 `FMaterialShaderMap`을 들고 있음 | `MaterialShared.h:2168` |
+| `FMaterialResource` | (플랫폼, 퀄리티 레벨) 하나당 하나씩 만들어지는 구체 클래스 | `MaterialShared.h:3206` |
+
+컴파일 시작 체인:
+`UMaterial::CacheResourceShadersForRendering()` (Material.cpp:2579)
+→ `FMaterial::CacheShaders()` (MaterialShared.cpp:2987, DDC 먼저 확인)
+→ `FMaterial::Translate()` (MaterialShared.cpp:3672) ← **여기서 갈림길**
+
+```cpp
+// MaterialShared.cpp:3684
+if (InShaderMapId.bUsingNewHLSLGenerator && ...)
+    return Translate_New(...);      // Material IR (실험적)
+else
+    return Translate_Legacy(...);   // FHLSLMaterialTranslator (기본)
+```
+
+두 경로 모두 결과는 동일: 생성된 HLSL 문자열이 `IncludeVirtualPathToContentsMap`에 `"/Engine/Generated/Material.ush"` 라는 **가상 파일**로 등록된다 (MaterialShared.cpp:3564, :3667). `BasePassPixelShader.usf`가 이 경로를 `#include` 하는데, 실제 파일이 아니라 잡(job)마다 다른 문자열로 해석된다. **이 트릭 하나로 BasePassPixelShader.usf 하나가 모든 머티리얼을 커버한다.**
+
+### 1b. 레거시 번역기: FHLSLMaterialTranslator
+
+- `Engine/Source/Runtime/Engine/Private/Materials/HLSLMaterialTranslator.cpp` — **16,178줄**, 파이프라인 최대 파일.
+- AST 없음. **문자열 조립 기계 + 해시 기반 중복 제거**가 전부다.
+
+각 노드(`UMaterialExpression`)의 `Compile()`은 `int32`를 반환하는데, 이건 평평한 코드 조각 배열(`FShaderCodeChunk`)의 인덱스다:
+
+```cpp
+// MaterialExpressions.cpp:4708 — 전형적인 노드
+int32 UMaterialExpressionAdd::Compile(FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+    int32 Arg1 = A.GetTracedInput().Expression ? A.Compile(Compiler) : Compiler->Constant(ConstA);
+    int32 Arg2 = B.GetTracedInput().Expression ? B.Compile(Compiler) : Compiler->Constant(ConstB);
+    return Compiler->Add(Arg1, Arg2);
+}
+// HLSLMaterialTranslator.cpp:9524 — Add의 실체는 그냥 문자열 포맷
+return AddCodeChunk(ResultType, TEXT("(%s + %s)"), *GetParameterCode(A), *GetParameterCode(B));
+```
+
+순회 방향이 중요하다: 입력에서 밀어넣는 게 아니라 **출력 핀에서 필요할 때 재귀로 당겨온다**. `TranslateMaterial()` (HLSLMaterialTranslator.cpp:1325)이 속성을 하나씩 요청한다:
+
+```cpp
+// :1492-1518
+Chunk[MP_Normal]    = ...CompilePropertyAndSetMaterialProperty(MP_Normal, this);   // Normal이 제일 먼저!
+Chunk[MP_BaseColor] = ...(MP_BaseColor, this);
+Chunk[MP_Metallic]  = ...(MP_Metallic, this);
+```
+
+Normal을 먼저 컴파일하는 이유: 다른 입력이 `Parameters.WorldNormal`을 읽을 수 있어서. 그래서 Normal은 Normal에 의존하는 것에 의존할 수 없다 (순서가 곧 제약).
+
+`FShaderCodeChunk` (HLSLMaterialTranslator.h:83) 핵심 필드:
+- `Hash` — 동일한 서브그래프는 청크 하나로 합쳐짐 (중복 제거)
+- `DefinitionFinite` / `DefinitionAnalytic` — 하드웨어 ddx/ddy 버전과 해석적 미분 버전 두 벌
+- `UniformExpression` — non-null이면 CPU에서 계산 가능 (아래 1d)
+- `bInline` — 공짜 연산(컴포넌트 마스크 등)은 `Local7 = ...;` 문장 없이 소비처에 인라인
+
+### 1c. MaterialTemplate.ush에 끼워넣기
+
+**주의: 옛날 튜토리얼들이 말하는 위치 기반 `%s` + LazyPrintf 방식은 폐기됐다.** 지금은 이름 있는 `%{parameter_name}` 템플릿 시스템이다 (`FStringTemplate`, `MaterialSourceTemplate.cpp`).
+
+- 템플릿: `Engine/Shaders/Private/MaterialTemplate.ush` (4,961줄)
+- 슬롯 채우기: HLSLMaterialTranslator.cpp:15723-15911
+
+핵심 슬롯:
+
+| 플레이스홀더 | 템플릿 줄 | 내용 |
+|---|---|---|
+| `%{pixel_material_inputs}` | :373 | `FPixelMaterialInputs` 구조체 멤버 선언 |
+| `%{calc_pixel_material_inputs_normal}` | :4340 | Normal 계산 코드 |
+| `%{calc_pixel_material_inputs_other_inputs}` | :4392 | 나머지 입력 계산 코드 |
+| `%{custom_functions}` | :3636 | Custom 노드가 만든 함수들 |
+| `%{uniform_material_expressions}` | :3632 | 유니폼 표현식 접근 매크로 |
+
+생성 결과물이 채우는 함수가 바로 `CalcPixelMaterialInputs()` (MaterialTemplate.ush:4333) — 네 머티리얼 그래프가 최종적으로 **이 함수의 본문**이 된다:
+
+```hlsl
+void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out FPixelMaterialInputs PixelMaterialInputs)
+{
+%{calc_pixel_material_inputs_initial_calculations}
+%{calc_pixel_material_inputs_normal}
+    float3 MaterialNormal = GetMaterialNormal(Parameters, PixelMaterialInputs);
+    Parameters.WorldNormal = TransformTangentNormalToWorld(...);
+%{calc_pixel_material_inputs_other_inputs}
+}
+```
+
+참고: `GetMaterialPixelParameters`는 번역기가 만드는 게 아니라 **버텍스 팩토리**(LocalVertexFactory.ush 등)가 제공한다. 이것도 흔한 오해.
+
+속성 → 구조체 멤버 매핑은 두 테이블이 결정한다:
+- 속성 레지스트리: `MaterialAttributeDefinitionMap.cpp:395` — GUID, 이름, HLSL 타입, **기본값**
+- 픽셀 구조체 포함 여부: `HLSLMaterialTranslator.cpp:661-680`의 `SharedPixelProperties[MP_*] = true`
+
+기본값이 왜 중요하냐면: `IsMaterialPropertyUsed()` (:2767)가 "상수인데 기본값과 같으면" 그 속성을 아예 안 쓴 것으로 처리해서 셰이더에서 빠진다. 핀 안 꽂으면 공짜인 이유가 이거다.
+
+### 1d. 유니폼 표현식 / 프리셰이더 (CPU 상수 폴딩)
+
+문제: `ScalarParameter("Speed") * 2.0`은 픽셀마다 안 변하니 셰이더에 넣으면 낭비지만, 런타임에 수정 가능하니 하드코딩도 못 한다.
+
+해법: **CPU에서 매 프레임 실행되는 작은 스택 바이트코드("프리셰이더")**로 빼서 머티리얼 유니폼 버퍼에 써넣는다.
+
+- `FMaterialUniformExpression` 계층 (MaterialUniformExpressions.h:56) — `FMaterialUniformExpressionConstant`, `...NumericParameter`, `...FoldedMath` (Add/Sub/Mul/Div/Dot/Cross)
+- 번역기의 모든 산술 연산이 "양쪽 피연산자가 다 유니폼인가?"를 검사한다 (HLSLMaterialTranslator.cpp:9494). 맞으면 HLSL 대신 CPU 표현식 트리를 만든다.
+- 런타임 평가: `FUniformExpressionSet::FillUniformBuffer` (MaterialUniformExpressions.cpp:1373)
+
+### 1e. Material IR — 새 실험적 번역기
+
+이 포크에는 풀 구현이 들어 있다 (~20파일, 1.5만 줄). 문자열 조립이 아니라 **진짜 SSA 스타일 중간 표현(IR)을 가진 컴파일러**다.
+
+- IR 정의: `Public/Materials/MaterialIR.h` — 값(Constant/Builtin/TextureUniform)과 명령(Operator/Branch/TextureRead/Call...), 진짜 베이직 블록 있음
+- 노드마다 `Compile()`과 별개로 `Build(MIR::FEmitter&)` 가상 함수가 하나 더 있다 (MaterialExpression.h:284)
+
+같은 Add 노드 비교 — 왜 Epic이 다시 쓰는지 한눈에 보인다:
+
+```cpp
+// 새 방식 — MaterialExpressionsToMIR.cpp:1107
+void UMaterialExpressionAdd::Build(MIR::FEmitter& Em)
+{
+    BuildBinaryOperatorWithDefaults(Em, MIR::BO_Add, &A, ConstA, &B, ConstB);
+}
+```
+
+빌드 파이프라인은 7단계 (`MaterialIRModuleBuilder.cpp:1559`, 주석이 훌륭함): 그래프 크롤 → 분석(스테이지 오류가 여기서 나옴) → **명령 스케줄링**(의존성 만족하는 가장 좁은 스코프에 배치 — 레거시가 못 하는 진짜 최적화) → 산출물 생성.
+
+**결정적 통찰: 백엔드(`MaterialIRToHLSLTranslator.cpp:2793`)도 결국 똑같은 `%{...}` 슬롯을 채운다.** `MaterialTemplate.ush`가 안정적인 계약이라서, 16k줄 문자열 조립기와 SSA 컴파일러가 그 뒤에서 교체 가능한 것.
+
+기본값은 **꺼져 있고 게이트가 2개**다:
+- CVar `r.Material.Translator.EnableNew` = false (MaterialShared.cpp:108)
+- 머티리얼별 체크박스 `bEnableNewHLSLGenerator` (Material.h:1076)
+
+디버그: `r.Material.Translator.DebugDump 1` → `Saved/Materials/IRDump.txt`에 IR 덤프, `2`면 Graphviz .dot까지.
+
+---
+
+## 2. 셰이더 컴파일과 퍼뮤테이션
+
+### 2a. FShaderType — 셰이더의 "클래스 설명서"
+
+`FShaderType` (Shader.h:1234)은 컴파일된 셰이더가 아니라 **메타데이터 + 함수 포인터 vtable**이다:
+소스 .usf 경로, 엔트리 포인트, 스테이지(SF_Pixel 등), `TotalPermutationCount`, 그리고 `ShouldCompilePermutation` / `ModifyCompilationEnvironment` / `ConstructCompiled` 함수 포인터.
+
+세 가지 맛:
+
+| 클래스 | 키 | 예 |
+|---|---|---|
+| `FGlobalShaderType` | 플랫폼 + 퍼뮤테이션 | 톤매퍼, 포스트프로세스 |
+| `FMaterialShaderType` | + **머티리얼** | 데칼 등 |
+| `FMeshMaterialShaderType` | + 머티리얼 + **버텍스 팩토리** | BasePass VS/PS |
+
+`DECLARE_SHADER_TYPE` / `IMPLEMENT_SHADER_TYPE` 매크로가 하는 일: 클래스 안에 정적 트램펄린 함수들을 심고, 정적 초기화 때 전역 리스트에 등록. `IMPLEMENT_GLOBAL_SHADER`는 그냥 한 줄짜리 별칭이다 (GlobalShader.h:433).
+
+매크로가 심는 것 중 제일 중요한 줄 (Shader.h:1645-1656):
+
+```cpp
+static void ModifyCompilationEnvironmentImpl(...)
+{
+    const typename ShaderClass::FPermutationDomain PermutationVector(Parameters.PermutationId);
+    PermutationVector.ModifyCompilationEnvironment(OutEnvironment);   // ← 도메인이 #define 자동 생성
+    ShaderClass::ModifyCompilationEnvironment(..., OutEnvironment);   // ← 네가 손으로 쓴 것
+}
+```
+
+### 2b. 퍼뮤테이션 = 혼합 진법 숫자
+
+`ShaderPermutation.h` 전체가 이 시스템이다. 차원(dimension)을 매크로로 선언하고:
+
+```cpp
+class FTonemapperGammaOnlyDim : SHADER_PERMUTATION_BOOL("USE_GAMMA_ONLY");        // 2가지
+class FTonemapperLocalExposureDim : SHADER_PERMUTATION_INT("LOCAL_EXPOSURE_MODE", 3); // 3가지
+using FCommonDomain = TShaderPermutationDomain<FTonemapperGammaOnlyDim, ...>;    // 곱 = 총 개수
+```
+
+`TShaderPermutationDomain`은 컴파일 타임 cons-list이고, **퍼뮤테이션 ID는 그냥 각 차원 값을 혼합 진법으로 인코딩한 정수**다:
+
+```cpp
+// ShaderPermutation.h:488 — ID → 값들
+DimensionValue = FromDimensionValueId(PermutationId % TDimension::PermutationCount);
+Tail           = PermutationId / TDimension::PermutationCount;
+// :546 — 값들 → ID (역변환, 무손실)
+```
+
+각 차원이 자기 `#define`을 스스로 쓴다 (:378 `SetDefine(DefineName, value)`). .usf의 `#if USE_GAMMA_ONLY`는 소스에 정의된 적 없고 여기서 온다.
+
+실전 예: 톤매퍼(PostProcessTonemap.cpp:91-177)는 도메인 중첩으로 **1,536개** 퍼뮤테이션이 되고, `ShouldCompilePermutation`(:108)이 말 안 되는 조합("감마 온리인데 샤픈 켜짐" 등)을 쳐낸다.
+
+### 2c. 진짜 폭발: 머티리얼 × 버텍스 팩토리 × 퍼뮤테이션
+
+`FVertexFactoryType` (VertexFactory.h:314)은 "버텍스를 어떻게 가져오는가"의 타입 레지스트리다: LocalVertexFactory(스태틱 메시), GPUSkinVertexFactory(스켈레탈), Nanite, Landscape, 파티클...
+
+교차곱을 실체화하는 3중 루프 — `MaterialShader.cpp:3200-3332` `CreateLayout`:
+
+```
+for 버텍스팩토리타입:
+  for 메시머티리얼셰이더타입:
+    for 퍼뮤테이션ID:
+      if (3개의 ShouldCompile 게이트 통과) → 컴파일 잡 추가
+```
+
+머티리얼 하나가 수천 개 컴파일이 되는 이유이자, `ShouldCompilePermutation` 게이트들이 유일한 방어선인 이유다. 여기에 플랫폼 × 퀄리티 레벨이 또 곱해진다.
+
+### 2d. 컴파일 실행과 캐싱
+
+잡 하나의 환경 조립 순서 (`MeshMaterialShader.cpp:13-73` — 60줄, 제일 읽기 좋은 함수):
+
+```
+1. SharedEnvironment = 생성된 Material.ush          (머티리얼 번역 결과)
+2. 버텍스 팩토리의 ModifyCompilationEnvironment       (/Engine/Generated/VertexFactory.ush + VF define)
+3. 퍼뮤테이션 도메인 + 셰이더 클래스의 define
+4. GlobalBeginCompileShader                          (PIXELSHADER, SHADING_PATH_DEFERRED, CVar 파생 define)
+5. IShaderFormat::ModifyShaderCompilerInput           (COMPILER_DXC, SM6_PROFILE 등 플랫폼 define)
+```
+
+그 다음:
+- **전처리는 에디터 프로세스 안에서** (stb 기반 자체 전처리기, ShaderPreprocessor.cpp:705). `#if`/`#include`가 여기서 전부 해석된다. DXC에 도달하는 건 이미 펼쳐진 HLSL.
+- 전처리 결과를 해시 → `FShaderJobCache` (메모리 → DDC → 그래도 없으면 컴파일). 다른 머티리얼이라도 펼친 소스가 같으면 컴파일 1번 공유.
+- 실제 컴파일은 **ShaderCompileWorker.exe** 별도 프로세스 (통신은 파이프가 아니라 파일). 백엔드: SM6+는 DXC(dxcompiler.dll), SM5는 FXC, Vulkan은 DXC→SPIR-V.
+- 셰이더맵 단위 캐시 키 `FMaterialShaderMapId` (MaterialShared.h:1304)에는 .usf **소스 해시**가 들어간다 — .usf를 고치면 정확히 영향받는 셰이더만 리컴파일되는 원리. `ModifyCompilationEnvironment`의 define 결과까지 키에 해시로 들어간다 (MaterialShader.cpp:274-309).
+
+런타임엔 바이트코드만으론 부족하고 **PSO**(셰이더들 + 블렌드/뎁스/래스터 상태 + RT 포맷 묶음)가 필요하다. 3층 캐시: 인메모리 PSO 캐시(PipelineStateCache.cpp), 배포용 .upipelinecache, 그리고 자동 PSO 프리캐싱(PSOPrecacheMaterial.h — 컴포넌트가 보이기 전에 미리 비동기 생성).
+
+디버그 팁: `r.DumpShaderDebugInfo 1` → `Saved/ShaderDebugInfo`에 전처리된 최종 HLSL이 떨어진다. define 전체가 주석으로 붙어 있음.
+
+---
+
+## 3. GBuffer와 디퍼드 셰이딩
+
+### 3a. 개념
+
+포워드 렌더링은 "물체 그리면서 그 자리에서 조명까지 계산"이라 (물체 수 × 라이트 수)로 비용이 폭발한다. 디퍼드는 두 단계로 쪼갠다:
+
+1. **BasePass**: 물체를 그리면서 조명 계산에 필요한 **재료 정보만** 여러 장의 화면 크기 텍스처(=GBuffer)에 기록
+2. **Lighting**: 라이트마다 화면 공간에서 GBuffer를 읽어 조명 계산 → SceneColor에 덧셈 블렌딩으로 누적
+
+비용이 (화면 픽셀 수 × 라이트 수)로 바뀌고, 물체 수와 무관해진다.
+
+### 3b. 레이아웃 (이 포크 기준)
+
+논리적 뷰는 `FGBufferData` 구조체 (DeferredShadingCommon.ush:381), 실제 메모리 배치의 진실은 C++ 쪽 `GBufferInfo.cpp`의 `FetchLegacyGBufferInfo`(:362-550)다:
+
+```
+MRT[0] "SceneColor" 11_11_10 float ← 이미시브 + 간접광 누적 (GBuffer 아님, 최종 HDR 색의 시작점)
+MRT[1] GBufferA  10_10_10_2  ← rgb=월드노멀, a=오브젝트별 플래그 2비트
+MRT[2] GBufferB  8_8_8_8     ← r=Metallic g=Specular b=Roughness
+                                a = [ShadingModelID 4비트 | SelectiveOutputMask 4비트]  ★
+MRT[3] GBufferC  8_8_8_8(sRGB)← rgb=BaseColor, a=AO
+MRT[4+] Velocity / GBufferD(CustomData, 셰이딩모델별 자유 채널) / GBufferE(프리컴퓨티드 섀도) / GBufferF(탄젠트)
+```
+
+- ShadingModelID가 **4비트**라 셰이딩 모델은 최대 16개. 현재 이 포크는 `MSM_ToonLit = 14`까지 써서 **슬롯 1개 남음**.
+- `CustomData`(GBufferD)는 채널당 8비트 → 밴딩 주의. 네 ToonLit은 여기에 두 가지 모드로 인코딩한다 (ToonProfileCommon.ush:69-71): 일반 모드 `r=0, gb=패턴UV, a=프로필ID` / 특수 모드 `r=얼굴그림자, g=눈썹페이드, b=머티리얼ID, a=프로필ID`.
+- 인코딩 코드는 두 벌: 손으로 쓴 `EncodeGBuffer()` (DeferredShadingCommon.ush:970)와, `FGBufferInfo` 테이블에서 **코드 생성**되는 `EncodeGBufferToMRT()` (ShaderGenerationUtil.cpp:770 → `Intermediate/ShaderAutogen/.../AutogenShaderHeaders.ush`). 대부분의 구성에서 실제 컴파일되는 건 자동 생성 쪽.
+
+### 3c. BasePass가 GBuffer를 쓰는 흐름
+
+`BasePassPixelShader.usf`의 `FPixelShaderInOut_MainPS` (:910):
+
+```
+1. GetMaterialPixelParameters()          ← 버텍스 팩토리가 보간 데이터 → 구조체로
+2. CalcMaterialParameters()              ← 내부에서 CalcPixelMaterialInputs() 실행
+                                            = 네 머티리얼 그래프가 여기서 돈다!
+3. GetMaterialBaseColor/Roughness/... 로 값 추출
+4. FGBufferData GBuffer = (FGBufferData)0; 공통 필드 채움
+5. SetGBufferForShadingModel(...)        ← ShadingModelsMaterial.ush:13
+                                            셰이딩 모델별로 CustomData 채우는 분기
+                                            (ToonLit은 :211-238에서 EncodeToonLit*Data)
+6. EncodeGBufferToMRT(Out, GBuffer, ...) ← MRT[1..6]에 패킹해서 출력
+```
+
+### 3d. 라이팅 패스가 읽는 흐름
+
+`DeferredLightPixelShaders.usf` → `DeferredLightingCommon.ush`의 `AccumulateDynamicLighting`(:316)이 심장:
+
+```
+GBuffer 디코드 → 그림자 항 계산 → Lighting = IntegrateBxDF(GBuffer, N, V, ..., Shadow)
+```
+
+`IntegrateBxDF`가 `ShadingModels.ush`(~:1230)의 **셰이딩 모델 ID switch**다:
+
+```hlsl
+case SHADINGMODELID_DEFAULT_LIT: return DefaultLitBxDF(...);
+case SHADINGMODELID_CLOTH:       return ClothBxDF(...);
+case SHADINGMODELID_TOON_LIT:    return ToonLitBxDF(...);   // 네가 추가한 것 (:1065-1148)
+```
+
+케이스 하나 빠뜨리면 그 모델 픽셀이 검게 나온다. 오버로드가 여러 개(Rect/Capsule/레퍼런스)라 전부 챙겨야 함.
+
+네 `ToonLitBxDF` 동작: half-Lambert(`NoL*0.5+0.5`)로 감싼 NoL → SDF 얼굴 그림자로 `min()` → 툰 프로필 아틀라스의 램프 LUT 평가 → 셀 계단. 스페큘러는 GGX 결과를 스페큘러 램프로 양자화. 그림자도 밖에서 곱하지 않고 램프 안으로 접어서(DeferredLightingCommon.ush:358,383,418의 `bToonLit` 분기) 완전 그림자 영역도 "작가가 지정한 어두운 색"이 나오게 되어 있다.
+
+셰이딩 모델 추가 시 건드린 파일 전체 목록과 A→Z 절차는 리포 루트의 **`Tutorial_AddNewShadingModel.md`** 참고 (이 포크의 ToonLit 구현 그대로 정리된 한국어 가이드).
+
+검증 팁: 뷰포트 → 버퍼 시각화 → Shading Model. ToonLit은 주황색 `(1.0, 0.45, 0.0)` (`GetShadingModelColor`, ShadingCommon.ush:57 — 테이블이 **두 벌**이니 둘 다 수정).
+
+### 3e. SceneColor → 화면
+
+GBuffer는 화면에 절대 안 나간다. 라이트들이 SceneColor에 가산 블렌딩(LightRendering.cpp:3170)으로 누적 → 반투명/포그 합성 → `AddPostProcessingPasses`(PostProcessing.cpp:412): TSR/TAA → 블룸/DOF → 노출 → **톤매핑**(HDR 선형 → 디스플레이 + 감마 + 컬러 그레이딩 LUT) → 백버퍼 → Present.
+
+---
+
+## 4. 런타임: 게임 오브젝트에서 드로우콜까지
+
+### 4a. 3-스레드 모델과 오브젝트 3형제
+
+| 스레드 | 소유물 |
+|---|---|
+| 게임 스레드 | `AActor`, `UPrimitiveComponent` (UObject) |
+| 렌더 스레드 | `FScene`, `FPrimitiveSceneProxy`, RDG 그래프 |
+| RHI 스레드 | RHI 커맨드 → D3D12/Vulkan API 호출 |
+
+규칙: **게임 스레드는 렌더러 자료구조를 절대 직접 만지지 않는다.** 프록시 미러 객체 + 람다 큐잉(`ENQUEUE_RENDER_COMMAND`)으로만 소통. 그래서 총 지연이 ~2-3프레임.
+
+보이는 물체 하나당 객체 3개:
+
+```
+UPrimitiveComponent          (게임 스레드, 게임플레이 데이터)
+ └ FPrimitiveSceneProxy      (렌더 스레드용 미러 — CreateSceneProxy()로 생성, RendererScene.cpp:1455)
+    └ FPrimitiveSceneInfo    (FScene 내부 장부: 캐시된 드로우 커맨드, GPUScene 슬롯)
+```
+
+### 4b. FMeshBatch → FMeshDrawCommand
+
+- `FMeshBatch` = "이 지오메트리를 이 머티리얼로 그려줘"라는 **요청** (프록시가 만듦)
+- `FMeshDrawCommand` = PSO ID + 셰이더 바인딩 + 버텍스/인덱스 스트림까지 다 해석된 **컴파일된 답**
+- `FMeshPassProcessor` = 그 사이의 번역기 (패스별로 하나씩, 예: `FBasePassMeshProcessor`, BasePassRendering.cpp:1922)
+
+두 경로:
+- **정적 경로 (대부분의 스태틱 메시)**: 씬에 추가될 때 `FPrimitiveSceneInfo::CacheMeshDrawCommands`(PrimitiveSceneInfo.cpp:583)가 모든 패스의 프로세서를 **한 번만** 돌려서 커맨드를 구움. 매 프레임엔 가시성 판정 후 포인터만 수집.
+- **동적 경로 (스켈레탈, 파티클)**: 매 프레임 `GetDynamicMeshElements()` 호출 → 갓 만든 배치에 같은 프로세서 실행.
+
+### 4c. 프레임 해부 — FDeferredShadingSceneRenderer::Render
+
+`DeferredShadingRenderer.cpp:1822`. 주요 순서:
+
+```
+InitViews (컬링/가시성/동적 수집)
+→ PrePass (뎁스만) → Nanite 래스터 → 오클루전
+→ ShadowDepths → Lumen 씬 라이팅
+→ BasePass (:3059)              ← GBuffer 채움
+→ DiffuseIndirect/AO → RenderLights (:3467)   ← GBuffer 읽어서 SceneColor 누적
+→ Translucency → PostProcessing (:4311, 톤맵)
+```
+
+### 4d. RDG (Render Dependency Graph)
+
+`FRDGBuilder` — `AddPass()`는 실행이 아니라 **노드 기록**이다. 프레임 전체를 먼저 서술하고 `Execute()`에서 컴파일→컬링→실행. 얻는 것: 리소스 배리어 자동 삽입, 수명 안 겹치는 텍스처의 메모리 앨리어싱, 안 읽히는 패스 제거, 비동기 컴퓨트 스케줄링.
+
+패턴 (BasePassRendering.cpp:1546):
+
+```cpp
+auto* PassParameters = GraphBuilder.AllocParameters<FOpaqueBasePassParameters>();
+PassParameters->RenderTargets = BasePassRenderTargets;   // GBuffer MRT 바인딩
+GraphBuilder.AddPass(RDG_EVENT_NAME("BasePass"), PassParameters, ERDGPassFlags::Raster,
+    [...](FRDGAsyncTask, FRHICommandList& RHICmdList)
+    {
+        Pass->Draw(RHICmdList, ...);   // ← 진짜 RHI 호출은 이 람다 안에서만
+    });
+```
+
+**람다 밖은 "서술", 람다 안은 "실행"** — 이게 RDG의 경계다.
+
+### 4e. 드로우콜의 마지막 순간
+
+```
+FParallelMeshDrawCommandPass::Draw
+ → FMeshDrawCommand::SubmitDrawBegin (MeshPassProcessor.cpp:1248)
+     :1297 SetGraphicsPipelineStateCheckApply  ← PSO 바인딩 (상태 캐시로 중복 스킵)
+     :1327 ShaderBindings.SetOnCommandList     ← 셰이더 파라미터 바인딩
+ → SubmitDrawEnd
+     :1350 RHICmdList.DrawIndexedPrimitive(...)
+ → RHI 스레드 → D3D12Commands.cpp:1274 DrawIndexedInstanced(...)  ← 생 D3D12 호출
+```
+
+커맨드가 32비트 PSO ID를 들고 있는 이유: PSO별 정렬(상태 변경 최소화)과 동일 커맨드 병합(다이내믹 인스턴싱)을 정수 비교로 하기 위해.
+
+---
+
+## 5. 한 줄 타임라인 — "머티리얼 저장 버튼을 누르면"
+
+1. `UMaterial` 그래프 → `FHLSLMaterialTranslator`가 출력 핀에서 재귀로 코드 청크 수집
+2. 청크들이 `MaterialTemplate.ush`의 `%{...}` 슬롯을 채워 `/Engine/Generated/Material.ush` 가상 파일 생성
+3. (셰이더타입 × 버텍스팩토리 × 퍼뮤테이션) 조합마다 컴파일 잡 생성, `ShouldCompile*` 게이트로 가지치기
+4. 에디터 안에서 전처리 → 해시 → 캐시 히트면 끝, 미스면 ShaderCompileWorker → DXC → 바이트코드 → DDC 저장
+5. 셰이더맵 완성 → 이 머티리얼을 쓰는 프리미티브들의 캐시된 `FMeshDrawCommand` 재생성
+6. 다음 프레임: BasePass에서 네 그래프(=CalcPixelMaterialInputs)가 실행되어 GBuffer에 기록
+7. 라이팅 패스가 ShadingModelID로 분기해 BxDF 실행 → SceneColor → 톤맵 → 화면
+
+---
+
+## 6. 추천 읽기 순서 (C++ 초보 기준)
+
+1. `Engine/Shaders/Private/MaterialTemplate.ush` — `%{...}` 훑어보기. 생성기보다 타깃을 먼저 이해
+2. `MaterialShared.cpp:3672` `FMaterial::Translate` — 20줄로 보는 전체 갈림길
+3. `MaterialExpressions.cpp:4708` `UMaterialExpressionAdd::Compile` — 가장 단순한 노드
+4. `HLSLMaterialTranslator.cpp:2691` `GetSharedInputsMaterialCode` — "그래프가 구조체가 되는" 순간
+5. `PostProcessTonemap.cpp:88-511` + 그 .usf — 셰이더 하나, 퍼뮤테이션, `#if`를 한 세트로
+6. `MeshMaterialShader.cpp:13-73` — 컴파일 환경 조립 순서 60줄
+7. `MaterialShader.cpp:3200-3332` — 조합 폭발이 코드로 명시된 곳
+8. `BasePassPixelShader.usf:910~` → `ShadingModelsMaterial.ush` → `ShadingModels.ush` — GBuffer 쓰기/읽기 왕복
+9. `MaterialIRModuleBuilder.cpp:1559` `Build` — 주석만 읽어도 컴파일러 수업 한 편
+10. 리포 루트 `Tutorial_AddNewShadingModel.md` — 이 모든 걸 ToonLit 실전으로 묶은 문서
+
+## 7. 실용 메모
+
+- .ush/.usf만 고쳤으면 에디터에서 `recompileshaders changed` (Ctrl+Shift+.)로 충분. `EngineTypes.h`나 번역기 define을 건드리면 C++ 풀 빌드 + 에디터 재시작.
+- 셰이딩 모델 enum 슬롯 **1개 남음** (4비트 한계, MSM_NUM=15/16).
+- HLSL의 `SHADINGMODELID_*`와 C++의 `EMaterialShadingModel` 숫자가 어긋나면 조용히 엉뚱한 모델로 렌더링됨.
+- GBuffer 레이아웃(GBufferInfo.cpp)을 바꾸면 자동 생성 헤더 + DDC 키가 리컴파일을 알아서 처리하지만, 손으로 쓴 `EncodeGBuffer`/`DecodeGBufferData`(DeferredShadingCommon.ush)도 동기화해야 함.
