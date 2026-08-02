@@ -29,6 +29,7 @@ UE5.8 커스텀 엔진(툰 쉐이딩) 작업과 관련된 학습/구현 문서 �
 ## 폴더 구조
 
 - 루트: 문서(md 6종) + 진입점(`테크아트 라이브러리.html`, 그래픽스 랩 내장)
+- `graphics-lab/`: 그래픽스 파운데이션 랩 원본 소스 (index.html + js). 단독 실행도 가능합니다.
 - `scripts/`: 자동화 스크립트 (스냅샷 동기화, GitHub 자동 푸시, 그래픽스 랩 번들링)
 
-그래픽스 랩의 원본은 `C:\HKP\OneDrive - 계원예술대학교\Portfolio\AntiGravity\CppStudy\GraphicsFoundationsLab`이며, 원본을 수정한 뒤 `scripts\Bundle-GraphicsLab.ps1`을 실행하면 라이브러리에 다시 주입됩니다.
+그래픽스 랩의 원본은 `graphics-lab/` 폴더이며, 수정한 뒤 `scripts\Bundle-GraphicsLab.ps1`을 실행하면 라이브러리에 다시 주입됩니다.

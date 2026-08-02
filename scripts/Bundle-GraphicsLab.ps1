@@ -1,9 +1,9 @@
-﻿# GraphicsFoundationsLab 원본 JS를 하나로 묶어 "테크아트 라이브러리.html"의 랩 번들 구간에 주입하는 스크립트입니다.
-# 원본을 수정한 뒤 이 스크립트를 실행하면 라이브러리에 반영됩니다.
+﻿# graphics-lab 원본 JS를 하나로 묶어 "테크아트 라이브러리.html"의 랩 번들 구간에 주입하는 스크립트입니다.
+# 원본(리포 내 graphics-lab 폴더)을 수정한 뒤 이 스크립트를 실행하면 라이브러리에 반영됩니다.
 $ErrorActionPreference = "Stop"
 
-$srcRoot  = "C:\HKP\OneDrive - 계원예술대학교\Portfolio\AntiGravity\CppStudy\GraphicsFoundationsLab"
 $docRoot  = Split-Path -Parent $PSScriptRoot
+$srcRoot  = Join-Path $docRoot "graphics-lab"
 $htmlPath = Join-Path $docRoot "테크아트 라이브러리.html"
 
 # index.html의 로드 순서 그대로 (전역 스크립트라 순서가 중요합니다)
