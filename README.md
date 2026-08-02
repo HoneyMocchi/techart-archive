@@ -22,5 +22,10 @@ UE5.8 커스텀 엔진(툰 쉐이딩) 작업과 관련된 학습/구현 문서 �
 
 ## 열람 방법
 
-- **웹 라이브러리**: `ue-study-library.html` — 로컬 HTTP 서버(VSCode Live Preview 등)로 열면 md 수정이 자동 반영됩니다. file://로 열 때는 `Sync-StudyLibrary.ps1`로 내장 스냅샷을 갱신합니다.
-- **모바일**: GitHub 앱에서 이 리포를 열면 md가 렌더링됩니다. PC에서 저장하면 최대 5분 내 자동 푸시됩니다(`AutoPush-Docs.ps1` + 스케줄 작업 "MainDev Docs AutoPush").
+- **웹 라이브러리**: `테크아트 라이브러리.html` — 로컬 HTTP 서버(VSCode Live Preview 등)로 열면 md 수정이 자동 반영됩니다. file://로 열 때는 `scripts\Sync-StudyLibrary.ps1`로 내장 스냅샷을 갱신합니다.
+- **모바일**: GitHub 앱에서 이 리포를 열면 md가 렌더링됩니다. PC에서 저장하면 최대 5분 내 자동 푸시됩니다(`scripts\AutoPush-Docs.ps1` + 스케줄 작업 "MainDev Docs AutoPush").
+
+## 폴더 구조
+
+- 루트: 문서(md 6종) + 진입점(`테크아트 라이브러리.html`)
+- `scripts/`: 자동화 스크립트 (스냅샷 동기화, GitHub 자동 푸시)

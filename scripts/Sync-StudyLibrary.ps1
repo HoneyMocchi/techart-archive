@@ -1,10 +1,10 @@
-﻿# ue-study-library.html에 내장된 md 스냅샷을 같은 폴더의 실제 md 파일 내용으로 갱신하는 스크립트입니다.
+﻿# "테크아트 라이브러리.html"에 내장된 md 스냅샷을 실제 md 파일 내용으로 갱신하는 스크립트입니다.
 # 로컬 HTTP 서버로 열면 스냅샷과 무관하게 항상 md 파일이 직접 로드되므로,
 # 이 스크립트는 file:// 로 열 때와 아티팩트 재배포용 스냅샷을 맞출 때만 필요합니다.
 $ErrorActionPreference = "Stop"
 
-$root = $PSScriptRoot
-$htmlPath = Join-Path $root "ue-study-library.html"
+$root = Split-Path -Parent $PSScriptRoot   # scripts의 상위 = Documentation 루트
+$htmlPath = Join-Path $root "테크아트 라이브러리.html"
 $html = [System.IO.File]::ReadAllText($htmlPath)
 
 $docs = [ordered]@{

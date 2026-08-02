@@ -1,6 +1,6 @@
 # Documentation 폴더의 변경사항을 자동으로 커밋/푸시하는 스크립트입니다 (윈도우 스케줄 작업이 5분마다 실행).
 $ErrorActionPreference = "SilentlyContinue"
-$repo = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repo = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)   # scripts의 상위 = 리포 루트
 Set-Location $repo
 
 $status = git status --porcelain
