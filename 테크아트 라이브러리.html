@@ -501,6 +501,223 @@
   .toc a:hover { color: var(--ink); }
   .toc a.current { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
+  /* ---------- Graphics Lab ---------- */
+  .content.wide { max-width: 76rem; }
+
+  .lab-nav-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 20px 0 24px;
+  }
+  .lab-topics { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+  .lab-topics button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .lab-topics button:hover { border-color: var(--accent); color: var(--ink); }
+  .lab-topics button:focus-visible, .icon-btn:focus-visible, .play-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .lab-topics button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .lab-topics button .num { font-size: 10px; font-weight: 800; opacity: 0.65; }
+  .lab-topics button .desc { display: none; }
+  .lab-pager { display: flex; gap: 6px; }
+  .icon-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: border-color 0.12s;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+
+  .lesson { display: none; }
+  .lesson.active { display: block; }
+  .lesson .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--warm);
+    margin: 0 0 10px;
+  }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 14px;
+    align-items: start;
+    margin: 1.2em 0;
+  }
+  .visual-panel {
+    background: #0e1621;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .visual-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: #e8eef7;
+    font-size: 12.5px;
+    margin-bottom: 10px;
+  }
+  .visual-toolbar span { color: #99a7b8; }
+  .visual-canvas {
+    width: 100%;
+    height: 400px;
+    display: block;
+    border-radius: 8px;
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  .control-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .control-group {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .control-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .control { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .control-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .control-row output { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+  .control input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+  .segmented { display: flex; gap: 6px; flex-wrap: wrap; }
+  .segmented label {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .segmented label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .segmented input { accent-color: var(--accent); margin: 0; }
+  .play-toggle {
+    appearance: none;
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .play-toggle.active { background: var(--accent); color: var(--bg); }
+  .drag-hint { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 1.1em 0;
+  }
+  .metric {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .metric span { font-size: 11.5px; color: var(--muted); }
+  .metric strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+  .note-panel {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--warm);
+    background: var(--surface);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 18px;
+    margin: 1.1em 0;
+    box-shadow: var(--shadow);
+  }
+  .note-panel p { margin: 0.5em 0; }
+  .formula { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  .step-panel, .matrix-breakdown {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 1.1em 0;
+    box-shadow: var(--shadow);
+  }
+  .step-grid, .matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .step-card, .matrix-card {
+    border: 1px solid var(--line);
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
+    min-width: 0;
+  }
+  .step-index { font-size: 10.5px; font-weight: 800; color: var(--accent); }
+  .step-card code { font-size: 11.5px; }
+  .matrix-card pre {
+    margin: 0;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-x: auto;
+    font-family: "Cascadia Code", "JetBrains Mono", "D2Coding", Consolas, monospace;
+  }
+
+  @media (max-width: 980px) {
+    .workspace { grid-template-columns: 1fr; }
+    .visual-canvas { height: 340px; }
+  }
+
   /* ---------- Mobile ---------- */
   .menu-btn {
     display: none;
@@ -581,6 +798,10 @@
         <button data-doc="toonlit"><span class="tick"></span>ToonLit 구현</button>
       </div>
       <div class="group">
+        <div class="group-label">인터랙티브 랩</div>
+        <button data-doc="graphics-lab"><span class="tick"></span>그래픽스 파운데이션 랩</button>
+      </div>
+      <div class="group">
         <div class="group-label">빌드 환경</div>
         <button data-doc="compile-perf"><span class="tick"></span>컴파일 성능 노트</button>
       </div>
@@ -629,6 +850,11 @@
             <div class="t">렌더링 내부구조 스터디</div>
             <div class="d">머티리얼 작성부터 화면 출력까지 — 머티리얼 번역, 셰이더 컴파일, 패스 구성 전체 흐름을 다룹니다.</div>
           </a>
+          <a class="card" href="#graphics-lab" data-doc="graphics-lab">
+            <div class="cat">인터랙티브 랩</div>
+            <div class="t">그래픽스 파운데이션 랩</div>
+            <div class="d">벡터·삼각함수·내적/외적·행렬 변환·투영·래스터화·텍스처·라이팅·GPU를 슬라이더와 캔버스로 직접 실험합니다.</div>
+          </a>
           <a class="card" href="#compile-perf" data-doc="compile-perf">
             <div class="cat">빌드 환경</div>
             <div class="t">엔진 컴파일 성능 노트</div>
@@ -646,7 +872,7 @@
         </ol>
 
         <h2>md 파일과의 동기화</h2>
-        <p>이 페이지의 문서 6종은 같은 폴더의 md 파일이 원본입니다. 로컬 HTTP 서버(예: VSCode Live Preview)로 열면 md 수정이 자동으로 반영되고, 파일로 직접 열 때(file://)는 내장 스냅샷이 표시되므로 <code>scripts\Sync-StudyLibrary.ps1</code>을 실행해 스냅샷을 갱신하면 됩니다.</p>
+        <p>이 페이지의 문서 6종은 같은 폴더의 md 파일이 원본입니다. 로컬 HTTP 서버(예: VSCode Live Preview)로 열면 md 수정이 자동으로 반영되고, 파일로 직접 열 때(file://)는 내장 스냅샷이 표시되므로 <code>scripts\Sync-StudyLibrary.ps1</code>을 실행해 스냅샷을 갱신하면 됩니다. 그래픽스 파운데이션 랩은 이 HTML에 내장되어 있으며, 원본(JS)을 수정한 경우 <code>scripts\Bundle-GraphicsLab.ps1</code>로 다시 주입합니다.</p>
       </article>
 
       <!-- ============================== 동적 렌더링 문서 ============================== -->
@@ -673,6 +899,22 @@
       <article class="doc" id="doc-compile-perf" data-title="엔진 컴파일 성능 노트">
         <p class="doc-eyebrow">Build Environment</p>
         <div class="md-body"></div>
+      </article>
+
+      <!-- ============================== GRAPHICS LAB (인터랙티브) ============================== -->
+      <article class="doc" id="doc-graphics-lab" data-title="그래픽스 파운데이션 랩">
+        <p class="doc-eyebrow">Interactive Lab</p>
+        <h1>그래픽스 파운데이션 랩</h1>
+        <p class="lead">그래픽스 입문에 필요한 수학과 컴퓨터 지식을 실험 단위로 정리한 인터랙티브 노트입니다. 슬라이더를 움직이거나 캔버스를 드래그하면 값이 바로 바뀝니다.</p>
+        <div class="lab-nav-row">
+          <nav class="lab-topics" id="topicNav" aria-label="학습 주제"></nav>
+          <div class="lab-pager">
+            <button class="icon-btn" id="prevTopic" type="button" aria-label="이전 주제">←</button>
+            <button class="icon-btn" id="nextTopic" type="button" aria-label="다음 주제">→</button>
+          </div>
+        </div>
+        <div id="lessonRoot"></div>
+        <span id="currentTopic" hidden></span>
       </article>
 
       <nav class="pager" id="pager"></nav>
@@ -1890,9 +2132,1900 @@ FParallelMeshDrawCommandPass::Draw
 - GBuffer 레이아웃(GBufferInfo.cpp)을 바꾸면 자동 생성 헤더 + DDC 키가 리컴파일을 알아서 처리하지만, 손으로 쓴 `EncodeGBuffer`/`DecodeGBufferData`(DeferredShadingCommon.ush)도 동기화해야 합니다.
 </script>
 
+<!-- LAB_BUNDLE_START -->
+<script id="labBundle">
+(function () {
+/* ===== js\sections\registry.js ===== */
+const lessonSectionTemplates = [];
+
+function registerLessonSection(markup) {
+  lessonSectionTemplates.push(markup.trim());
+}
+
+function renderLessonSections() {
+  document.getElementById("lessonRoot").innerHTML = lessonSectionTemplates.join("\n\n");
+}
+
+/* ===== js\sections\vector.js ===== */
+registerLessonSection(String.raw`<section class="lesson active" id="lesson-vector" data-topic="vector" data-title="벡터와 좌표" data-desc="방향, 길이, 성분">
+  <div class="lesson-head">
+    <p class="eyebrow">Math 01</p>
+    <h1>벡터와 좌표</h1>
+    <p class="lead">점은 위치이고 벡터는 변화량입니다. 이동, 속도, 노멀, 라이트 방향, 카메라 방향은 대부분 벡터로 표현됩니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>2D 좌표계와 성분 분해</strong><span>x, y 성분과 단위 벡터</span></div>
+      <canvas class="visual-canvas" id="vectorCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">벡터</div>
+        <label class="control">
+          <span class="control-row">각도 <output data-value-for="vector.angle"></output></span>
+          <input type="range" min="-180" max="180" step="1" data-bind="vector.angle" />
+        </label>
+        <label class="control">
+          <span class="control-row">길이 <output data-value-for="vector.length"></output></span>
+          <input type="range" min="0.5" max="6" step="0.1" data-bind="vector.length" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">좌표 격자</div>
+        <label class="control">
+          <span class="control-row">확대 <output data-value-for="vector.zoom"></output></span>
+          <input type="range" min="32" max="62" step="1" data-bind="vector.zoom" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="vectorMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="vectorNote"></p>
+    <div class="formula">
+      <code>v = (x, y)</code>
+      <code>|v| = sqrt(x*x + y*y)</code>
+      <code>normalize(v) = v / |v|</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\trig.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-trig" data-topic="trig" data-title="삼각함수와 회전" data-desc="sin, cos, radian">
+  <div class="lesson-head">
+    <p class="eyebrow">Math 02</p>
+    <h1>삼각함수와 회전</h1>
+    <p class="lead">sin과 cos는 원 위의 점을 x/y 좌표로 풀어내는 함수입니다. 회전, 파동, 애니메이션 타이밍, 원형 카메라 이동의 기본이 됩니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>단위원과 파형</strong><span>각도와 라디안, sin/cos 값</span></div>
+      <canvas class="visual-canvas" id="trigCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">각도</div>
+        <label class="control">
+          <span class="control-row">도 단위 <output data-value-for="trig.angle"></output></span>
+          <input type="range" min="0" max="360" step="1" data-bind="trig.angle" />
+        </label>
+        <label class="control">
+          <span class="control-row">반지름 <output data-value-for="trig.radius"></output></span>
+          <input type="range" min="0.5" max="1.6" step="0.05" data-bind="trig.radius" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">파형</div>
+        <label class="control">
+          <span class="control-row">주기 배율 <output data-value-for="trig.frequency"></output></span>
+          <input type="range" min="0.5" max="3" step="0.1" data-bind="trig.frequency" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="trigMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="trigNote"></p>
+    <div class="formula">
+      <code>x = cos(theta) * r</code>
+      <code>y = sin(theta) * r</code>
+      <code>radian = degree * PI / 180</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\dotcross.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-dotcross" data-topic="dotcross" data-title="내적과 외적" data-desc="방향성, 투영, 면적">
+  <div class="lesson-head">
+    <p class="eyebrow">Math 03</p>
+    <h1>내적과 외적</h1>
+    <p class="lead">내적은 두 방향이 얼마나 같은 쪽을 보는지, 외적은 두 벡터가 만드는 회전 방향과 면적이 얼마나 큰지를 보여줍니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>방향성, 투영, 회전 방향</strong><span>dot과 cross.z</span></div>
+      <canvas class="visual-canvas" id="dotCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">벡터 A</div>
+        <label class="control">
+          <span class="control-row">각도 <output data-value-for="dotcross.aAngle"></output></span>
+          <input type="range" min="-180" max="180" step="1" data-bind="dotcross.aAngle" />
+        </label>
+        <label class="control">
+          <span class="control-row">길이 <output data-value-for="dotcross.aLength"></output></span>
+          <input type="range" min="1" max="5.5" step="0.1" data-bind="dotcross.aLength" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">벡터 B</div>
+        <label class="control">
+          <span class="control-row">각도 <output data-value-for="dotcross.bAngle"></output></span>
+          <input type="range" min="-180" max="180" step="1" data-bind="dotcross.bAngle" />
+        </label>
+        <label class="control">
+          <span class="control-row">길이 <output data-value-for="dotcross.bLength"></output></span>
+          <input type="range" min="1" max="5.5" step="0.1" data-bind="dotcross.bLength" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="dotMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="dotNote"></p>
+    <div class="formula">
+      <code>dot(a,b) = |a||b|cos(theta)</code>
+      <code>cross.z(a,b) = ax*by - ay*bx</code>
+      <code>projection = dot(b, unitA)</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\transform.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-transform" data-topic="transform" data-title="행렬 변환" data-desc="scale, rotate, translate">
+  <div class="lesson-head">
+    <p class="eyebrow">Math 04</p>
+    <h1>행렬 변환</h1>
+    <p class="lead">모델의 점들은 스케일, 회전, 이동을 거쳐 월드 좌표로 갑니다. 행렬은 이 과정을 숫자 표 하나로 묶어 GPU에 보내기 좋게 만듭니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>모델 공간에서 월드 공간으로</strong><span>TRS 변환과 3x3 행렬</span></div>
+      <canvas class="visual-canvas" id="transformCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">스케일</div>
+        <label class="control">
+          <span class="control-row">X <output data-value-for="transform.scaleX"></output></span>
+          <input type="range" min="0.25" max="2.2" step="0.05" data-bind="transform.scaleX" />
+        </label>
+        <label class="control">
+          <span class="control-row">Y <output data-value-for="transform.scaleY"></output></span>
+          <input type="range" min="0.25" max="2.2" step="0.05" data-bind="transform.scaleY" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">회전과 이동</div>
+        <label class="control">
+          <span class="control-row">회전 <output data-value-for="transform.rotation"></output></span>
+          <input type="range" min="-180" max="180" step="1" data-bind="transform.rotation" />
+        </label>
+        <label class="control">
+          <span class="control-row">이동 X <output data-value-for="transform.tx"></output></span>
+          <input type="range" min="-3" max="3" step="0.1" data-bind="transform.tx" />
+        </label>
+        <label class="control">
+          <span class="control-row">이동 Y <output data-value-for="transform.ty"></output></span>
+          <input type="range" min="-2.5" max="2.5" step="0.1" data-bind="transform.ty" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="transformMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="transformNote"></p>
+    <div class="formula">
+      <code>worldPos = T * R * S * localPos</code>
+      <code>determinant = scaleX * scaleY</code>
+      <code>homogeneous point = (x, y, 1)</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\projection.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-projection" data-topic="projection" data-title="카메라와 투영" data-desc="view, FOV, NDC">
+  <div class="lesson-head">
+    <p class="eyebrow">Math 05</p>
+    <h1>카메라와 투영</h1>
+    <p class="lead">3D 점은 카메라 기준 좌표로 바뀐 뒤 화면 평면에 투영됩니다. 가까운 물체가 커지는 이유는 x와 y가 깊이 z로 나누어지기 때문입니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>3D 큐브의 화면 투영</strong><span>perspective와 orthographic</span></div>
+      <canvas class="visual-canvas" id="projectionCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">카메라</div>
+        <label class="control">
+          <span class="control-row">FOV <output data-value-for="projection.fov"></output></span>
+          <input type="range" min="25" max="105" step="1" data-bind="projection.fov" />
+        </label>
+        <label class="control">
+          <span class="control-row">거리 <output data-value-for="projection.distance"></output></span>
+          <input type="range" min="3" max="9" step="0.1" data-bind="projection.distance" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">오브젝트</div>
+        <label class="control">
+          <span class="control-row">Yaw <output data-value-for="projection.yaw"></output></span>
+          <input type="range" min="-70" max="70" step="1" data-bind="projection.yaw" />
+        </label>
+        <div class="segmented">
+          <label>
+            <input type="radio" name="projectionMode" value="perspective" data-bind="projection.mode" />
+            <span>Perspective</span>
+          </label>
+          <label>
+            <input type="radio" name="projectionMode" value="orthographic" data-bind="projection.mode" />
+            <span>Ortho</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="projectionMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="projectionNote"></p>
+    <div class="formula">
+      <code>clipPos = Projection * View * World * localPos</code>
+      <code>ndc.xy = clip.xy / clip.w</code>
+      <code>perspective scale = 1 / z</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\raster.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-raster" data-topic="raster" data-title="래스터화와 보간" data-desc="pixel, barycentric">
+  <div class="lesson-head">
+    <p class="eyebrow">Computer 01</p>
+    <h1>래스터화와 보간</h1>
+    <p class="lead">삼각형은 픽셀 격자 위에서 샘플링됩니다. 픽셀이 삼각형 안에 있으면 barycentric weight로 색, UV, 노멀 같은 값을 섞습니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>픽셀 격자와 barycentric weight</strong><span>삼각형 내부 판정과 색 보간</span></div>
+      <canvas class="visual-canvas" id="rasterCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">샘플 위치</div>
+        <label class="control">
+          <span class="control-row">X <output data-value-for="raster.sampleX"></output></span>
+          <input type="range" min="0" max="100" step="1" data-bind="raster.sampleX" />
+        </label>
+        <label class="control">
+          <span class="control-row">Y <output data-value-for="raster.sampleY"></output></span>
+          <input type="range" min="0" max="100" step="1" data-bind="raster.sampleY" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">격자</div>
+        <label class="control">
+          <span class="control-row">해상도 <output data-value-for="raster.resolution"></output></span>
+          <input type="range" min="10" max="34" step="1" data-bind="raster.resolution" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="rasterMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="rasterNote"></p>
+    <div class="formula">
+      <code>inside = w0 >= 0 && w1 >= 0 && w2 >= 0</code>
+      <code>color = c0*w0 + c1*w1 + c2*w2</code>
+      <code>fragment = covered pixel sample</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\texture.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-texture" data-topic="texture" data-title="UV와 텍스처 샘플링" data-desc="UV, wrap, filtering">
+  <div class="lesson-head">
+    <p class="eyebrow">Computer 02</p>
+    <h1>UV와 텍스처 샘플링</h1>
+    <p class="lead">UV는 표면 위 좌표를 텍스처 이미지 좌표에 연결합니다. 필터링 방식이 바뀌면 같은 UV라도 색을 읽는 방식이 달라집니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>텍셀, UV 반복, 필터</strong><span>nearest와 bilinear 비교</span></div>
+      <canvas class="visual-canvas" id="textureCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">UV</div>
+        <label class="control">
+          <span class="control-row">U <output data-value-for="texture.u"></output></span>
+          <input type="range" min="0" max="1" step="0.01" data-bind="texture.u" />
+        </label>
+        <label class="control">
+          <span class="control-row">V <output data-value-for="texture.v"></output></span>
+          <input type="range" min="0" max="1" step="0.01" data-bind="texture.v" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">샘플링</div>
+        <label class="control">
+          <span class="control-row">반복 <output data-value-for="texture.tiling"></output></span>
+          <input type="range" min="1" max="8" step="1" data-bind="texture.tiling" />
+        </label>
+        <div class="segmented">
+          <label>
+            <input type="radio" name="textureFilter" value="nearest" data-bind="texture.filter" />
+            <span>Nearest</span>
+          </label>
+          <label>
+            <input type="radio" name="textureFilter" value="bilinear" data-bind="texture.filter" />
+            <span>Bilinear</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="textureMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="textureNote"></p>
+    <div class="formula">
+      <code>texel = texture[wrap(uv * tiling)]</code>
+      <code>nearest = closest texel</code>
+      <code>bilinear = lerp four texels</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\lighting.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-lighting" data-topic="lighting" data-title="노멀과 조명" data-desc="Lambert, specular">
+  <div class="lesson-head">
+    <p class="eyebrow">Math 06</p>
+    <h1>노멀과 조명</h1>
+    <p class="lead">표면 노멀과 빛 방향의 내적이 밝기를 만듭니다. 여기에 시선 방향과 하프 벡터를 더하면 하이라이트를 설명할 수 있습니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>Lambert diffuse와 specular</strong><span>노멀, 라이트, 뷰 방향</span></div>
+      <canvas class="visual-canvas" id="lightingCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">방향</div>
+        <label class="control">
+          <span class="control-row">빛 각도 <output data-value-for="lighting.lightAngle"></output></span>
+          <input type="range" min="-180" max="180" step="1" data-bind="lighting.lightAngle" />
+        </label>
+        <label class="control">
+          <span class="control-row">표면 노멀 <output data-value-for="lighting.normalAngle"></output></span>
+          <input type="range" min="-90" max="90" step="1" data-bind="lighting.normalAngle" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">재질</div>
+        <label class="control">
+          <span class="control-row">거칠기 <output data-value-for="lighting.roughness"></output></span>
+          <input type="range" min="0.05" max="1" step="0.01" data-bind="lighting.roughness" />
+        </label>
+        <label class="control">
+          <span class="control-row">환경광 <output data-value-for="lighting.ambient"></output></span>
+          <input type="range" min="0" max="0.45" step="0.01" data-bind="lighting.ambient" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="lightingMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="lightingNote"></p>
+    <div class="formula">
+      <code>diffuse = max(dot(N, L), 0)</code>
+      <code>halfVector = normalize(L + V)</code>
+      <code>specular = max(dot(N, H), 0)^power</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\gpu.js ===== */
+registerLessonSection(String.raw`<section class="lesson" id="lesson-gpu" data-topic="gpu" data-title="GPU 파이프라인과 메모리" data-desc="buffer, shader, bandwidth">
+  <div class="lesson-head">
+    <p class="eyebrow">Computer 03</p>
+    <h1>GPU 파이프라인과 메모리</h1>
+    <p class="lead">그래픽스 코드는 점, 삼각형, 픽셀, 텍스처를 거대한 배열로 다룹니다. 데이터 양과 처리 단계가 성능 감각의 출발점입니다.</p>
+  </div>
+  <div class="workspace">
+    <div class="visual-panel">
+      <div class="visual-toolbar"><strong>데이터 흐름과 작업량</strong><span>vertex, fragment, framebuffer</span></div>
+      <canvas class="visual-canvas" id="gpuCanvas"></canvas>
+    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-title">화면</div>
+        <label class="control">
+          <span class="control-row">가로 픽셀 <output data-value-for="gpu.width"></output></span>
+          <input type="range" min="640" max="3840" step="80" data-bind="gpu.width" />
+        </label>
+        <label class="control">
+          <span class="control-row">세로 픽셀 <output data-value-for="gpu.height"></output></span>
+          <input type="range" min="360" max="2160" step="45" data-bind="gpu.height" />
+        </label>
+        <label class="control">
+          <span class="control-row">오버드로우 <output data-value-for="gpu.overdraw"></output></span>
+          <input type="range" min="1" max="4" step="0.1" data-bind="gpu.overdraw" />
+        </label>
+      </div>
+      <div class="control-group">
+        <div class="control-title">지오메트리</div>
+        <label class="control">
+          <span class="control-row">정점 수 <output data-value-for="gpu.vertices"></output></span>
+          <input type="range" min="1000" max="200000" step="1000" data-bind="gpu.vertices" />
+        </label>
+        <label class="control">
+          <span class="control-row">삼각형 수 <output data-value-for="gpu.triangles"></output></span>
+          <input type="range" min="1000" max="300000" step="1000" data-bind="gpu.triangles" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="metrics" id="gpuMetrics"></div>
+  <div class="note-panel">
+    <strong>핵심 감각</strong>
+    <p id="gpuNote"></p>
+    <div class="formula">
+      <code>framebuffer bytes = width * height * 4</code>
+      <code>fragment work = pixels * overdraw</code>
+      <code>vertex buffer ≈ vertices * bytesPerVertex</code>
+    </div>
+  </div>
+</section>`);
+
+
+/* ===== js\sections\render.js ===== */
+renderLessonSections();
+
+
+/* ===== js\common\state.js ===== */
+const state = {
+  active: 0,
+  vector: { angle: 34, length: 4.2, zoom: 45 },
+  trig: { angle: 48, radius: 1, frequency: 1 },
+  dotcross: { aAngle: -12, aLength: 4.2, bAngle: 58, bLength: 3.8 },
+  transform: { scaleX: 1.15, scaleY: 0.75, rotation: 34, tx: 1.1, ty: -0.6 },
+  projection: { fov: 62, distance: 5.6, yaw: 32, mode: "perspective" },
+  raster: { sampleX: 58, sampleY: 44, resolution: 20 },
+  texture: { u: 0.37, v: 0.58, tiling: 3, filter: "bilinear" },
+  lighting: { lightAngle: -42, normalAngle: 16, roughness: 0.34, ambient: 0.12 },
+  gpu: { width: 1920, height: 1080, overdraw: 1.4, vertices: 36000, triangles: 72000 }
+};
+
+const lessons = Array.from(document.querySelectorAll(".lesson"));
+const topicNav = document.getElementById("topicNav");
+const currentTopic = document.getElementById("currentTopic");
+const drawFns = {};
+const canvasLayouts = {};
+const dragState = { active: false, topic: "", target: "" };
+const autoState = { topic: "", raf: 0, last: 0 };
+const C = {
+  bg: "#0e1621",
+  panel: "#121a24",
+  panelSoft: "#182433",
+  panelDeep: "#0f1722",
+  grid: "#233144",
+  axis: "#64778c",
+  line: "#2f4157",
+  ink: "#e8eef7",
+  muted: "#99a7b8",
+  tag: "rgba(12, 18, 27, 0.94)",
+  blue: "#60a5fa",
+  teal: "#2dd4bf",
+  orange: "#fb923c",
+  red: "#fb7185",
+  green: "#4ade80",
+  yellow: "#facc15"
+};
+
+
+/* ===== js\common\app-core.js ===== */
+function formatValue(path, value) {
+  if (path.endsWith("angle") || path.endsWith("rotation") || path.endsWith("yaw") || path.endsWith("fov")) return `${Number(value).toFixed(0)}°`;
+  if (path.endsWith("zoom")) return `${Number(value).toFixed(0)} px`;
+  if (path.endsWith("length")) return Number(value).toFixed(1);
+  if (path.endsWith("radius") || path.endsWith("frequency") || path.endsWith("scaleX") || path.endsWith("scaleY") || path.endsWith("tx") || path.endsWith("ty")) return Number(value).toFixed(2);
+  if (path.endsWith("distance")) return Number(value).toFixed(1);
+  if (path.endsWith("sampleX") || path.endsWith("sampleY")) return `${Number(value).toFixed(0)}%`;
+  if (path.endsWith("resolution")) return `${Number(value).toFixed(0)} x ${Number(value).toFixed(0)}`;
+  if (path.endsWith("u") || path.endsWith("v") || path.endsWith("roughness") || path.endsWith("ambient") || path.endsWith("overdraw")) return Number(value).toFixed(2);
+  if (path.endsWith("tiling")) return `${Number(value).toFixed(0)}x`;
+  if (path.endsWith("width") || path.endsWith("height") || path.endsWith("vertices") || path.endsWith("triangles")) return Number(value).toLocaleString("ko-KR");
+  return String(value);
+}
+
+function buildNav() {
+  topicNav.innerHTML = lessons.map((lesson, index) => {
+    const no = String(index + 1).padStart(2, "0");
+    return `<button type="button" data-go="${index}">
+      <span class="num">${no}</span>
+      <span><span class="label">${lesson.dataset.title}</span><span class="desc">${lesson.dataset.desc}</span></span>
+    </button>`;
+  }).join("");
+  topicNav.querySelectorAll("button").forEach(button => {
+    button.addEventListener("click", () => setActive(Number(button.dataset.go)));
+  });
+}
+
+function injectAutoControls() {
+  lessons.forEach(lesson => {
+    const topic = lesson.dataset.topic;
+    const panel = lesson.querySelector(".control-panel");
+    const group = document.createElement("div");
+    group.className = "control-group auto-group";
+    group.innerHTML = `
+      <div class="control-title">실험 조작</div>
+      <button class="play-toggle" type="button" data-play="${topic}">▶ 자동 애니메이션</button>
+      <span class="drag-hint">캔버스 위의 그래프를 드래그하면 주요 값이 바로 바뀝니다.</span>
+    `;
+    panel.prepend(group);
+  });
+
+  document.querySelectorAll("[data-play]").forEach(button => {
+    button.addEventListener("click", () => toggleAuto(button.dataset.play));
+  });
+}
+
+function wireControls() {
+  document.querySelectorAll("[data-bind]").forEach(input => {
+    const eventName = input.type === "radio" || input.tagName === "SELECT" ? "change" : "input";
+    input.addEventListener(eventName, () => {
+      const [topic, key] = input.dataset.bind.split(".");
+      if (input.type === "radio" && !input.checked) return;
+      state[topic][key] = input.type === "radio" || input.tagName === "SELECT" ? input.value : Number(input.value);
+      render();
+    });
+  });
+
+  document.getElementById("prevTopic").addEventListener("click", () => setActive((state.active + lessons.length - 1) % lessons.length));
+  document.getElementById("nextTopic").addEventListener("click", () => setActive((state.active + 1) % lessons.length));
+}
+
+function wireCanvasDrag() {
+  document.querySelectorAll(".visual-canvas").forEach(canvas => {
+    canvas.addEventListener("pointerdown", event => {
+      dragState.active = true;
+      dragState.topic = canvas.closest(".lesson").dataset.topic;
+      dragState.target = "";
+      canvas.setPointerCapture(event.pointerId);
+      applyCanvasDrag(canvas, event, true);
+    });
+    canvas.addEventListener("pointermove", event => {
+      if (!dragState.active) return;
+      applyCanvasDrag(canvas, event, false);
+    });
+    canvas.addEventListener("pointerup", event => {
+      dragState.active = false;
+      dragState.target = "";
+      canvas.releasePointerCapture(event.pointerId);
+    });
+    canvas.addEventListener("pointercancel", () => {
+      dragState.active = false;
+      dragState.target = "";
+    });
+  });
+}
+
+function pointerPoint(canvas, event) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function applyCanvasDrag(canvas, event, isStart) {
+  const topic = canvas.closest(".lesson").dataset.topic;
+  if (!canvasLayouts[topic] && drawFns[topic]) drawFns[topic]();
+  const handler = dragHandlers[topic];
+  if (!handler) return;
+  handler(pointerPoint(canvas, event), isStart);
+  render();
+}
+
+function toggleAuto(topic) {
+  if (autoState.topic === topic) {
+    stopAuto();
+    return;
+  }
+  autoState.topic = topic;
+  autoState.last = performance.now();
+  updateAutoButtons();
+  if (!autoState.raf) autoState.raf = requestAnimationFrame(tickAuto);
+}
+
+function stopAuto() {
+  autoState.topic = "";
+  if (autoState.raf) cancelAnimationFrame(autoState.raf);
+  autoState.raf = 0;
+  updateAutoButtons();
+}
+
+function updateAutoButtons() {
+  document.querySelectorAll("[data-play]").forEach(button => {
+    const active = button.dataset.play === autoState.topic;
+    button.classList.toggle("active", active);
+    button.textContent = active ? "Ⅱ 정지" : "▶ 자동 애니메이션";
+  });
+}
+
+function tickAuto(now) {
+  if (!autoState.topic) {
+    autoState.raf = 0;
+    return;
+  }
+  const dt = clamp((now - autoState.last) / 1000, 0, 0.05);
+  autoState.last = now;
+  animateTopic(autoState.topic, dt);
+  render();
+  autoState.raf = requestAnimationFrame(tickAuto);
+}
+
+function syncInputs() {
+  document.querySelectorAll("[data-bind]").forEach(input => {
+    const [topic, key] = input.dataset.bind.split(".");
+    const value = state[topic][key];
+    if (input.type === "radio") {
+      input.checked = input.value === value;
+    } else {
+      input.value = value;
+    }
+  });
+}
+
+function syncValueLabels() {
+  document.querySelectorAll("[data-value-for]").forEach(output => {
+    const path = output.dataset.valueFor;
+    const [topic, key] = path.split(".");
+    output.value = formatValue(path, state[topic][key]);
+  });
+}
+
+function setActive(index) {
+  state.active = index;
+  const nextTopic = lessons[index].dataset.topic;
+  if (autoState.topic && autoState.topic !== nextTopic) stopAuto();
+  lessons.forEach((lesson, i) => lesson.classList.toggle("active", i === index));
+  topicNav.querySelectorAll("button").forEach((button, i) => button.classList.toggle("active", i === index));
+  currentTopic.textContent = lessons[index].dataset.title;
+  render();
+}
+
+function render() {
+  syncInputs();
+  syncValueLabels();
+  const topic = lessons[state.active].dataset.topic;
+  if (drawFns[topic]) drawFns[topic]();
+}
+
+
+/* ===== js\common\canvas-utils.js ===== */
+function fitCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(320, Math.floor(rect.width));
+  const height = Math.max(300, Math.floor(rect.height));
+  if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: width, h: height };
+}
+
+function clear(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function degToRad(deg) {
+  return deg * Math.PI / 180;
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function vecFromAngle(deg, length) {
+  const r = degToRad(deg);
+  return { x: Math.cos(r) * length, y: Math.sin(r) * length };
+}
+
+function drawGrid(ctx, w, h, origin, scale, maxCells = 18) {
+  const left = -Math.ceil(origin.x / scale);
+  const right = Math.ceil((w - origin.x) / scale);
+  const bottom = -Math.ceil((h - origin.y) / scale);
+  const top = Math.ceil(origin.y / scale);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = C.grid;
+  ctx.beginPath();
+  for (let i = Math.max(left, -maxCells); i <= Math.min(right, maxCells); i++) {
+    const x = origin.x + i * scale;
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+  }
+  for (let j = Math.max(bottom, -maxCells); j <= Math.min(top, maxCells); j++) {
+    const y = origin.y - j * scale;
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = C.axis;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, origin.y);
+  ctx.lineTo(w, origin.y);
+  ctx.moveTo(origin.x, 0);
+  ctx.lineTo(origin.x, h);
+  ctx.stroke();
+}
+
+function worldToScreen(origin, scale, p) {
+  return { x: origin.x + p.x * scale, y: origin.y - p.y * scale };
+}
+
+function arrow(ctx, from, to, color, width = 3, label = "") {
+  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  const head = 12;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(to.x, to.y);
+  ctx.lineTo(to.x - Math.cos(angle - Math.PI / 6) * head, to.y - Math.sin(angle - Math.PI / 6) * head);
+  ctx.lineTo(to.x - Math.cos(angle + Math.PI / 6) * head, to.y - Math.sin(angle + Math.PI / 6) * head);
+  ctx.closePath();
+  ctx.fill();
+  if (label) drawTag(ctx, label, to.x + 8, to.y - 24, color);
+}
+
+function drawTag(ctx, text, x, y, color = C.muted) {
+  ctx.save();
+  ctx.font = "700 12px Segoe UI, Malgun Gothic, sans-serif";
+  const width = ctx.measureText(text).width + 14;
+  ctx.fillStyle = C.tag;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, 24, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.fillText(text, x + 7, y + 16);
+  ctx.restore();
+}
+
+function setMetrics(id, items) {
+  const el = document.getElementById(id);
+  el.innerHTML = items.map(item => `<div class="metric"><span>${item[0]}</span><strong>${item[1]}</strong></div>`).join("");
+}
+
+function setNote(id, text) {
+  document.getElementById(id).textContent = text;
+}
+
+function escapeHTML(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function ensureStepPanel(topic) {
+  const lesson = lessons.find(item => item.dataset.topic === topic);
+  let panel = lesson.querySelector(`[data-steps-for="${topic}"]`);
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.className = "step-panel";
+    panel.dataset.stepsFor = topic;
+    lesson.appendChild(panel);
+  }
+  return panel;
+}
+
+function setSteps(topic, items) {
+  const panel = ensureStepPanel(topic);
+  panel.innerHTML = `
+    <strong>수식과 처리 순서</strong>
+    <div class="step-grid">
+      ${items.map((item, index) => `
+        <div class="step-card">
+          <span class="step-index">${String(index + 1).padStart(2, "0")}</span>
+          <b>${escapeHTML(item.title)}</b>
+          <code>${escapeHTML(item.formula)}</code>
+          <span>${escapeHTML(item.result)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function ensureMatrixPanel() {
+  let panel = document.getElementById("transformMatrixBreakdown");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "transformMatrixBreakdown";
+    panel.className = "matrix-breakdown";
+    const formula = document.querySelector("#lesson-transform .formula");
+    formula.insertAdjacentElement("afterend", panel);
+  }
+  return panel;
+}
+
+function matrixText(rows) {
+  return rows.map(row => `[ ${row.map(value => Number(value).toFixed(2).padStart(6, " ")).join(" ")} ]`).join("\n");
+}
+
+function setTransformMatrices(items) {
+  const panel = ensureMatrixPanel();
+  panel.innerHTML = `
+    <strong>T / R / S 행렬 분해</strong>
+    <div class="matrix-grid">
+      ${items.map(item => `
+        <div class="matrix-card">
+          <b>${escapeHTML(item.title)}</b>
+          <pre>${escapeHTML(item.body)}</pre>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function signedAngleDiff(a, b) {
+  let d = ((b - a + 540) % 360) - 180;
+  return d;
+}
+
+function colorToCss(c) {
+  return `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
+}
+
+function radToDeg(rad) {
+  return rad * 180 / Math.PI;
+}
+
+function wrap360(deg) {
+  return ((deg % 360) + 360) % 360;
+}
+
+function wrap180(deg) {
+  return ((deg + 540) % 360) - 180;
+}
+
+function roundStep(value, step) {
+  return Math.round(value / step) * step;
+}
+
+function screenToWorld(origin, scale, p) {
+  return { x: (p.x - origin.x) / scale, y: (origin.y - p.y) / scale };
+}
+
+
+/* ===== js\common\interaction.js ===== */
+function animateTopic(topic, dt) {
+  if (topic === "vector") {
+    state.vector.angle = wrap180(state.vector.angle + dt * 52);
+    state.vector.length = 3.3 + Math.sin(performance.now() * 0.0015) * 1.8;
+  } else if (topic === "trig") {
+    state.trig.angle = wrap360(state.trig.angle + dt * 70);
+  } else if (topic === "dotcross") {
+    state.dotcross.bAngle = wrap180(state.dotcross.bAngle + dt * 58);
+    state.dotcross.aAngle = wrap180(state.dotcross.aAngle + dt * 18);
+  } else if (topic === "transform") {
+    state.transform.rotation = wrap180(state.transform.rotation + dt * 44);
+    state.transform.tx = Math.cos(performance.now() * 0.001) * 1.7;
+    state.transform.ty = Math.sin(performance.now() * 0.0012) * 1.2;
+  } else if (topic === "projection") {
+    state.projection.yaw = Math.sin(performance.now() * 0.001) * 58;
+    state.projection.distance = 5.8 + Math.sin(performance.now() * 0.0008) * 1.6;
+  } else if (topic === "raster") {
+    state.raster.sampleX = 50 + Math.cos(performance.now() * 0.0012) * 36;
+    state.raster.sampleY = 48 + Math.sin(performance.now() * 0.0015) * 34;
+  } else if (topic === "texture") {
+    state.texture.u = (state.texture.u + dt * 0.1) % 1;
+    state.texture.v = (state.texture.v + dt * 0.07) % 1;
+  } else if (topic === "lighting") {
+    state.lighting.lightAngle = wrap180(state.lighting.lightAngle + dt * 48);
+    state.lighting.normalAngle = Math.sin(performance.now() * 0.0011) * 52;
+  } else if (topic === "gpu") {
+    const t = performance.now() * 0.0007;
+    state.gpu.width = roundStep(2240 + Math.sin(t) * 1360, 80);
+    state.gpu.height = roundStep(1260 + Math.cos(t * 1.1) * 765, 45);
+    state.gpu.overdraw = 2.2 + Math.sin(t * 1.7) * 1.2;
+  }
+}
+
+const dragHandlers = {
+  vector(p) {
+    const layout = canvasLayouts.vector;
+    const wpos = screenToWorld(layout.origin, layout.scale, p);
+    state.vector.length = clamp(Math.hypot(wpos.x, wpos.y), 0.5, 6);
+    state.vector.angle = wrap180(radToDeg(Math.atan2(wpos.y, wpos.x)));
+  },
+  trig(p) {
+    const layout = canvasLayouts.trig;
+    const dx = p.x - layout.center.x;
+    const dy = layout.center.y - p.y;
+    state.trig.angle = wrap360(radToDeg(Math.atan2(dy, dx)));
+    state.trig.radius = clamp(Math.hypot(dx, dy) / layout.baseR, 0.5, 1.6);
+  },
+  dotcross(p, isStart) {
+    const layout = canvasLayouts.dotcross;
+    if (isStart || !dragState.target) {
+      const da = Math.hypot(p.x - layout.aEnd.x, p.y - layout.aEnd.y);
+      const db = Math.hypot(p.x - layout.bEnd.x, p.y - layout.bEnd.y);
+      dragState.target = da < db ? "a" : "b";
+    }
+    const wpos = screenToWorld(layout.origin, layout.scale, p);
+    const angle = wrap180(radToDeg(Math.atan2(wpos.y, wpos.x)));
+    const length = clamp(Math.hypot(wpos.x, wpos.y), 1, 5.5);
+    if (dragState.target === "a") {
+      state.dotcross.aAngle = angle;
+      state.dotcross.aLength = length;
+    } else {
+      state.dotcross.bAngle = angle;
+      state.dotcross.bLength = length;
+    }
+  },
+  transform(p) {
+    const layout = canvasLayouts.transform;
+    const wpos = screenToWorld(layout.origin, layout.scale, p);
+    state.transform.tx = clamp(wpos.x, -3, 3);
+    state.transform.ty = clamp(wpos.y, -2.5, 2.5);
+  },
+  projection(p) {
+    const layout = canvasLayouts.projection;
+    if (p.x < layout.split) {
+      state.projection.yaw = clamp((p.x / layout.split - 0.5) * 140, -70, 70);
+      state.projection.fov = clamp(25 + (p.y / layout.h) * 80, 25, 105);
+    } else {
+      const t = clamp((p.x - layout.split) / Math.max(1, layout.w - layout.split), 0, 1);
+      state.projection.distance = 3 + t * 6;
+    }
+  },
+  raster(p) {
+    const layout = canvasLayouts.raster;
+    state.raster.sampleX = clamp((p.x - layout.ox) / layout.size * 100, 0, 100);
+    state.raster.sampleY = clamp((p.y - layout.oy) / layout.size * 100, 0, 100);
+  },
+  texture(p) {
+    const layout = canvasLayouts.texture;
+    state.texture.u = clamp((p.x - layout.ox) / layout.texSize, 0, 1);
+    state.texture.v = clamp((p.y - layout.oy) / layout.texSize, 0, 1);
+  },
+  lighting(p, isStart) {
+    const layout = canvasLayouts.lighting;
+    if (isStart || !dragState.target) dragState.target = p.x < layout.leftW ? "normal" : "light";
+    if (dragState.target === "normal") {
+      const dx = p.x - layout.center.x;
+      const dz = layout.center.y - p.y;
+      state.lighting.normalAngle = clamp(radToDeg(Math.atan2(dx, dz)), -90, 90);
+    } else {
+      const dx = p.x - layout.sphereX;
+      const dy = p.y - layout.sphereY;
+      state.lighting.lightAngle = wrap180(radToDeg(Math.atan2(dy, dx)));
+    }
+  },
+  gpu(p) {
+    const widthT = clamp(p.x / canvasLayouts.gpu.w, 0, 1);
+    const heightT = clamp(p.y / canvasLayouts.gpu.h, 0, 1);
+    state.gpu.width = roundStep(640 + widthT * (3840 - 640), 80);
+    state.gpu.height = roundStep(360 + heightT * (2160 - 360), 45);
+    state.gpu.overdraw = clamp(1 + heightT * 3, 1, 4);
+  }
+};
+
+
+/* ===== js\topics\vector.js ===== */
+function drawVector() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("vectorCanvas"));
+  const s = state.vector;
+  clear(ctx, w, h);
+  const origin = { x: w * 0.5, y: h * 0.54 };
+  const scale = s.zoom;
+  canvasLayouts.vector = { origin, scale };
+  drawGrid(ctx, w, h, origin, scale);
+
+  const v = vecFromAngle(s.angle, s.length);
+  const end = worldToScreen(origin, scale, v);
+  const xEnd = worldToScreen(origin, scale, { x: v.x, y: 0 });
+
+  ctx.setLineDash([7, 6]);
+  ctx.strokeStyle = C.orange;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(origin.x, origin.y);
+  ctx.lineTo(xEnd.x, xEnd.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  arrow(ctx, origin, end, C.blue, 4, "v");
+  const unit = vecFromAngle(s.angle, 1);
+  arrow(ctx, origin, worldToScreen(origin, scale, unit), C.orange, 3, "unit");
+
+  ctx.strokeStyle = "rgba(96, 165, 250, 0.22)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(origin.x, origin.y, s.length * scale, 0, Math.PI * 2);
+  ctx.stroke();
+
+  drawTag(ctx, `x=${v.x.toFixed(2)}`, (origin.x + xEnd.x) * 0.5 - 30, origin.y + 10, C.orange);
+  drawTag(ctx, `y=${v.y.toFixed(2)}`, xEnd.x + 10, (origin.y + end.y) * 0.5 - 12, C.orange);
+
+  setMetrics("vectorMetrics", [
+    ["x 성분", v.x.toFixed(3)],
+    ["y 성분", v.y.toFixed(3)],
+    ["길이 |v|", s.length.toFixed(3)],
+    ["단위 벡터", `(${unit.x.toFixed(2)}, ${unit.y.toFixed(2)})`]
+  ]);
+
+  const axisText = Math.abs(v.x) > Math.abs(v.y) ? "x 성분이 더 크므로 좌우 이동 성격이 강합니다." : "y 성분이 더 크므로 위아래 이동 성격이 강합니다.";
+  setNote("vectorNote", `${s.angle.toFixed(0)}도 방향의 벡터는 (${v.x.toFixed(2)}, ${v.y.toFixed(2)}) 성분으로 나뉩니다. ${axisText} 노멀과 라이트 방향처럼 길이보다 방향만 필요할 때는 단위 벡터로 정규화합니다.`);
+  setSteps("vector", [
+    { title: "입력", formula: `angle=${s.angle.toFixed(0)}°, length=${s.length.toFixed(2)}`, result: "방향과 크기를 먼저 정합니다." },
+    { title: "성분 계산", formula: "x=cos(a)*len, y=sin(a)*len", result: `v=(${v.x.toFixed(3)}, ${v.y.toFixed(3)})` },
+    { title: "길이 확인", formula: "|v|=sqrt(x*x+y*y)", result: `|v|=${Math.hypot(v.x, v.y).toFixed(3)}` },
+    { title: "정규화", formula: "unit=v/|v|", result: `unit=(${unit.x.toFixed(3)}, ${unit.y.toFixed(3)})` }
+  ]);
+}
+
+
+/* ===== js\topics\trig.js ===== */
+function drawTrig() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("trigCanvas"));
+  const s = state.trig;
+  clear(ctx, w, h);
+  const angle = degToRad(s.angle);
+  const baseR = Math.min(w * 0.18, h * 0.28);
+  const circleR = baseR * s.radius;
+  const center = { x: w * 0.26, y: h * 0.5 };
+  const point = { x: center.x + Math.cos(angle) * circleR, y: center.y - Math.sin(angle) * circleR };
+  canvasLayouts.trig = { center, baseR };
+
+  drawGrid(ctx, w, h, center, Math.max(28, circleR / 2.2), 8);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, circleR, 0, Math.PI * 2);
+  ctx.stroke();
+  arrow(ctx, center, point, C.blue, 4, "r");
+
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = C.orange;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(point.x, point.y);
+  ctx.lineTo(point.x, center.y);
+  ctx.moveTo(point.x, point.y);
+  ctx.lineTo(center.x, point.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  drawTag(ctx, `cos=${Math.cos(angle).toFixed(2)}`, (center.x + point.x) * 0.5 - 28, center.y + 14, C.teal);
+  drawTag(ctx, `sin=${Math.sin(angle).toFixed(2)}`, point.x + 10, (center.y + point.y) * 0.5 - 12, C.orange);
+
+  const graph = { x: w * 0.5, y: h * 0.18, width: w * 0.42, height: h * 0.64 };
+  canvasLayouts.trig.graph = graph;
+  ctx.strokeStyle = C.axis;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(graph.x, graph.y, graph.width, graph.height);
+  ctx.beginPath();
+  ctx.moveTo(graph.x, graph.y + graph.height / 2);
+  ctx.lineTo(graph.x + graph.width, graph.y + graph.height / 2);
+  ctx.stroke();
+
+  function drawWave(color, fn) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i <= graph.width; i++) {
+      const t = i / graph.width;
+      const a = t * Math.PI * 2 * s.frequency;
+      const y = graph.y + graph.height / 2 - fn(a) * graph.height * 0.38 * s.radius;
+      if (i === 0) ctx.moveTo(graph.x + i, y);
+      else ctx.lineTo(graph.x + i, y);
+    }
+    ctx.stroke();
+  }
+  drawWave(C.orange, Math.sin);
+  drawWave(C.teal, Math.cos);
+
+  const markerX = graph.x + ((s.angle / 360) / s.frequency % 1) * graph.width;
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(markerX, graph.y);
+  ctx.lineTo(markerX, graph.y + graph.height);
+  ctx.stroke();
+  drawTag(ctx, "sin", graph.x + 12, graph.y + 14, C.orange);
+  drawTag(ctx, "cos", graph.x + 70, graph.y + 14, C.teal);
+
+  setMetrics("trigMetrics", [
+    ["라디안", angle.toFixed(3)],
+    ["sin(theta)", Math.sin(angle).toFixed(3)],
+    ["cos(theta)", Math.cos(angle).toFixed(3)],
+    ["tan(theta)", Math.abs(Math.cos(angle)) < 0.01 ? "무한대" : Math.tan(angle).toFixed(3)]
+  ]);
+
+  setNote("trigNote", `각도 ${s.angle.toFixed(0)}도는 라디안 ${angle.toFixed(3)}입니다. 원 위 점의 x는 cos, y는 sin이며, 그래픽스 회전 공식은 이 두 값을 행렬 안에 배치한 형태입니다.`);
+  setSteps("trig", [
+    { title: "각도 입력", formula: `degree=${s.angle.toFixed(0)}°`, result: "사람이 보기 쉬운 도 단위입니다." },
+    { title: "라디안 변환", formula: "radian=degree*PI/180", result: `theta=${angle.toFixed(3)} rad` },
+    { title: "원 위 좌표", formula: "x=cos(theta)*r, y=sin(theta)*r", result: `(${(Math.cos(angle) * s.radius).toFixed(3)}, ${(Math.sin(angle) * s.radius).toFixed(3)})` },
+    { title: "회전/파형 적용", formula: "sin/cos 값을 시간이나 행렬에 사용", result: `frequency=${s.frequency.toFixed(2)}x` }
+  ]);
+}
+
+
+/* ===== js\topics\dotcross.js ===== */
+function drawDotCross() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("dotCanvas"));
+  const s = state.dotcross;
+  clear(ctx, w, h);
+  const origin = { x: w * 0.5, y: h * 0.55 };
+  const scale = Math.min(w, h) / 13;
+  drawGrid(ctx, w, h, origin, scale);
+
+  const a = vecFromAngle(s.aAngle, s.aLength);
+  const b = vecFromAngle(s.bAngle, s.bLength);
+  const aEnd = worldToScreen(origin, scale, a);
+  const bEnd = worldToScreen(origin, scale, b);
+  canvasLayouts.dotcross = { origin, scale, aEnd, bEnd };
+  const aUnit = { x: a.x / s.aLength, y: a.y / s.aLength };
+  const dot = a.x * b.x + a.y * b.y;
+  const cross = a.x * b.y - a.y * b.x;
+  const projection = dot / s.aLength;
+  const p = { x: aUnit.x * projection, y: aUnit.y * projection };
+  const pEnd = worldToScreen(origin, scale, p);
+
+  ctx.fillStyle = cross >= 0 ? "rgba(45, 212, 191, 0.14)" : "rgba(251, 113, 133, 0.14)";
+  ctx.beginPath();
+  ctx.moveTo(origin.x, origin.y);
+  ctx.lineTo(aEnd.x, aEnd.y);
+  ctx.lineTo(aEnd.x + bEnd.x - origin.x, aEnd.y + bEnd.y - origin.y);
+  ctx.lineTo(bEnd.x, bEnd.y);
+  ctx.closePath();
+  ctx.fill();
+
+  arrow(ctx, origin, aEnd, C.blue, 4, "A");
+  arrow(ctx, origin, bEnd, C.orange, 4, "B");
+
+  ctx.setLineDash([7, 5]);
+  ctx.strokeStyle = C.teal;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(origin.x, origin.y);
+  ctx.lineTo(pEnd.x, pEnd.y);
+  ctx.stroke();
+  ctx.strokeStyle = C.muted;
+  ctx.beginPath();
+  ctx.moveTo(bEnd.x, bEnd.y);
+  ctx.lineTo(pEnd.x, pEnd.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  drawTag(ctx, "B projected on A", pEnd.x + 8, pEnd.y + 8, C.teal);
+
+  const start = degToRad(-s.aAngle);
+  const diff = signedAngleDiff(s.aAngle, s.bAngle);
+  ctx.strokeStyle = diff >= 0 ? C.teal : C.red;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(origin.x, origin.y, scale * 1.15, -degToRad(s.aAngle), -degToRad(s.aAngle + diff), diff < 0);
+  ctx.stroke();
+  drawTag(ctx, `${Math.abs(diff).toFixed(0)}°`, origin.x + scale * 0.9, origin.y - scale * 0.95, ctx.strokeStyle);
+
+  const cosTheta = dot / (s.aLength * s.bLength);
+  setMetrics("dotMetrics", [
+    ["dot", dot.toFixed(3)],
+    ["cos(theta)", clamp(cosTheta, -1, 1).toFixed(3)],
+    ["cross.z", cross.toFixed(3)],
+    ["투영 길이", projection.toFixed(3)]
+  ]);
+
+  const dotText = dot >= 0 ? "내적이 양수라 두 벡터는 대체로 같은 방향을 봅니다." : "내적이 음수라 두 벡터는 서로 반대 성격이 강합니다.";
+  const crossText = cross >= 0 ? "외적 z가 양수라 A에서 B로 반시계 방향입니다." : "외적 z가 음수라 A에서 B로 시계 방향입니다.";
+  setNote("dotNote", `${dotText} ${crossText} 면적의 절댓값은 두 벡터가 만드는 평행사변형 넓이와 같습니다.`);
+  setSteps("dotcross", [
+    { title: "벡터 구성", formula: "A=(cos a, sin a)*lenA, B=(cos b, sin b)*lenB", result: `A=(${a.x.toFixed(2)}, ${a.y.toFixed(2)}), B=(${b.x.toFixed(2)}, ${b.y.toFixed(2)})` },
+    { title: "내적", formula: "dot=A.x*B.x + A.y*B.y", result: `dot=${dot.toFixed(3)}, cos=${clamp(cosTheta, -1, 1).toFixed(3)}` },
+    { title: "투영", formula: "projection=dot/|A|", result: `B가 A축으로 ${projection.toFixed(3)}만큼 놓입니다.` },
+    { title: "외적 z", formula: "cross.z=A.x*B.y - A.y*B.x", result: `cross.z=${cross.toFixed(3)}, 방향=${cross >= 0 ? "CCW" : "CW"}` }
+  ]);
+}
+
+
+/* ===== js\topics\transform.js ===== */
+function drawTransform() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("transformCanvas"));
+  const s = state.transform;
+  clear(ctx, w, h);
+  const origin = { x: w * 0.48, y: h * 0.55 };
+  const scale = Math.min(w, h) / 10;
+  canvasLayouts.transform = { origin, scale };
+  drawGrid(ctx, w, h, origin, scale);
+
+  const rad = degToRad(s.rotation);
+  const c = Math.cos(rad);
+  const sn = Math.sin(rad);
+  const m = {
+    a: c * s.scaleX,
+    b: sn * s.scaleX,
+    c: -sn * s.scaleY,
+    d: c * s.scaleY,
+    e: s.tx,
+    f: s.ty
+  };
+  const model = [
+    { x: -1.1, y: -0.9 },
+    { x: 1.1, y: -0.9 },
+    { x: 1.1, y: 0.45 },
+    { x: 0, y: 1.35 },
+    { x: -1.1, y: 0.45 }
+  ];
+  const transform = p => ({ x: m.a * p.x + m.c * p.y + m.e, y: m.b * p.x + m.d * p.y + m.f });
+  const drawPoly = (points, color, fill, dashed) => {
+    ctx.save();
+    ctx.setLineDash(dashed ? [8, 6] : []);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = fill;
+    ctx.lineWidth = dashed ? 2 : 3;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const sp = worldToScreen(origin, scale, p);
+      if (i === 0) ctx.moveTo(sp.x, sp.y);
+      else ctx.lineTo(sp.x, sp.y);
+    });
+    ctx.closePath();
+    if (fill) ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  drawPoly(model, C.muted, "rgba(153, 167, 184, 0.08)", true);
+  const world = model.map(transform);
+  drawPoly(world, C.blue, "rgba(96, 165, 250, 0.15)", false);
+
+  const localOrigin = transform({ x: 0, y: 0 });
+  const ox = worldToScreen(origin, scale, localOrigin);
+  arrow(ctx, ox, worldToScreen(origin, scale, transform({ x: 1.1, y: 0 })), C.red, 3, "local X");
+  arrow(ctx, ox, worldToScreen(origin, scale, transform({ x: 0, y: 1.1 })), C.teal, 3, "local Y");
+
+  const combinedMatrixLines = [
+    `[ ${m.a.toFixed(2)}  ${m.c.toFixed(2)}  ${m.e.toFixed(2)} ]`,
+    `[ ${m.b.toFixed(2)}  ${m.d.toFixed(2)}  ${m.f.toFixed(2)} ]`,
+    "[ 0.00  0.00  1.00 ]"
+  ];
+  ctx.font = "700 14px Consolas, monospace";
+  ctx.fillStyle = C.ink;
+  const boxW = Math.min(270, w * 0.42);
+  const boxX = w - boxW - 18;
+  const boxY = 18;
+  ctx.fillStyle = C.tag;
+  ctx.strokeStyle = C.line;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, 102, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = C.ink;
+  combinedMatrixLines.forEach((line, i) => ctx.fillText(line, boxX + 16, boxY + 30 + i * 24));
+
+  const det = s.scaleX * s.scaleY;
+  const sMatrix = [[s.scaleX, 0, 0], [0, s.scaleY, 0], [0, 0, 1]];
+  const rMatrix = [[c, -sn, 0], [sn, c, 0], [0, 0, 1]];
+  const tMatrix = [[1, 0, s.tx], [0, 1, s.ty], [0, 0, 1]];
+  const trsMatrix = [[m.a, m.c, m.e], [m.b, m.d, m.f], [0, 0, 1]];
+  setMetrics("transformMetrics", [
+    ["면적 배율", `${det.toFixed(3)}x`],
+    ["회전", `${s.rotation.toFixed(0)}°`],
+    ["이동", `(${s.tx.toFixed(1)}, ${s.ty.toFixed(1)})`],
+    ["행렬 타입", "TRS 3x3"]
+  ]);
+  setNote("transformNote", `회전은 도형의 방향을 바꾸고 이동은 원점을 옮깁니다. 스케일의 곱 ${det.toFixed(2)}는 2D 면적 배율이므로 텍스처 밀도와 충돌 판정 감각에도 영향을 줍니다.`);
+  setTransformMatrices([
+    { title: "S Scale", body: matrixText(sMatrix) },
+    { title: "R Rotate", body: matrixText(rMatrix) },
+    { title: "T Translate", body: matrixText(tMatrix) },
+    { title: "T * R * S", body: matrixText(trsMatrix) }
+  ]);
+  const localSample = { x: 1, y: 1 };
+  const scaled = { x: localSample.x * s.scaleX, y: localSample.y * s.scaleY };
+  const rotated = { x: scaled.x * c - scaled.y * sn, y: scaled.x * sn + scaled.y * c };
+  const translated = { x: rotated.x + s.tx, y: rotated.y + s.ty };
+  setSteps("transform", [
+    { title: "Local Point", formula: "p=(1, 1, 1)", result: "모델 안에서의 원래 좌표입니다." },
+    { title: "S 적용", formula: "p1=S*p", result: `(${scaled.x.toFixed(3)}, ${scaled.y.toFixed(3)}, 1)` },
+    { title: "R 적용", formula: "p2=R*p1", result: `(${rotated.x.toFixed(3)}, ${rotated.y.toFixed(3)}, 1)` },
+    { title: "T 적용", formula: "world=T*p2", result: `(${translated.x.toFixed(3)}, ${translated.y.toFixed(3)}, 1)` }
+  ]);
+}
+
+
+/* ===== js\topics\projection.js ===== */
+function drawProjection() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("projectionCanvas"));
+  const s = state.projection;
+  clear(ctx, w, h);
+  const split = w * 0.62;
+  canvasLayouts.projection = { split, w, h };
+  ctx.strokeStyle = C.line;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(split, 0);
+  ctx.lineTo(split, h);
+  ctx.stroke();
+
+  const cube = [
+    [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+    [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+  ];
+  const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  const yaw = degToRad(s.yaw);
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const f = 1 / Math.tan(degToRad(s.fov) / 2);
+
+  function rotate(p) {
+    const [x, y, z] = p;
+    return [x * cy + z * sy, y, -x * sy + z * cy];
+  }
+
+  function project(p) {
+    const r = rotate(p);
+    const z = r[2] + s.distance;
+    const aspect = split / h;
+    let px;
+    let py;
+    if (s.mode === "perspective") {
+      px = (r[0] * f / aspect) / z;
+      py = (r[1] * f) / z;
+    } else {
+      px = r[0] * 0.42;
+      py = r[1] * 0.42;
+    }
+    return {
+      x: split * 0.5 + px * split * 0.42,
+      y: h * 0.52 - py * h * 0.42,
+      z
+    };
+  }
+
+  const pts = cube.map(project);
+  ctx.fillStyle = C.panelDeep;
+  ctx.fillRect(18, 18, split - 36, h - 36);
+  ctx.strokeStyle = C.line;
+  ctx.strokeRect(18, 18, split - 36, h - 36);
+
+  edges.forEach(([a, b]) => {
+    const depth = (pts[a].z + pts[b].z) * 0.5;
+    const alpha = clamp(1.25 - depth / 8, 0.35, 1);
+    ctx.strokeStyle = `rgba(96, 165, 250, ${alpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pts[a].x, pts[a].y);
+    ctx.lineTo(pts[b].x, pts[b].y);
+    ctx.stroke();
+  });
+  pts.forEach(p => {
+    ctx.fillStyle = C.orange;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const sideX = split + (w - split) * 0.18;
+  const sideW = (w - split) * 0.68;
+  const cam = { x: sideX, y: h * 0.52 };
+  ctx.fillStyle = C.ink;
+  ctx.beginPath();
+  ctx.moveTo(cam.x, cam.y);
+  ctx.lineTo(cam.x + 16, cam.y - 10);
+  ctx.lineTo(cam.x + 16, cam.y + 10);
+  ctx.closePath();
+  ctx.fill();
+
+  const far = sideX + sideW;
+  const spread = s.mode === "perspective" ? Math.tan(degToRad(s.fov) / 2) * 0.36 * h : 72;
+  ctx.fillStyle = "rgba(45, 212, 191, 0.1)";
+  ctx.strokeStyle = C.teal;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cam.x + 16, cam.y);
+  ctx.lineTo(far, cam.y - spread);
+  ctx.lineTo(far, cam.y + spread);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  const objX = sideX + sideW * (s.distance - 2.5) / 7;
+  ctx.fillStyle = C.blue;
+  ctx.fillRect(objX - 20, cam.y - 38, 40, 76);
+  drawTag(ctx, "camera", cam.x - 6, cam.y + 20, C.ink);
+  drawTag(ctx, "object", objX - 24, cam.y - 68, C.blue);
+
+  const nearZ = Math.min(...pts.map(p => p.z));
+  const farZ = Math.max(...pts.map(p => p.z));
+  setMetrics("projectionMetrics", [
+    ["모드", s.mode === "perspective" ? "Perspective" : "Orthographic"],
+    ["초점 계수", f.toFixed(3)],
+    ["가까운 z", nearZ.toFixed(2)],
+    ["먼 z", farZ.toFixed(2)]
+  ]);
+  const projectionText = s.mode === "perspective" ? "z로 나누기 때문에 가까운 모서리가 더 커 보입니다." : "깊이로 크기를 나누지 않아 앞뒤 크기가 유지됩니다.";
+  setNote("projectionNote", `${projectionText} FOV가 커질수록 같은 물체가 화면에서 작아지고, 카메라 거리가 가까워질수록 깊이 차이가 더 강하게 보입니다.`);
+  setSteps("projection", [
+    { title: "월드 좌표", formula: "worldPos = World * localPos", result: "큐브 꼭짓점이 월드에 배치됩니다." },
+    { title: "뷰 좌표", formula: "viewZ = rotatedZ + cameraDistance", result: `z 범위 ${nearZ.toFixed(2)} ~ ${farZ.toFixed(2)}` },
+    { title: "투영", formula: s.mode === "perspective" ? "x'=x*f/z, y'=y*f/z" : "x'=x*scale, y'=y*scale", result: `${s.mode}, f=${f.toFixed(3)}` },
+    { title: "화면 매핑", formula: "screen = ndc * viewport", result: "NDC 좌표를 캔버스 픽셀로 옮깁니다." }
+  ]);
+}
+
+
+/* ===== js\topics\raster.js ===== */
+function barycentric(p, a, b, c) {
+  const v0 = { x: b.x - a.x, y: b.y - a.y };
+  const v1 = { x: c.x - a.x, y: c.y - a.y };
+  const v2 = { x: p.x - a.x, y: p.y - a.y };
+  const d00 = v0.x * v0.x + v0.y * v0.y;
+  const d01 = v0.x * v1.x + v0.y * v1.y;
+  const d11 = v1.x * v1.x + v1.y * v1.y;
+  const d20 = v2.x * v0.x + v2.y * v0.y;
+  const d21 = v2.x * v1.x + v2.y * v1.y;
+  const denom = d00 * d11 - d01 * d01;
+  const v = (d11 * d20 - d01 * d21) / denom;
+  const w = (d00 * d21 - d01 * d20) / denom;
+  const u = 1 - v - w;
+  return [u, v, w];
+}
+
+function drawRaster() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("rasterCanvas"));
+  const s = state.raster;
+  clear(ctx, w, h);
+  const res = s.resolution;
+  const size = Math.min(w * 0.82, h * 0.84);
+  const cell = size / res;
+  const ox = (w - size) * 0.5;
+  const oy = (h - size) * 0.52;
+  canvasLayouts.raster = { ox, oy, size };
+  const a = { x: 3, y: 3 };
+  const b = { x: res - 3.6, y: 5.2 };
+  const c = { x: res * 0.38, y: res - 3.2 };
+  const colors = [[196, 49, 75], [8, 127, 122], [36, 99, 235]];
+
+  for (let y = 0; y < res; y++) {
+    for (let x = 0; x < res; x++) {
+      const p = { x: x + 0.5, y: y + 0.5 };
+      const bc = barycentric(p, a, b, c);
+      const inside = bc.every(v => v >= 0);
+      if (inside) {
+        const color = [0, 0, 0].map((_, i) => colors[0][i] * bc[0] + colors[1][i] * bc[1] + colors[2][i] * bc[2]);
+        ctx.fillStyle = colorToCss(color);
+      } else {
+        ctx.fillStyle = (x + y) % 2 === 0 ? "#121c28" : "#0f1722";
+      }
+      ctx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+    }
+  }
+
+  ctx.strokeStyle = "rgba(153, 167, 184, 0.18)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= res; i++) {
+    const p = ox + i * cell;
+    ctx.beginPath();
+    ctx.moveTo(p, oy);
+    ctx.lineTo(p, oy + size);
+    ctx.stroke();
+    const q = oy + i * cell;
+    ctx.beginPath();
+    ctx.moveTo(ox, q);
+    ctx.lineTo(ox + size, q);
+    ctx.stroke();
+  }
+
+  const toScreen = p => ({ x: ox + p.x * cell, y: oy + p.y * cell });
+  const va = toScreen(a);
+  const vb = toScreen(b);
+  const vc = toScreen(c);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(va.x, va.y);
+  ctx.lineTo(vb.x, vb.y);
+  ctx.lineTo(vc.x, vc.y);
+  ctx.closePath();
+  ctx.stroke();
+
+  const sample = { x: s.sampleX / 100 * res, y: s.sampleY / 100 * res };
+  const sp = toScreen(sample);
+  const bc = barycentric(sample, a, b, c);
+  const inside = bc.every(v => v >= 0);
+  const sampleColor = inside ? [0, 0, 0].map((_, i) => colors[0][i] * bc[0] + colors[1][i] * bc[1] + colors[2][i] * bc[2]) : [102, 112, 133];
+  ctx.fillStyle = C.tag;
+  ctx.strokeStyle = inside ? C.ink : C.red;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(sp.x, sp.y, Math.max(7, cell * 0.22), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = colorToCss(sampleColor);
+  ctx.beginPath();
+  ctx.arc(sp.x, sp.y, Math.max(4, cell * 0.13), 0, Math.PI * 2);
+  ctx.fill();
+
+  setMetrics("rasterMetrics", [
+    ["w0 / red", bc[0].toFixed(3)],
+    ["w1 / green", bc[1].toFixed(3)],
+    ["w2 / blue", bc[2].toFixed(3)],
+    ["판정", inside ? "Inside" : "Outside"]
+  ]);
+  setNote("rasterNote", inside
+    ? `샘플이 삼각형 내부에 있어 fragment가 생성됩니다. 현재 색은 세 꼭짓점 색을 (${bc[0].toFixed(2)}, ${bc[1].toFixed(2)}, ${bc[2].toFixed(2)}) 가중치로 섞은 결과입니다.`
+    : `샘플이 삼각형 밖에 있어 이 위치의 fragment는 버려집니다. 픽셀 중심이 경계 안으로 들어오는 순간 색과 셰이더 계산이 시작됩니다.`);
+  setSteps("raster", [
+    { title: "픽셀 샘플", formula: `sample=(${sample.x.toFixed(2)}, ${sample.y.toFixed(2)})`, result: "픽셀 중심이 삼각형 안인지 검사합니다." },
+    { title: "무게 계산", formula: "barycentric(sample, A, B, C)", result: `w=(${bc[0].toFixed(3)}, ${bc[1].toFixed(3)}, ${bc[2].toFixed(3)})` },
+    { title: "내부 판정", formula: "inside = all(w >= 0)", result: inside ? "fragment 생성" : "fragment 버림" },
+    { title: "속성 보간", formula: "attr = a0*w0 + a1*w1 + a2*w2", result: inside ? `color=${colorToCss(sampleColor)}` : "색 보간 없음" }
+  ]);
+}
+
+
+/* ===== js\topics\texture.js ===== */
+const texels = [
+  ["#1f2937", "#1f2937", "#f4f7fb", "#f4f7fb", "#d4611d", "#d4611d", "#087f7a", "#087f7a"],
+  ["#1f2937", "#2463eb", "#f4f7fb", "#f0b429", "#d4611d", "#f4f7fb", "#087f7a", "#101820"],
+  ["#f4f7fb", "#f4f7fb", "#2463eb", "#2463eb", "#101820", "#f0b429", "#f4f7fb", "#f4f7fb"],
+  ["#f4f7fb", "#f0b429", "#2463eb", "#101820", "#101820", "#d4611d", "#f4f7fb", "#087f7a"],
+  ["#c4314b", "#c4314b", "#101820", "#101820", "#2463eb", "#2463eb", "#f4f7fb", "#f4f7fb"],
+  ["#c4314b", "#f4f7fb", "#f0b429", "#101820", "#2463eb", "#087f7a", "#f4f7fb", "#d4611d"],
+  ["#087f7a", "#087f7a", "#f4f7fb", "#d4611d", "#f4f7fb", "#f4f7fb", "#1f2937", "#1f2937"],
+  ["#087f7a", "#101820", "#f4f7fb", "#d4611d", "#f0b429", "#f4f7fb", "#1f2937", "#2463eb"]
+];
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function sampleTexture(u, v, filter) {
+  const n = texels.length;
+  const x = ((u % 1) + 1) % 1 * n - 0.5;
+  const y = ((v % 1) + 1) % 1 * n - 0.5;
+  if (filter === "nearest") {
+    const ix = ((Math.round(x) % n) + n) % n;
+    const iy = ((Math.round(y) % n) + n) % n;
+    return { color: hexToRgb(texels[iy][ix]), ix, iy };
+  }
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const tx = x - x0;
+  const ty = y - y0;
+  const get = (ix, iy) => hexToRgb(texels[((iy % n) + n) % n][((ix % n) + n) % n]);
+  const c00 = get(x0, y0);
+  const c10 = get(x0 + 1, y0);
+  const c01 = get(x0, y0 + 1);
+  const c11 = get(x0 + 1, y0 + 1);
+  const color = [0, 1, 2].map(i => lerp(lerp(c00[i], c10[i], tx), lerp(c01[i], c11[i], tx), ty));
+  return { color, ix: ((x0 % n) + n) % n, iy: ((y0 % n) + n) % n, tx, ty };
+}
+
+function drawTexture() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("textureCanvas"));
+  const s = state.texture;
+  clear(ctx, w, h);
+  const panelGap = 28;
+  const texSize = Math.min(w * 0.42, h * 0.7);
+  const ox = w * 0.08;
+  const oy = h * 0.5 - texSize * 0.5;
+  const n = texels.length;
+  const cell = texSize / n;
+  canvasLayouts.texture = { ox, oy, texSize };
+
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      ctx.fillStyle = texels[y][x];
+      ctx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+      ctx.strokeStyle = "rgba(15, 23, 34, 0.56)";
+      ctx.strokeRect(ox + x * cell, oy + y * cell, cell, cell);
+    }
+  }
+
+  const tiledU = s.u * s.tiling;
+  const tiledV = s.v * s.tiling;
+  const localU = ((tiledU % 1) + 1) % 1;
+  const localV = ((tiledV % 1) + 1) % 1;
+  const sample = sampleTexture(tiledU, tiledV, s.filter);
+  const px = ox + localU * texSize;
+  const py = oy + localV * texSize;
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(px, py, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = colorToCss(sample.color);
+  ctx.beginPath();
+  ctx.arc(px, py, 6, 0, Math.PI * 2);
+  ctx.fill();
+  drawTag(ctx, `texel ${sample.ix},${sample.iy}`, px + 12, py - 28, C.ink);
+
+  const outX = ox + texSize + panelGap;
+  const outW = w - outX - w * 0.08;
+  const outH = texSize;
+  const previewCell = Math.max(18, outW / 16);
+  ctx.fillStyle = C.panelDeep;
+  ctx.fillRect(outX, oy, outW, outH);
+  for (let y = 0; y < 16; y++) {
+    for (let x = 0; x < 16; x++) {
+      const uu = (x + 0.5) / 16 * s.tiling + s.u;
+      const vv = (y + 0.5) / 16 * s.tiling + s.v;
+      ctx.fillStyle = colorToCss(sampleTexture(uu, vv, s.filter).color);
+      ctx.fillRect(outX + x * previewCell, oy + y * previewCell, previewCell + 0.5, previewCell + 0.5);
+    }
+  }
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(outX, oy, previewCell * 16, previewCell * 16);
+  drawTag(ctx, "sampled surface", outX + 10, oy + previewCell * 16 + 12, C.blue);
+
+  setMetrics("textureMetrics", [
+    ["wrapped UV", `(${localU.toFixed(2)}, ${localV.toFixed(2)})`],
+    ["필터", s.filter],
+    ["읽은 색", colorToCss(sample.color)],
+    ["텍스처 크기", "8 x 8 texels"]
+  ]);
+  setNote("textureNote", s.filter === "nearest"
+    ? "Nearest는 가장 가까운 텍셀 하나만 읽습니다. 픽셀 아트처럼 또렷하지만 확대하면 경계가 계단처럼 보입니다."
+    : "Bilinear는 주변 네 텍셀을 섞습니다. 경계가 부드러워지지만 아주 작은 디테일은 흐려질 수 있습니다.");
+  setSteps("texture", [
+    { title: "UV 입력", formula: `uv=(${s.u.toFixed(2)}, ${s.v.toFixed(2)})`, result: "표면 좌표를 텍스처 좌표로 보냅니다." },
+    { title: "반복과 래핑", formula: "wrapped = fract(uv * tiling)", result: `wrapped=(${localU.toFixed(3)}, ${localV.toFixed(3)})` },
+    { title: "텍셀 좌표", formula: "texel = wrapped * textureSize", result: `base texel=(${sample.ix}, ${sample.iy})` },
+    { title: "필터링", formula: s.filter === "nearest" ? "nearest = closest texel" : "bilinear = lerp 4 texels", result: `color=${colorToCss(sample.color)}` }
+  ]);
+}
+
+
+/* ===== js\topics\lighting.js ===== */
+function normalize3(v) {
+  const len = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / len, v[1] / len, v[2] / len];
+}
+
+function dot3(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function drawLighting() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("lightingCanvas"));
+  const s = state.lighting;
+  clear(ctx, w, h);
+  const leftW = w * 0.36;
+  const center = { x: leftW * 0.52, y: h * 0.52 };
+  const r = Math.min(leftW, h) * 0.24;
+  const sphereX = leftW + (w - leftW) * 0.5;
+  const sphereY = h * 0.51;
+  const sphereR = Math.min(w - leftW, h) * 0.34;
+  canvasLayouts.lighting = { leftW, center, sphereX, sphereY };
+  const lightAngle = degToRad(s.lightAngle);
+  const normalAngle = degToRad(s.normalAngle);
+  const light = normalize3([Math.cos(lightAngle) * 0.8, Math.sin(lightAngle) * 0.8, 0.72]);
+  const normal = normalize3([Math.sin(normalAngle), 0, Math.cos(normalAngle)]);
+  const view = [0, 0, 1];
+  const half = normalize3([light[0] + view[0], light[1] + view[1], light[2] + view[2]]);
+  const diffuse = Math.max(dot3(normal, light), 0);
+  const power = lerp(90, 8, s.roughness);
+  const specular = Math.pow(Math.max(dot3(normal, half), 0), power);
+  const finalLight = clamp(s.ambient + diffuse * 0.72 + specular * 0.55, 0, 1);
+
+  drawGrid(ctx, leftW, h, center, 44, 6);
+  ctx.fillStyle = C.panelDeep;
+  ctx.strokeStyle = C.axis;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  arrow(ctx, center, { x: center.x + normal[0] * r * 1.55, y: center.y - normal[2] * r * 1.55 }, C.blue, 4, "N");
+  arrow(ctx, { x: center.x - light[0] * r * 1.9, y: center.y + light[1] * r * 1.9 }, center, C.orange, 4, "L");
+  drawTag(ctx, `diffuse ${diffuse.toFixed(2)}`, center.x - r * 1.2, center.y + r + 20, C.teal);
+
+  const image = ctx.createImageData(Math.ceil(sphereR * 2), Math.ceil(sphereR * 2));
+  const side = image.width;
+  for (let y = 0; y < side; y++) {
+    for (let x = 0; x < side; x++) {
+      const nx = (x / (side - 1)) * 2 - 1;
+      const ny = (y / (side - 1)) * 2 - 1;
+      const rr = nx * nx + ny * ny;
+      const i = (y * side + x) * 4;
+      if (rr > 1) {
+        image.data[i + 3] = 0;
+        continue;
+      }
+      const nz = Math.sqrt(1 - rr);
+      const nrm = normalize3([nx, -ny, nz]);
+      const diff = Math.max(dot3(nrm, light), 0);
+      const hvec = half;
+      const spec = Math.pow(Math.max(dot3(nrm, hvec), 0), power);
+      const shade = clamp(s.ambient + diff * 0.78 + spec * 0.62, 0, 1);
+      image.data[i] = Math.round(lerp(26, 230, shade));
+      image.data[i + 1] = Math.round(lerp(34, 210, shade));
+      image.data[i + 2] = Math.round(lerp(44, 185, shade));
+      image.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, sphereX - side / 2, sphereY - side / 2);
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(sphereX, sphereY, sphereR, 0, Math.PI * 2);
+  ctx.stroke();
+
+  setMetrics("lightingMetrics", [
+    ["diffuse", diffuse.toFixed(3)],
+    ["specular", specular.toFixed(3)],
+    ["최종 밝기", finalLight.toFixed(3)],
+    ["spec power", power.toFixed(1)]
+  ]);
+  setNote("lightingNote", `노멀과 빛 방향이 가까워질수록 diffuse가 커집니다. roughness ${s.roughness.toFixed(2)}에서는 specular power가 ${power.toFixed(1)}이라 하이라이트가 ${s.roughness < 0.35 ? "좁고 강하게" : "넓고 부드럽게"} 퍼집니다.`);
+  setSteps("lighting", [
+    { title: "방향 벡터", formula: "N=normal, L=light, V=view", result: `N=(${normal.map(v => v.toFixed(2)).join(", ")}), L=(${light.map(v => v.toFixed(2)).join(", ")})` },
+    { title: "확산광", formula: "diffuse=max(dot(N,L),0)", result: `diffuse=${diffuse.toFixed(3)}` },
+    { title: "하프 벡터", formula: "H=normalize(L+V)", result: `dot(N,H)=${Math.max(dot3(normal, half), 0).toFixed(3)}` },
+    { title: "최종 밝기", formula: "ambient + diffuse + specular", result: `final=${finalLight.toFixed(3)}, spec=${specular.toFixed(3)}` }
+  ]);
+}
+
+
+/* ===== js\topics\gpu.js ===== */
+function drawGpu() {
+  const { ctx, w, h } = fitCanvas(document.getElementById("gpuCanvas"));
+  const s = state.gpu;
+  clear(ctx, w, h);
+  const pixels = s.width * s.height;
+  const fragments = pixels * s.overdraw;
+  const framebufferMb = pixels * 4 / (1024 * 1024);
+  const vertexMb = s.vertices * 32 / (1024 * 1024);
+  canvasLayouts.gpu = { w, h };
+  const stages = [
+    ["CPU", "scene data", C.ink],
+    ["Vertex Buffer", `${s.vertices.toLocaleString("ko-KR")} verts`, C.blue],
+    ["Vertex Shader", "positions", C.teal],
+    ["Rasterizer", `${s.triangles.toLocaleString("ko-KR")} tris`, C.orange],
+    ["Fragment Shader", `${Math.round(fragments).toLocaleString("ko-KR")} frags`, C.red],
+    ["Framebuffer", `${framebufferMb.toFixed(1)} MB`, C.green]
+  ];
+  const margin = 28;
+  const laneY = h * 0.32;
+  const boxW = Math.min(160, (w - margin * 2) / stages.length - 12);
+  const gap = (w - margin * 2 - boxW * stages.length) / (stages.length - 1);
+  stages.forEach((stage, i) => {
+    const x = margin + i * (boxW + gap);
+    ctx.fillStyle = C.panelDeep;
+    ctx.strokeStyle = stage[2];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x, laneY, boxW, 78, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = stage[2];
+    ctx.font = "800 13px Segoe UI, Malgun Gothic, sans-serif";
+    ctx.fillText(stage[0], x + 12, laneY + 30);
+    ctx.fillStyle = C.muted;
+    ctx.font = "12px Segoe UI, Malgun Gothic, sans-serif";
+    ctx.fillText(stage[1], x + 12, laneY + 54);
+    if (i < stages.length - 1) {
+      arrow(ctx, { x: x + boxW + 8, y: laneY + 39 }, { x: x + boxW + gap - 8, y: laneY + 39 }, C.axis, 2);
+    }
+  });
+
+  const bars = [
+    ["정점 처리", s.vertices / 200000, C.blue, `${s.vertices.toLocaleString("ko-KR")} vertices`],
+    ["삼각형 조립", s.triangles / 300000, C.orange, `${s.triangles.toLocaleString("ko-KR")} triangles`],
+    ["픽셀 수", pixels / (3840 * 2160), C.teal, `${pixels.toLocaleString("ko-KR")} pixels`],
+    ["fragment 작업", fragments / (3840 * 2160 * 4), C.red, `${Math.round(fragments).toLocaleString("ko-KR")} fragments`]
+  ];
+  const barX = margin;
+  const barY = h * 0.62;
+  const barW = w - margin * 2;
+  bars.forEach((bar, i) => {
+    const y = barY + i * 40;
+    ctx.fillStyle = C.panelSoft;
+    ctx.fillRect(barX, y, barW, 18);
+    ctx.fillStyle = bar[2];
+    ctx.fillRect(barX, y, barW * clamp(bar[1], 0.02, 1), 18);
+    ctx.fillStyle = C.ink;
+    ctx.font = "700 13px Segoe UI, Malgun Gothic, sans-serif";
+    ctx.fillText(bar[0], barX, y - 8);
+    ctx.fillStyle = C.muted;
+    ctx.font = "12px Segoe UI, Malgun Gothic, sans-serif";
+    ctx.fillText(bar[3], barX + barW - ctx.measureText(bar[3]).width, y - 8);
+  });
+
+  setMetrics("gpuMetrics", [
+    ["픽셀 수", pixels.toLocaleString("ko-KR")],
+    ["fragment 추정", Math.round(fragments).toLocaleString("ko-KR")],
+    ["프레임버퍼", `${framebufferMb.toFixed(1)} MB`],
+    ["버텍스 버퍼", `${vertexMb.toFixed(2)} MB`]
+  ]);
+  setNote("gpuNote", `${s.width}x${s.height} 화면은 ${pixels.toLocaleString("ko-KR")}개의 픽셀을 갖습니다. 오버드로우 ${s.overdraw.toFixed(1)}배라면 fragment shader는 대략 ${Math.round(fragments).toLocaleString("ko-KR")}번 실행됩니다. 해상도와 오버드로우는 지오메트리 수보다 더 빨리 비용을 키울 때가 많습니다.`);
+  setSteps("gpu", [
+    { title: "해상도", formula: "pixels=width*height", result: `${pixels.toLocaleString("ko-KR")} pixels` },
+    { title: "프래그먼트", formula: "fragments=pixels*overdraw", result: `${Math.round(fragments).toLocaleString("ko-KR")} shader runs` },
+    { title: "정점 메모리", formula: "vertexBytes=vertices*32", result: `${vertexMb.toFixed(2)} MB` },
+    { title: "프레임버퍼", formula: "framebuffer=width*height*4", result: `${framebufferMb.toFixed(1)} MB per color target` }
+  ]);
+}
+
+
+/* ===== js\app.js ===== */
+drawFns.vector = drawVector;
+drawFns.trig = drawTrig;
+drawFns.dotcross = drawDotCross;
+drawFns.transform = drawTransform;
+drawFns.projection = drawProjection;
+drawFns.raster = drawRaster;
+drawFns.texture = drawTexture;
+drawFns.lighting = drawLighting;
+drawFns.gpu = drawGpu;
+
+buildNav();
+injectAutoControls();
+wireControls();
+wireCanvasDrag();
+syncInputs();
+setActive(0);
+window.addEventListener("resize", () => requestAnimationFrame(render));
+
+
+window.GFXLab = { setActive: setActive, render: render, lessons: lessons };
+})();</script>
+<!-- LAB_BUNDLE_END -->
+
 <script>
 (function () {
-  var ORDER = ["home", "shading-model", "toonlit", "substrate", "mesh-pipeline", "rendering-internals", "compile-perf"];
+  var ORDER = ["home", "shading-model", "toonlit", "substrate", "mesh-pipeline", "rendering-internals", "graphics-lab", "compile-perf"];
   var DOCS = {
     "shading-model":       { file: "쉐이딩모델 시스템 정리.md" },
     "toonlit":             { file: "툰릿 구현 보고서.md" },
@@ -2154,6 +4287,22 @@ FParallelMeshDrawCommandPass::Draw
   function buildToc(id) {
     tocList.innerHTML = "";
     if (observer) observer.disconnect();
+    if (id === "graphics-lab") {
+      if (!window.GFXLab) return;
+      window.GFXLab.lessons.forEach(function (lesson, idx) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = "#graphics-lab";
+        a.textContent = lesson.dataset.title;
+        a.addEventListener("click", function (e) {
+          e.preventDefault();
+          window.GFXLab.setActive(idx);
+        });
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+      return;
+    }
     var article = docEl(id);
     var headings = article.querySelectorAll("h2, h3");
     if (!headings.length) return;
@@ -2212,6 +4361,8 @@ FParallelMeshDrawCommandPass::Draw
     current = id;
     ORDER.forEach(function (d) { docEl(d).classList.remove("visible"); });
     docEl(id).classList.add("visible");
+    document.querySelector(".content").classList.toggle("wide", id === "graphics-lab");
+    if (id === "graphics-lab" && window.GFXLab) requestAnimationFrame(function () { window.GFXLab.render(); });
     nav.querySelectorAll("button").forEach(function (b) {
       b.classList.toggle("active", b.getAttribute("data-doc") === id);
     });
