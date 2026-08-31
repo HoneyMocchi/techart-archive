@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MainDev 학습 아카이브</title>
 <style>
   :root {
@@ -76,7 +80,7 @@
   }
 
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     * { transition: none !important; animation: none !important; }
@@ -321,6 +325,7 @@
   .doc li { margin: 0.35em 0; }
   .doc li::marker { color: var(--accent); }
   .doc li ul, .doc li ol { margin: 0.3em 0; }
+  .doc { overflow-wrap: break-word; }
   .doc strong { font-weight: 700; }
   .doc a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
   .doc a:hover { border-bottom-color: var(--accent); }
@@ -332,6 +337,7 @@
     border: 1px solid var(--line);
     border-radius: 5px;
     padding: 0.1em 0.4em;
+    overflow-wrap: anywhere;
   }
   .doc pre {
     background: var(--code-bg);
