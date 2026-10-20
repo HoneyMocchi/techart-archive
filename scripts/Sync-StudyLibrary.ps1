@@ -9,11 +9,9 @@ $html = [System.IO.File]::ReadAllText($htmlPath)
 
 $docs = [ordered]@{
     "shading-model"       = "쉐이딩모델 시스템 정리.md"
-    "toonlit"             = "툰릿 구현 보고서.md"
     "substrate"           = "Substrate 시스템 분석.md"
     "mesh-pipeline"       = "메시 렌더링 파이프라인.md"
     "rendering-internals" = "렌더링 내부구조 스터디.md"
-    "compile-perf"        = "컴파일 성능 노트.md"
 }
 
 foreach ($id in $docs.Keys) {
