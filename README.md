@@ -12,7 +12,7 @@
 | 2. 3D에서 화면으로 | 05 카메라와 투영 · 06 래스터화와 보간 · 07 UV와 텍스처 샘플링 |
 | 3. 빛과 하드웨어 | 08 노멀과 조명 · 09 GPU 파이프라인과 메모리 |
 
-각 주제는 캔버스 시각화, 슬라이더, 드래그 조작, 자동 애니메이션, 단계별 수식 흐름으로 구성되어 있습니다. 주제마다 주소가 있습니다(예: `#graphics-lab/projection`).
+주제마다 직접 끌고 돌리고 재생하는 그림이 4~6개씩 있고, 그림 아래 수식의 숫자가 조작에 맞춰 실시간으로 바뀝니다. 기호마다 색이 정해져 있어(x는 초록, y는 빨강, 각도는 파랑…) 그림과 수식을 눈으로 바로 이을 수 있습니다. 주제마다 주소가 있습니다(예: `#graphics-lab/projection`).
 
 ## 심화: UE5 엔진 스터디
 
@@ -28,12 +28,12 @@
 ## 폴더 구조
 
 - `테크아트 라이브러리.html`: 사이트 본체 (그래픽스 랩 번들과 엔진 스터디 md 스냅샷 내장). `index.html`은 이 파일로 넘기는 진입점입니다.
-- `graphics-lab/`: 그래픽스 랩 원본 소스 (index.html + js). 단독 실행도 가능합니다.
+- `graphics-lab/`: 그래픽스 랩 원본 소스 (core 틀 + 주제별 lessons). 단독 실행도 가능합니다. 구조는 `graphics-lab/README.md` 참고.
 - `*.md`: 엔진 스터디 원본 문서
 - `scripts/`: 자동화 스크립트
 
 ## 고치는 방법
 
-- **그래픽스 랩**: `graphics-lab/` 원본을 수정한 뒤 `scripts\Bundle-GraphicsLab.ps1`을 실행하면 사이트에 다시 주입됩니다.
+- **그래픽스 랩**: `graphics-lab/` 원본(JS·CSS)을 수정한 뒤 `scripts\Bundle-GraphicsLab.ps1`을 실행하면 사이트에 다시 주입됩니다.
 - **엔진 스터디**: md 파일을 수정한 뒤 `scripts\Sync-StudyLibrary.ps1`을 실행하면 내장 스냅샷이 갱신됩니다. 로컬 HTTP 서버(VSCode Live Preview 등)로 열면 스냅샷과 관계없이 md가 바로 반영됩니다.
 - **자동 푸시**: PC에서 저장하면 최대 5분 안에 커밋·푸시됩니다(`scripts\AutoPush-Docs.ps1` + 스케줄 작업 "MainDev Docs AutoPush", main 브랜치만 푸시).

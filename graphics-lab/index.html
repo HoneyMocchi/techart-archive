@@ -3,60 +3,48 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Graphics Foundations Lab</title>
+  <title>그래픽스 기초 랩</title>
+  <style>
+    :root { --bg: #F3F4F6; --surface: #FFFFFF; --ink: #22262E; --muted: #636B78; --line: #E2E4EA; --accent: #4B5BD7; --accent-soft: rgba(75, 91, 215, 0.10); }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --bg: #14161B; --surface: #1C1F26; --ink: #E8EAF0; --muted: #98A0AE; --line: #2B2F3A; --accent: #93A0FF; --accent-soft: rgba(147, 160, 255, 0.12); }
+    }
+    :root[data-theme="dark"] { --bg: #14161B; --surface: #1C1F26; --ink: #E8EAF0; --muted: #98A0AE; --line: #2B2F3A; --accent: #93A0FF; --accent-soft: rgba(147, 160, 255, 0.12); }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .shell { max-width: 64rem; margin: 0 auto; padding: 20px 16px 60px; }
+  </style>
   <link rel="stylesheet" href="styles/app.css" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <strong>Graphics Foundations Lab</strong>
-        <span>그래픽스 입문에 필요한 수학과 컴퓨터 지식을 실험 단위로 정리한 인터랙티브 노트</span>
+  <div class="shell">
+    <div class="lab-nav-row">
+      <nav class="lab-topics" id="topicNav" aria-label="학습 주제"></nav>
+      <div class="lab-pager">
+        <button class="icon-btn" id="prevTopic" type="button" aria-label="이전 주제">←</button>
+        <button class="icon-btn" id="nextTopic" type="button" aria-label="다음 주제">→</button>
       </div>
-      <nav class="nav" id="topicNav" aria-label="학습 주제"></nav>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <div class="path">CppStudy / <strong id="currentTopic">벡터와 좌표</strong></div>
-        </div>
-        <div class="pager">
-          <button class="icon-btn" id="prevTopic" type="button" aria-label="이전 주제">←</button>
-          <button class="icon-btn" id="nextTopic" type="button" aria-label="다음 주제">→</button>
-        </div>
-      </header>
-
-      <div class="content" id="lessonRoot"></div>
-    </main>
+    </div>
+    <div id="lessonRoot"></div>
   </div>
 
-  <script src="js/sections/registry.js"></script>
-  <script src="js/sections/vector.js"></script>
-  <script src="js/sections/trig.js"></script>
-  <script src="js/sections/dotcross.js"></script>
-  <script src="js/sections/transform.js"></script>
-  <script src="js/sections/projection.js"></script>
-  <script src="js/sections/raster.js"></script>
-  <script src="js/sections/texture.js"></script>
-  <script src="js/sections/lighting.js"></script>
-  <script src="js/sections/gpu.js"></script>
-  <script src="js/sections/render.js"></script>
-
-  <script src="js/common/state.js"></script>
-  <script src="js/common/app-core.js"></script>
-  <script src="js/common/canvas-utils.js"></script>
-  <script src="js/common/interaction.js"></script>
-
-  <script src="js/topics/vector.js"></script>
-  <script src="js/topics/trig.js"></script>
-  <script src="js/topics/dotcross.js"></script>
-  <script src="js/topics/transform.js"></script>
-  <script src="js/topics/projection.js"></script>
-  <script src="js/topics/raster.js"></script>
-  <script src="js/topics/texture.js"></script>
-  <script src="js/topics/lighting.js"></script>
-  <script src="js/topics/gpu.js"></script>
+  <!-- 순서: core → lessons(번호순) → app. Bundle-GraphicsLab.ps1도 같은 순서로 묶습니다. -->
+  <script src="js/core/format.js"></script>
+  <script src="js/core/fig.js"></script>
+  <script src="js/core/lab.js"></script>
+  <script src="js/lessons/01-vector.js"></script>
+  <script src="js/lessons/02-trig.js"></script>
+  <script src="js/lessons/03-dotcross.js"></script>
+  <script src="js/lessons/04-transform.js"></script>
+  <script src="js/lessons/05-projection.js"></script>
+  <script src="js/lessons/06-raster.js"></script>
+  <script src="js/lessons/07-texture.js"></script>
+  <script src="js/lessons/08-lighting.js"></script>
+  <script src="js/lessons/09-gpu.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
