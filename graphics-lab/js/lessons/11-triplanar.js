@@ -31,7 +31,7 @@
   }
 
   lesson({
-    topic: "triplanar", title: "트라이플래너 매핑", desc: "UV 없이 세 방향에서 투영", stage: "3D에서 화면으로",
+    topic: "triplanar", title: "트라이플래너·바이플래너", desc: "UV 없이 세(두) 방향에서 투영", stage: "3D에서 화면으로",
     sym: { w: "purple", N: "yellow", k: "orange", x: "green", y: "red", z: "blue" },
     hook: "바위·지형·절벽처럼 UV를 펴기 어려운 모델에는 ==UV 대신 월드 좌표로 텍스처를 찍습니다==. 한 방향에서 찍으면 옆면이 늘어나니, 세 방향에서 찍어 노멀로 섞습니다.",
     blocks: [
@@ -120,6 +120,46 @@
       } },
       "실무에서는 노멀 맵도 트라이플래너로 찍는데, 이때는 ==각 투영의 노멀을 해당 축 기준으로 돌려서== 섞어야 조명이 맞습니다(화이트아웃 블렌드 등). 그리고 텍스처 읽기가 3배이므로 바이리니어·밉맵 비용도 3배가 됩니다.",
 
+      { h: "바이플래너: 두 번만 읽기" },
+      "트라이플래너는 텍스처를 세 번 읽지만, 실제로 크게 기여하는 것은 ==가장 큰 두 축==뿐입니다. 바이플래너는 픽셀마다 $|N|$이 가장 큰 축과 두 번째 축만 골라 두 번 읽고, 가장 작은 축의 몫을 빼서 경계를 맞춥니다. 트라이플래너와의 차이를 확대해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let view = 0, k = 8, yaw = 0.5;
+          C.seg({ options: [{ value: 0, label: "바이플래너 결과" }, { value: 1, label: "트라이플래너와 차이 ×4" }, { value: 2, label: "고른 두 축 보기" }], value: 0, onChange: x => { view = x; } });
+          C.slider({ label: "경계 날카로움 $k$", min: 2, max: 24, step: 1, value: k, fmt: x => num(x, 0), onInput: x => { k = x; } });
+          C.play();
+          F.loop(dt => { yaw += dt * 0.5; });
+          const AX = [[2, 1], [0, 2], [0, 1]];                      // 축마다 투영 평면의 (u, v) 성분: x축 → zy, y축 → xz, z축 → xy
+          const proj = (n, a, sc) => sample(n[AX[a][0]] * sc + 5, n[AX[a][1]] * sc + 5, true);
+          F.draw = g => {
+            const c = [0, 0], R = 1.85, sc = 0.55;
+            g.field(220, (x, y) => {
+              const sf = sphereSurf(x, y, c, R, yaw, 0.35);
+              if (!sf) return null;
+              const n = sf.n, an = n.map(Math.abs);
+              const ma = an.indexOf(Math.max(...an)), mi = an.indexOf(Math.min(...an)), me = 3 - ma - mi;
+              // 바이플래너 (iq): 가장 작은 축의 몫(최소 0.5773)을 빼고 거듭제곱
+              let w = [an[ma], an[me]].map(v => Math.pow(clamp((v - 0.5773) / (1 - 0.5773), 0, 1), k / 8));
+              const ws = w[0] + w[1] || 1;
+              const t1 = proj(n, ma, sc), t2 = proj(n, me, sc);
+              const bi = [0, 1, 2].map(i => (t1[i] * w[0] + t2[i] * w[1]) / ws);
+              const l = 0.25 + 0.75 * Math.max(0, V3.dot(sf.nv, LIGHT));
+              if (view === 2) { const col = [[131, 193, 103], [252, 98, 85], [88, 196, 221]]; return [0, 1, 2].map(i => (col[ma][i] * w[0] + col[me][i] * w[1]) / ws).concat(255 * sf.edge); }
+              if (view === 1) {
+                let tw = an.map(v => Math.pow(v, k)); const ts = tw[0] + tw[1] + tw[2]; tw = tw.map(v => v / ts);
+                const tri = [0, 1, 2].map(i => proj(n, 0, sc)[i] * tw[0] + proj(n, 1, sc)[i] * tw[1] + proj(n, 2, sc)[i] * tw[2]);
+                return [0, 1, 2].map(i => clamp(Math.abs(tri[i] - bi[i]) * 4, 0, 255)).concat(255 * sf.edge);
+              }
+              return bi.map(v => v * l).concat(255 * sf.edge);
+            });
+            L.set("eq", view === 1 ? "차이가 거의 검정 → 두 번 읽고도 세 번 읽은 것과 거의 같음" : "텍스처 읽기: 트라이플래너 3번 → 바이플래너 2번 (픽셀마다 고른 두 축)");
+          };
+        }
+      } },
+      "가장 작은 축의 가중치는 원래도 거의 0이라 버려도 티가 안 납니다. 대신 ==고르는 축이 바뀌는 경계==에서 끊기지 않도록 $0.5773$($1/√3$, 세 성분이 같을 때의 값)을 빼서 그 지점에서 가중치가 0이 되게 맞춥니다.",
+
       { use: [
         ["엔진", "머티리얼 함수", "UE의 `WorldAlignedTexture`·`WorldAlignedNormal` 머티리얼 함수가 트라이플래너입니다. 크기 파라미터가 이 장의 '텍스처 확대'입니다."],
         ["게임", "지형과 절벽", "지형의 가파른 절벽은 높이맵 UV로 찍으면 늘어나므로, 경사가 큰 곳만 트라이플래너로 바꿉니다."],
@@ -131,7 +171,8 @@
         ["uv = (x, z)", "한 방향 투영: 그 방향을 보는 면만 정확"],
         ["w = |N|^k / Σ|N|^k", "노멀로 세 투영을 섞는 비율"],
         ["색 = w_x·T(zy) + w_y·T(xz) + w_z·T(xy)", "트라이플래너: 텍스처 3번 읽기"],
-        ["k ↑", "경계가 날카로워지고 겹쳐 보임이 줄어듦"]
+        ["k ↑", "경계가 날카로워지고 겹쳐 보임이 줄어듦"],
+        ["가장 큰 두 축만, 1/√3 빼기", "바이플래너: 읽기 2번"]
       ] }
     ]
   });

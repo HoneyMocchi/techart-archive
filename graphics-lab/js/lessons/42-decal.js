@@ -119,7 +119,9 @@
               const H = V3.norm(V3.add(Ld, V3.mul(rd, -1))), a = rough * rough;
               const NoH = Math.max(0, V3.dot(n, H)), D = a * a / (Math.PI * Math.pow(NoH * NoH * (a * a - 1) + 1, 2));
               const spec = Math.min(8, D * 0.08), dif = Math.max(0, V3.dot(n, Ld));
-              return base.map(c => srgb(c * (0.15 + 0.85 * dif) + spec)).concat(255);
+              const r = V3.sub(rd, V3.mul(n, 2 * V3.dot(rd, n))), sky = [0.35 + 0.3 * r[1], 0.5 + 0.3 * r[1], 0.85];   // 하늘 반사(매끈할수록 또렷)
+              const fres = 0.04 + 0.96 * Math.pow(1 - Math.max(0, -V3.dot(rd, n)), 5);
+              return base.map((c, i) => srgb(c * (0.15 + 0.85 * dif) + spec + sky[i] * fres * (1 - rough) * 1.2)).concat(255);
             });
             L.set("eq", { color: "기본색 채널만 바꿈 → 칠한 페인트", rough: "거칠기만 낮춤 → 하늘·해가 비치는 물웅덩이", normal: "노멀만 바꿈 → 색은 그대로인데 빛에 따라 긁힌 결이 보임" }[mode]);
           };

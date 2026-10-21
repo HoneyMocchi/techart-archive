@@ -2181,7 +2181,7 @@ function makeFig(block, opts, lessonCtx) {
   let last = null;
   // 터치: 핸들 근처에서 시작하면 가로채고, 아니면 세로 스크롤은 페이지에 양보합니다.
   // 3D 회전 그림은 가로로 끌면 돌고(touch-action: pan-y), 세로로 끌면 페이지가 스크롤됩니다.
-  const wantsTouch = (sx, sy) => !!(pick(sx, sy, 56) || (singleGrab() && pick(sx, sy, 110)));
+  const wantsTouch = (sx, sy) => !!(opts.captureTouch || pick(sx, sy, 56) || (singleGrab() && pick(sx, sy, 110)));   // captureTouch: 붓칠처럼 그림 전체를 가로채야 하는 경우
   const singleGrab = () => (opts.grabNearest ?? F.handles.length === 1) && F.handles.length && !F.onPan && !F.onTap;
   F.canvas.addEventListener("touchstart", e => {
     const r = F.canvas.getBoundingClientRect(), t = e.touches[0];
@@ -4625,7 +4625,7 @@ function render() {
   }
 
   lesson({
-    topic: "triplanar", title: "트라이플래너 매핑", desc: "UV 없이 세 방향에서 투영", stage: "3D에서 화면으로",
+    topic: "triplanar", title: "트라이플래너·바이플래너", desc: "UV 없이 세(두) 방향에서 투영", stage: "3D에서 화면으로",
     sym: { w: "purple", N: "yellow", k: "orange", x: "green", y: "red", z: "blue" },
     hook: "바위·지형·절벽처럼 UV를 펴기 어려운 모델에는 ==UV 대신 월드 좌표로 텍스처를 찍습니다==. 한 방향에서 찍으면 옆면이 늘어나니, 세 방향에서 찍어 노멀로 섞습니다.",
     blocks: [
@@ -4714,6 +4714,46 @@ function render() {
       } },
       "실무에서는 노멀 맵도 트라이플래너로 찍는데, 이때는 ==각 투영의 노멀을 해당 축 기준으로 돌려서== 섞어야 조명이 맞습니다(화이트아웃 블렌드 등). 그리고 텍스처 읽기가 3배이므로 바이리니어·밉맵 비용도 3배가 됩니다.",
 
+      { h: "바이플래너: 두 번만 읽기" },
+      "트라이플래너는 텍스처를 세 번 읽지만, 실제로 크게 기여하는 것은 ==가장 큰 두 축==뿐입니다. 바이플래너는 픽셀마다 $|N|$이 가장 큰 축과 두 번째 축만 골라 두 번 읽고, 가장 작은 축의 몫을 빼서 경계를 맞춥니다. 트라이플래너와의 차이를 확대해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let view = 0, k = 8, yaw = 0.5;
+          C.seg({ options: [{ value: 0, label: "바이플래너 결과" }, { value: 1, label: "트라이플래너와 차이 ×4" }, { value: 2, label: "고른 두 축 보기" }], value: 0, onChange: x => { view = x; } });
+          C.slider({ label: "경계 날카로움 $k$", min: 2, max: 24, step: 1, value: k, fmt: x => num(x, 0), onInput: x => { k = x; } });
+          C.play();
+          F.loop(dt => { yaw += dt * 0.5; });
+          const AX = [[2, 1], [0, 2], [0, 1]];                      // 축마다 투영 평면의 (u, v) 성분: x축 → zy, y축 → xz, z축 → xy
+          const proj = (n, a, sc) => sample(n[AX[a][0]] * sc + 5, n[AX[a][1]] * sc + 5, true);
+          F.draw = g => {
+            const c = [0, 0], R = 1.85, sc = 0.55;
+            g.field(220, (x, y) => {
+              const sf = sphereSurf(x, y, c, R, yaw, 0.35);
+              if (!sf) return null;
+              const n = sf.n, an = n.map(Math.abs);
+              const ma = an.indexOf(Math.max(...an)), mi = an.indexOf(Math.min(...an)), me = 3 - ma - mi;
+              // 바이플래너 (iq): 가장 작은 축의 몫(최소 0.5773)을 빼고 거듭제곱
+              let w = [an[ma], an[me]].map(v => Math.pow(clamp((v - 0.5773) / (1 - 0.5773), 0, 1), k / 8));
+              const ws = w[0] + w[1] || 1;
+              const t1 = proj(n, ma, sc), t2 = proj(n, me, sc);
+              const bi = [0, 1, 2].map(i => (t1[i] * w[0] + t2[i] * w[1]) / ws);
+              const l = 0.25 + 0.75 * Math.max(0, V3.dot(sf.nv, LIGHT));
+              if (view === 2) { const col = [[131, 193, 103], [252, 98, 85], [88, 196, 221]]; return [0, 1, 2].map(i => (col[ma][i] * w[0] + col[me][i] * w[1]) / ws).concat(255 * sf.edge); }
+              if (view === 1) {
+                let tw = an.map(v => Math.pow(v, k)); const ts = tw[0] + tw[1] + tw[2]; tw = tw.map(v => v / ts);
+                const tri = [0, 1, 2].map(i => proj(n, 0, sc)[i] * tw[0] + proj(n, 1, sc)[i] * tw[1] + proj(n, 2, sc)[i] * tw[2]);
+                return [0, 1, 2].map(i => clamp(Math.abs(tri[i] - bi[i]) * 4, 0, 255)).concat(255 * sf.edge);
+              }
+              return bi.map(v => v * l).concat(255 * sf.edge);
+            });
+            L.set("eq", view === 1 ? "차이가 거의 검정 → 두 번 읽고도 세 번 읽은 것과 거의 같음" : "텍스처 읽기: 트라이플래너 3번 → 바이플래너 2번 (픽셀마다 고른 두 축)");
+          };
+        }
+      } },
+      "가장 작은 축의 가중치는 원래도 거의 0이라 버려도 티가 안 납니다. 대신 ==고르는 축이 바뀌는 경계==에서 끊기지 않도록 $0.5773$($1/√3$, 세 성분이 같을 때의 값)을 빼서 그 지점에서 가중치가 0이 되게 맞춥니다.",
+
       { use: [
         ["엔진", "머티리얼 함수", "UE의 `WorldAlignedTexture`·`WorldAlignedNormal` 머티리얼 함수가 트라이플래너입니다. 크기 파라미터가 이 장의 '텍스처 확대'입니다."],
         ["게임", "지형과 절벽", "지형의 가파른 절벽은 높이맵 UV로 찍으면 늘어나므로, 경사가 큰 곳만 트라이플래너로 바꿉니다."],
@@ -4725,7 +4765,8 @@ function render() {
         ["uv = (x, z)", "한 방향 투영: 그 방향을 보는 면만 정확"],
         ["w = |N|^k / Σ|N|^k", "노멀로 세 투영을 섞는 비율"],
         ["색 = w_x·T(zy) + w_y·T(xz) + w_z·T(xy)", "트라이플래너: 텍스처 3번 읽기"],
-        ["k ↑", "경계가 날카로워지고 겹쳐 보임이 줄어듦"]
+        ["k ↑", "경계가 날카로워지고 겹쳐 보임이 줄어듦"],
+        ["가장 큰 두 축만, 1/√3 빼기", "바이플래너: 읽기 2번"]
       ] }
     ]
   });
@@ -8413,6 +8454,2099 @@ function render() {
 })();
 
 
+/* ===== js\lessons\37-texpack.js ===== */
+/* 37 채널 패킹과 텍스처 압축 */
+(() => {
+  const fract = x => x - Math.floor(x);
+  const hash = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const vnoise = (x, y) => { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, s = t => t * t * (3 - 2 * t); return lerp(lerp(hash(i, j), hash(i + 1, j), s(fx)), lerp(hash(i, j + 1), hash(i + 1, j + 1), s(fx)), s(fy)); };
+  // 같은 바위 재질의 마스크 세 장
+  const AO = (u, v) => clamp(0.35 + 0.65 * vnoise(u * 6, v * 6) + 0.2 * vnoise(u * 20, v * 20) - 0.15, 0, 1);
+  const RO = (u, v) => clamp(0.4 + 0.5 * vnoise(u * 3 + 7, v * 3) - (Math.hypot(u - 0.6, v - 0.4) < 0.18 ? 0.35 : 0), 0, 1);
+  const ME = (u, v) => (Math.abs(u - 0.25) < 0.08 || Math.abs(v - 0.75) < 0.05 ? 1 : 0);
+  const MB = n => (n >= 1048576 ? num(n / 1048576, 1) + " MB" : num(n / 1024, 0) + " KB");
+
+  lesson({
+    topic: "texpack", title: "채널 패킹과 텍스처 압축", desc: "RGBA 한 장에 마스크 넷", stage: "테크아트 실전",
+    sym: {},
+    hook: "게임 메모리의 대부분은 텍스처입니다. TA는 ==흑백 마스크를 RGBA 채널에 나눠 담고(패킹), 용도에 맞는 압축 포맷을 고르는== 일로 품질을 지키면서 메모리를 절반 이하로 줄입니다.",
+    blocks: [
+      { h: "채널 패킹: 흑백 마스크 셋을 한 장에" },
+      "AO·거칠기·금속성은 모두 흑백이라 채널 하나면 충분합니다. ==R에 AO, G에 거칠기, B에 금속성==(ORM)을 담으면 텍스처 세 장이 한 장이 되고, 셰이더는 한 번만 읽습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let view = "packed";
+          C.seg({ options: [{ value: "r", label: "R = AO" }, { value: "g", label: "G = 거칠기" }, { value: "b", label: "B = 금속성" }, { value: "packed", label: "합친 ORM" }], value: view, onChange: x => { view = x; } });
+          F.draw = g => {
+            g.field(260, (x, y) => {
+              const tile = Math.floor(x), u = x - tile, v = 1 - y / 2;
+              if (y > 2 || tile > 3) return null;
+              const a = AO(u, v) * 255, r = RO(u, v) * 255, m = ME(u, v) * 255;
+              if (tile === 0) return [a, a, a, 255];
+              if (tile === 1) return [r, r, r, 255];
+              if (tile === 2) return [m, m, m, 255];
+              return view === "packed" ? [a, r, m, 255] : view === "r" ? [a, 0, 0, 255] : view === "g" ? [0, r, 0, 255] : [0, 0, m, 255];
+            }, { rect: { x0: 0, x1: 4, y0: 0, y1: 2 }, smooth: false });
+            ["AO", "거칠기", "금속성", "ORM (RGB)"].forEach((t, i) => g.text(t, [i + 0.5, 1.92], "white", { size: 12, bold: true }));
+            [1, 2, 3].forEach(i => g.line([i, 0], [i, 2], "#10131A", { w: 3 }));
+            L.set("eq", view === "packed" ? "흑백 3장(각 1채널) → RGB 1장   ·   샘플링 3번 → 1번" : `$${view.toUpperCase()}$ 채널만 보기`);
+          };
+        }
+      } },
+      { key: "패킹할 마스크는 ==sRGB를 꺼야== 합니다(14장). 숫자 그대로의 마스크에 감마가 걸리면 거칠기 0.5가 0.21로 읽힙니다. 그리고 ==압축 후 품질이 좋은 G 채널==에 가장 중요한 마스크를 넣는 것이 관례입니다." },
+
+      { h: "블록 압축(BC1): 4×4 픽셀을 색 두 개로" },
+      "GPU 텍스처 압축은 이미지를 ==4×4 블록으로 나누고, 블록마다 끝 색 두 개와 그 사이 4단계 중 하나를 고르는 2비트 번호==만 저장합니다. 블록 안에 색이 셋 이상 섞이면 뭉개집니다. 확대해서 원본과 비교해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["블록 하나: 원본 16픽셀 × 3B = 48B   →   BC1: 끝 색 2개(4B) + 번호 16개 × 2비트(4B) = 8B   (6 : 1)"],
+        setup(F, C, L) {
+          let showErr = false;
+          C.seg({ options: [{ value: 0, label: "원본 | 압축" }, { value: 1, label: "오차 ×4 보기" }], value: 0, onChange: x => { showErr = !!x; } });
+          const W = 32, H = 32;
+          const src = (i, j) => {
+            const u = i / W, v = j / H;
+            let c = [lerp(40, 220, u), lerp(60, 120, v), lerp(200, 60, u)];
+            if (Math.hypot(u - 0.62, v - 0.45) < 0.2) c = [230, 60, 60];
+            if (Math.abs(u - v * 0.7 - 0.08) < 0.03) c = [80, 220, 120];
+            if (Math.hypot(u - 0.62, v - 0.45) < 0.08) c = [250, 230, 90];
+            return c;
+          };
+          const comp = [];
+          for (let by = 0; by < H / 4; by++) for (let bx = 0; bx < W / 4; bx++) {
+            const px = []; for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) px.push(src(bx * 4 + i, by * 4 + j));
+            const mn = [0, 1, 2].map(k => Math.min(...px.map(p => p[k]))), mx = [0, 1, 2].map(k => Math.max(...px.map(p => p[k])));
+            const pal = [0, 1 / 3, 2 / 3, 1].map(t => mn.map((v, k) => lerp(v, mx[k], t)));
+            px.forEach((p, n) => { let best = 0, bd = 1e9; pal.forEach((q, k) => { const d = (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2; if (d < bd) { bd = d; best = k; } }); comp[(by * 4 + Math.floor(n / 4)) * W + bx * 4 + (n % 4)] = pal[best]; });
+          }
+          F.draw = g => {
+            g.field(256, (x, y) => {
+              const right = x >= 2, i = Math.floor((right ? x - 2 : x) / 2 * W), j = Math.floor((2 - y) / 2 * H);
+              if (i < 0 || i >= W || j < 0 || j >= H) return null;
+              const o = src(i, j), c = comp[j * W + i];
+              if (!right) return [...o, 255];
+              if (showErr) return [0, 1, 2].map(k => clamp(Math.abs(o[k] - c[k]) * 4, 0, 255)).concat(255);
+              return [...c, 255];
+            }, { smooth: false });
+            for (let k = 0; k <= 8; k++) { g.line([2 + k * 0.25, 0], [2 + k * 0.25, 2], "rgba(16,19,26,0.5)", { w: 1 }); g.line([2, k * 0.25], [4, k * 0.25], "rgba(16,19,26,0.5)", { w: 1 }); }
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            g.text("원본", [1, 1.93], "white", { size: 12, bold: true }); g.text(showErr ? "오차 ×4" : "BC1 압축 (4×4 블록)", [3, 1.93], "white", { size: 12, bold: true });
+          };
+        }
+      } },
+      "그래서 포맷을 용도별로 고릅니다. ==불투명 색은 BC1, 알파가 필요하면 BC3/BC7, 노멀 맵은 두 채널만 따로 압축하는 BC5==(z는 셰이더에서 $√(1 − x^2 − y^2)$ 로 복원), 흑백 마스크 한 장은 BC4입니다.",
+
+      { h: "밉맵·해상도·포맷이 정하는 메모리" },
+      "해상도를 두 배로 올리면 메모리는 ==네 배==, 밉맵 사슬은 거기에 ==1/3을 더합니다==. 포맷을 바꿔 가며 텍스처 한 장의 메모리를 확인해 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["{res}² × {bpp} B × 4/3 (밉) = {mem}"],
+        setup(F, C, L) {
+          let p = 11, fmt = 0.5;
+          C.slider({ label: "해상도", min: 8, max: 13, step: 1, value: p, fmt: x => Math.pow(2, x) + "²", onInput: x => { p = x; } });
+          C.seg({ options: [{ value: 4, label: "RGBA8 (4B)" }, { value: 1, label: "BC7·BC3 (1B)" }, { value: 0.5, label: "BC1·BC4 (0.5B)" }], value: fmt, onChange: x => { fmt = +x; } });
+          F.draw = g => {
+            const res = Math.pow(2, p), base = res * res * fmt, mem = base * 4 / 3;
+            let x = 0.3, s = 3.6;
+            for (let k = 0; k < 8 && s > 0.03; k++) { g.poly([[x, 0.3], [x + s, 0.3], [x + s, 0.3 + s], [x, 0.3 + s]], { fill: k === 0 ? "rgba(88,196,221,0.35)" : "rgba(244,211,69,0.35)", stroke: k === 0 ? "blue" : "gold", w: 1.5 }); x += s + 0.12; s /= 2; }
+            g.text("밉 0", [2.1, 2.1], "white", { size: 12, bold: true }); g.text("밉 1, 2, 3 … 합쳐서 +33%", [5.6, 2.4], "gold", { size: 11 });
+            const cap = 8 * 1048576, w = Math.min(1, mem / cap);
+            g.poly([[6, 3.4], [9.7, 3.4], [9.7, 3.9], [6, 3.9]], { stroke: "rgba(236,239,244,0.3)", w: 1 });
+            g.poly([[6, 3.4], [6 + 3.7 * w, 3.4], [6 + 3.7 * w, 3.9], [6, 3.9]], { fill: mem > 32 * 1048576 ? PAL.red : mem > 8 * 1048576 ? PAL.orange : PAL.green });
+            g.text("8 MB 기준", [9.7, 3.4], "grey", { size: 10, align: "right", dy: 10 });
+            L.set("res", res); L.set("bpp", fmt); L.set("mem", MB(mem));
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "압축 설정", "UE 텍스처의 Compression Settings: Default(BC1/3), Masks(sRGB 끔), Normalmap(BC5), Grayscale(BC4), BC7. 마스크에 Default를 쓰면 감마 오류가 납니다."],
+        ["엔진", "텍스처 스트리밍", "UE는 카메라 거리에 맞는 밉만 메모리에 올립니다. 'Texture streaming pool over budget' 경고가 뜨면 해상도·밉 바이어스부터 봅니다."],
+        ["TA", "패킹 규칙 문서화", "프로젝트마다 ORM·RMA 등 채널 순서가 다릅니다. 셰이더와 아트 파이프라인이 같은 규칙을 쓰도록 TA가 정하고 검증 툴을 만듭니다."],
+        ["최적화", "4K는 정말 필요한가", "화면에서 64픽셀로 보이는 소품에 4K 텍스처를 쓰면 밉 0~5는 거의 안 쓰입니다. 텍셀 밀도(38장)로 해상도를 정합니다."]
+      ] },
+
+      { recap: [
+        ["R = AO, G = 거칠기, B = 금속성", "채널 패킹: 샘플링·메모리 절약, sRGB 끔"],
+        ["4×4 블록 = 끝 색 2 + 2비트 번호", "BC1: 6 : 1 압축, 블록 안 색이 많으면 뭉개짐"],
+        ["BC5 노멀 + z = √(1 − x^2 − y^2)", "용도별 포맷"],
+        ["해상도 2배 = 메모리 4배, 밉 +1/3", "메모리 계산"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\38-texel.js ===== */
+/* 38 텍셀 밀도와 UV 레이아웃 */
+(() => {
+  const f0 = n => num(n, 0);
+  const edge = (a, b, p) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+
+  lesson({
+    topic: "texel", title: "텍셀 밀도와 UV 레이아웃", desc: "1미터에 몇 픽셀인가", stage: "테크아트 실전",
+    sym: { u: "green", v: "red" },
+    hook: "같은 화면에 놓인 벽과 소품의 텍스처 선명도가 다르면 눈에 거슬립니다. TA는 ==월드 1미터당 텍셀 수(텍셀 밀도)==를 기준으로 해상도와 UV 크기를 맞추고, UV 섬 사이 여백으로 밉맵 번짐을 막습니다.",
+    blocks: [
+      { h: "텍셀 밀도 맞추기" },
+      "크기가 다른 세 물체에 같은 체크 무늬를 입혔습니다. 칸 크기가 다르면 밀도가 다른 것입니다. ==목표 밀도(점선 칸)와 같아지도록== 각 물체의 텍스처 해상도를 골라 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5 },
+        eq: ["밀도 = 텍스처 해상도 × UV 비율 / 월드 크기(m)   →   벽 {a}, 상자 {b}, 컵 {c} px/m   (목표 {t})"],
+        setup(F, C, L) {
+          const objs = [{ name: "벽 4m", size: 4, x: 0.3, w: 4, res: 1024 }, { name: "상자 1m", size: 1, x: 4.8, w: 1.6, res: 1024 }, { name: "컵 0.25m", size: 0.25, x: 7.2, w: 0.9, res: 1024 }];
+          let target = 512;
+          objs.forEach((o, i) => C.slider({ label: o.name, min: 6, max: 12, step: 1, value: 10, fmt: x => Math.pow(2, x) + "", onInput: x => { o.res = Math.pow(2, x); } }));
+          C.seg({ options: [{ value: 256, label: "목표 256 px/m" }, { value: 512, label: "512" }, { value: 1024, label: "1024" }], value: 512, onChange: x => { target = +x; } });
+          F.draw = g => {
+            const dens = objs.map(o => o.res / o.size);
+            objs.forEach((o, i) => {
+              const sc = o.w / o.size;                         // 화면 단위 / m
+              const cell = 32 / dens[i] * sc;                   // 32텍셀짜리 체크 칸의 화면 크기
+              const y0 = 0.6, h = Math.min(4, o.w * (i === 0 ? 0.9 : 1));
+              g.field(260, (x, y) => {
+                if (x < o.x || x > o.x + o.w || y < y0 || y > y0 + h) return undefined;
+                return (Math.floor((x - o.x) / cell) + Math.floor((y - y0) / cell)) % 2 ? [236, 239, 244, 255] : [88, 120, 170, 255];
+              }, { rect: { x0: o.x, x1: o.x + o.w, y0: y0, y1: y0 + h }, smooth: false });
+              const ok = Math.abs(Math.log2(dens[i] / target)) < 0.01;
+              g.text(o.name, [o.x + o.w / 2, y0], ok ? "green" : "orange", { dy: 12, size: 12, bold: true });
+              g.text(f0(dens[i]) + " px/m", [o.x + o.w / 2, y0 + h], ok ? "green" : "orange", { dy: -10, size: 11 });
+              const tc = 32 / target * sc;
+              g.poly([[o.x, y0 + h + 0.35], [o.x + tc, y0 + h + 0.35], [o.x + tc, y0 + h + 0.35 + tc], [o.x, y0 + h + 0.35 + tc]], { stroke: "yellow", w: 1.5, dash: [3, 3] });
+            });
+            L.set("a", f0(dens[0])); L.set("b", f0(dens[1])); L.set("c", f0(dens[2])); L.set("t", target);
+          };
+        }
+      } },
+      { key: "기준은 '모두 같은 해상도'가 아니라 ==모두 같은 밀도==입니다. 4m 벽과 25cm 컵이 같은 밀도가 되려면 해상도가 16배 차이 나야 합니다. 카메라에 가까이 오는 1인칭 무기는 의도적으로 더 높게 잡습니다." },
+
+      { h: "UV 패딩: 밉맵이 이웃 섬을 섞는다" },
+      "아틀라스에 UV 섬 두 개가 있습니다. 밉 단계가 올라갈수록 픽셀을 평균 내므로 ==섬 바깥의 배경색이 가장자리로 번져== 모델에 검은 이음매가 생깁니다. 섬을 바깥으로 늘려 칠하는 패딩(엣지 팽창)을 늘려 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["밉 {m} 에서 한 텍셀 = 원본 {n}×{n} 픽셀 평균   ·   패딩 {p} px"],
+        setup(F, C, L) {
+          let mip = 3, pad = 0;
+          C.slider({ label: "밉 단계", min: 0, max: 5, step: 1, value: mip, fmt: f0, onInput: x => { mip = x; } });
+          C.slider({ label: "패딩 (px)", min: 0, max: 16, step: 1, value: pad, fmt: f0, onInput: x => { pad = x; } });
+          const N = 64;
+          const isl = (i, j) => (i > 6 && i < 30 && j > 8 && j < 50 ? 1 : (i > 34 && i < 58 && j > 20 && j < 44 ? 2 : 0));
+          const COL = [[0, 0, 0], [230, 120, 60], [90, 190, 120]];
+          let cache = {};
+          const build = () => {
+            const key = pad;
+            if (cache.key === key) return cache;
+            let img = [];
+            for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) img.push(isl(i, j));
+            for (let k = 0; k < pad; k++) { const nx = img.slice(); for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { if (img[j * N + i]) continue; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, b = j + dj; if (a >= 0 && a < N && b >= 0 && b < N && img[b * N + a]) { nx[j * N + i] = img[b * N + a]; break; } } } img = nx; }
+            const levels = [img.map(v => COL[v])];
+            for (let m = 1; m <= 5; m++) { const s = N >> m, prev = levels[m - 1], ps = s * 2, cur = []; for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) { const a = prev[(2 * j) * ps + 2 * i], b = prev[(2 * j) * ps + 2 * i + 1], c = prev[(2 * j + 1) * ps + 2 * i], d = prev[(2 * j + 1) * ps + 2 * i + 1]; cur.push([0, 1, 2].map(k => (a[k] + b[k] + c[k] + d[k]) / 4)); } levels.push(cur); }
+            cache = { key, levels };
+            return cache;
+          };
+          F.draw = g => {
+            const { levels } = build(), s = N >> mip, lv = levels[mip];
+            g.field(256, (x, y) => {
+              if (x < 2) { const i = Math.floor(x / 2 * s), j = Math.floor((2 - y) / 2 * s); const c = lv[j * s + i]; return [...c, 255]; }
+              // 오른쪽: 섬 1(주황)의 가장자리를 모델 위에서 확대해 본 모습 — 이음매 근처를 같은 밉으로 샘플
+              const u = 7 / 64 + (x - 2) / 2 * (22 / 64), v = 30 / 64 + (y - 1) * 0.02;
+              const i = clamp(Math.floor(u * s), 0, s - 1), j = clamp(Math.floor(v * s), 0, s - 1), c = lv[j * s + i];
+              return [...c, 255];
+            }, { smooth: false });
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            g.text("아틀라스 (밉 " + mip + ")", [1, 1.92], "white", { size: 12, bold: true }); g.text("모델 위 섬 가장자리", [3, 1.92], "white", { size: 12, bold: true });
+            L.set("m", mip); L.set("n", 1 << mip); L.set("p", pad);
+          };
+        }
+      } },
+      "패딩은 ==가장 높은 밉에서 한 텍셀이 되는 크기==까지 필요합니다. 2048 텍스처에서 밉 4까지 버티려면 16px 정도입니다. 베이킹 툴과 Substance의 'Dilation' 설정이 이것입니다.",
+
+      { h: "UV 왜곡: 늘어난 곳 찾기" },
+      "모델 위 삼각형(오른쪽)과 UV 위 삼각형(왼쪽)의 ==넓이 비율==이 다르면 텍스처가 늘어나거나 줄어듭니다. UV 꼭짓점을 끌어 체크 무늬와 색(파랑 = 압축, 빨강 = 늘어남)을 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["늘어남 = (모델 넓이 / 모델 전체) ÷ (UV 넓이 / UV 전체) = {s}"],
+        setup(F, C, L) {
+          const P = [[0.4, -1.6], [3.6, -1.4], [3.2, 1.6], [0.6, 1.4]];
+          const UV = [[-3.6, -1.6], [-1.0, -1.6], [-1.2, 0.9], [-3.4, 1.4]];
+          UV.forEach(q => F.vec(q, "green", { snap: 0.02 }));
+          const tris = [[0, 1, 2], [0, 2, 3]];
+          const area = (a, b, c) => Math.abs(edge(a, b, c)) / 2;
+          F.draw = g => {
+            const tp = tris.map(t => area(P[t[0]], P[t[1]], P[t[2]])), tu = tris.map(t => area(UV[t[0]], UV[t[1]], UV[t[2]]));
+            const sp = tp[0] + tp[1], su = tu[0] + tu[1];
+            const st = tris.map((_, k) => (tp[k] / sp) / (tu[k] / su || 1e-6));
+            g.field(240, (x, y) => {
+              for (let k = 0; k < 2; k++) {
+                const t = tris[k], A = P[t[0]], B = P[t[1]], Cc = P[t[2]], ar = edge(A, B, Cc);
+                const w = [edge(B, Cc, [x, y]) / ar, edge(Cc, A, [x, y]) / ar, edge(A, B, [x, y]) / ar];
+                if (w.every(q => q >= 0)) {
+                  const uv = [0, 1].map(c => w[0] * UV[t[0]][c] + w[1] * UV[t[1]][c] + w[2] * UV[t[2]][c]);
+                  const chk = (Math.floor(uv[0] * 3) + Math.floor(uv[1] * 3)) % 2 ? 1 : 0.55;
+                  const s = Math.log2(st[k]), heat = s > 0 ? [252, 98, 85] : [88, 196, 221], m = clamp(Math.abs(s), 0, 1);
+                  return [0, 1, 2].map(i => lerp(220, heat[i], m) * chk).concat(255);
+                }
+              }
+              return null;
+            });
+            g.poly(UV, { fill: "rgba(131,193,103,0.12)", stroke: "green", w: 2 }); g.line(UV[0], UV[2], "green", { w: 1, dash: [3, 3] });
+            g.poly(P, { stroke: "white", w: 1.5 }); g.line(P[0], P[2], "white", { w: 1, dash: [3, 3] });
+            g.text("UV", [-2.3, 1.85], "white", { size: 12, bold: true }); g.text("모델", [2, 1.85], "white", { size: 12, bold: true });
+            L.set("s", st.map(v => num(v, 2)).join(", "));
+          };
+        }
+      } },
+
+      { use: [
+        ["TA", "밀도 기준표와 검사 툴", "프로젝트 시작 시 '배경 512px/m, 캐릭터 1024px/m' 같은 기준을 정하고, 에디터 유틸리티로 위반 에셋을 찾아냅니다."],
+        ["엔진", "뷰 모드로 확인", "UE의 Required Texture Resolution·Material Texture Scale 뷰 모드가 화면에서 텍셀 밀도가 맞는지 색으로 보여 줍니다."],
+        ["아트", "UV 레이아웃 툴", "RizomUV·Maya UV의 Texel Density 설정, 섬 간 여백(Shell Padding)이 이 장의 밀도와 패딩입니다."],
+        ["실생활", "인쇄 해상도(DPI)", "인쇄물의 '인치당 점 수(DPI)'도 같은 개념입니다. 포스터와 명함이 같은 DPI여야 선명도가 같습니다."]
+      ] },
+
+      { recap: [
+        ["밀도 = 해상도 × UV 비율 / 월드 크기", "px/m로 물체끼리 맞추기"],
+        ["밉 n 단계 = 2^n × 2^n 픽셀 평균", "섬 바깥 색이 번짐"],
+        ["패딩 ≥ 2^(최대 밉)", "엣지 팽창으로 이음매 방지"],
+        ["모델 넓이 비율 ÷ UV 넓이 비율", "UV 늘어남 검사"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\39-baking.js ===== */
+/* 39 노멀 맵 베이킹 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 하이폴리 단면: 완만한 바탕 + 볼트·홈 디테일
+  const high = x => 0.25 * Math.sin(x * 0.9) + (Math.abs(x + 1.4) < 0.35 ? 0.28 * Math.cos((x + 1.4) / 0.35 * Math.PI / 2) : 0) - (Math.abs(x - 1.2) < 0.25 ? 0.22 : 0) + 0.05 * Math.sin(x * 9);
+  const highN = x => { const e = 0.005, d = (high(x + e) - high(x - e)) / (2 * e); return V.norm([-d, 1]); };
+
+  lesson({
+    topic: "baking", title: "노멀 맵 베이킹", desc: "하이폴리 디테일을 로우폴리로", stage: "테크아트 실전",
+    sym: { N: "yellow", d: "orange" },
+    hook: "수백만 폴리곤 조각의 디테일을 게임용 저폴리 모델에 옮기는 것이 베이킹입니다. 저폴리 표면의 픽셀마다 ==노멀 방향으로 광선을 쏴서 하이폴리 표면을 찾고, 거기의 노멀을 기록==합니다. 광선 거리(케이지) 설정 하나에 결과가 갈립니다.",
+    blocks: [
+      { h: "광선으로 하이폴리 찾기" },
+      "옆에서 본 단면입니다. 흰 선이 하이폴리, 청록 선이 로우폴리입니다. 로우폴리의 각 점에서 ==앞뒤로 정해진 거리만큼== 광선을 쏴서 하이폴리와 만나는 곳의 노멀을 아래 띠(노멀 맵)에 기록합니다. 광선 거리를 줄였다 늘려 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -3.2, x1: 3.2, y0: -1.6, y1: 1.6 },
+        eq: ["{msg}"],
+        setup(F, C, L) {
+          let dist = 0.45, other = true;
+          C.slider({ label: "광선 거리 (케이지)", min: 0.05, max: 1.4, value: dist, onInput: x => { dist = x; } });
+          C.seg({ options: [{ value: 1, label: "옆에 다른 부품 있음" }, { value: 0, label: "없음" }], value: 1, onChange: x => { other = !!x; } });
+          const low = x => 0.25 * Math.sin(x * 0.9);
+          F.draw = g => {
+            const pts = []; for (let x = -3.2; x <= 3.2; x += 0.01) pts.push([x, high(x)]);
+            g.poly(pts, { stroke: "white", w: 2, close: false });
+            if (other) g.poly([[-0.4, 0.75], [0.5, 0.75], [0.5, 1.05], [-0.4, 1.05]], { fill: "rgba(177,137,198,0.4)", stroke: "purple", w: 1.5 });
+            const lp = []; for (let x = -3.2; x <= 3.2; x += 0.05) lp.push([x, low(x)]);
+            g.poly(lp, { stroke: "teal", w: 2.5, close: false });
+            g.poly(lp.map(p => [p[0], p[1] + dist]), { stroke: "orange", w: 1, close: false, dash: [4, 4] });
+            g.poly(lp.map(p => [p[0], p[1] - dist]), { stroke: "orange", w: 1, close: false, dash: [4, 4] });
+            let miss = 0, wrong = 0;
+            const strip = [];
+            for (let k = 0; k < 64; k++) {
+              const x = -3.1 + k * 6.2 / 63, y0 = low(x), n = V.norm([-0.225 * Math.cos(x * 0.9), 1]);
+              const start = [x + n[0] * dist, y0 + n[1] * dist];
+              let hitN = null, hitP = null;
+              for (let t = 0; t <= 2 * dist; t += 0.01) {
+                const p = V.sub(start, V.mul(n, t));
+                if (other && p[0] > -0.4 && p[0] < 0.5 && p[1] > 0.75 && p[1] < 1.05) { hitP = p; hitN = [0, 1]; wrong++; break; }
+                if (p[1] <= high(p[0])) { hitP = p; hitN = highN(p[0]); break; }
+              }
+              if (!hitN) miss++;
+              strip.push(hitN);
+              if (k % 3 === 0) g.line(start, hitP || V.sub(start, V.mul(n, 2 * dist)), hitN ? (hitN[1] === 1 && hitN[0] === 0 && other && hitP[1] > 0.7 ? "red" : "yellow") : "red", { w: 1, alpha: 0.7 });
+            }
+            strip.forEach((n, k) => {
+              const x = -3.1 + k * 6.2 / 63, c = n ? [(n[0] * 0.5 + 0.5) * 255, 128, (n[1] * 0.5 + 0.5) * 255] : [255, 0, 255];
+              g.poly([[x - 0.05, -1.55], [x + 0.05, -1.55], [x + 0.05, -1.25], [x - 0.05, -1.25]], { fill: `rgb(${c.map(v => Math.round(v)).join(",")})` });
+            });
+            g.text("구운 노멀 맵 (분홍 = 못 찾음)", [-3.1, -1.25], "grey", { size: 11, align: "left", dy: -8 });
+            L.set("msg", miss > 2 ? `거리가 짧아 ${miss}곳에서 하이폴리를 못 찾음 → 구멍(보통 분홍·검정)` : wrong > 0 ? `거리가 길어 옆 부품을 ${wrong}번 찍음 → 엉뚱한 디테일이 섞임` : "모든 점이 자기 하이폴리를 찾음");
+          };
+        }
+      } },
+      { key: "광선 거리는 ==하이폴리를 다 덮을 만큼 길되, 이웃 부품에 닿지 않을 만큼 짧게==. 부품끼리 붙어 있으면 따로 떨어뜨려 굽는(분해 베이킹, '익스플로드') 것이 정석입니다." },
+
+      { h: "모서리에서 갈라지는 광선" },
+      "로우폴리의 각진 모서리에서 광선을 ==면 노멀==로 쏘면 모서리 바깥에 빈틈이 생기고 안쪽은 겹칩니다. ==평균 노멀(부드러운 케이지)==로 쏘면 광선이 부채꼴로 고르게 퍼집니다. 대신 평균 노멀로 구우면 로우폴리도 같은 부드러운 노멀이어야 결과가 맞습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -3.2, x1: 3.2, y0: -1.6, y1: 1.6 },
+        eq: ["{msg}"],
+        setup(F, C, L) {
+          let avg = false;
+          C.seg({ options: [{ value: 0, label: "면 노멀로 쏘기" }, { value: 1, label: "평균 노멀(케이지)" }], value: 0, onChange: x => { avg = !!x; } });
+          F.draw = g => {
+            const A = [-2.6, -1.2], B = [0, 1.0], Cc = [2.6, -1.2];
+            const hp = []; for (let t = 0; t <= 1; t += 0.01) { const a = lerp(Math.PI * 0.9, Math.PI * 0.1, t); hp.push([Math.cos(a) * 2.75, Math.sin(a) * 2.75 - 1.95]); }
+            g.poly(hp, { stroke: "white", w: 2, close: false });
+            g.poly([A, B, Cc], { stroke: "teal", w: 3, close: false });
+            const n1 = V.norm(V.perp(V.sub(A, B))), n2 = V.norm(V.perp(V.sub(B, Cc))), nb = V.norm(V.add(n1, n2));
+            let gap = 0;
+            const ray = (p, n) => g.arrow(p, V.add(p, V.mul(n, 0.75)), "yellow", { w: 1.5, head: 6, alpha: 0.85 });
+            for (let k = 1; k <= 8; k++) {
+              const t = k / 9, p1 = V.lerp(A, B, t), p2 = V.lerp(B, Cc, 1 - t);
+              const w = avg ? Math.pow(t, 3) : 0;                    // 모서리에 가까울수록 평균 노멀 쪽으로
+              ray(p1, V.norm(V.lerp(n1, nb, w))); ray(p2, V.norm(V.lerp(n2, nb, w)));
+            }
+            if (!avg) { const a = Math.atan2(n1[1], n1[0]), b = Math.atan2(n2[1], n2[0]); g.arc(B, 0.9, b, a, "red", { fill: "rgba(252,98,85,0.25)", w: 1.5 }); gap = 1; }
+            else ray(B, nb);
+            L.set("msg", gap ? "모서리 바깥 부채꼴(빨강)에는 광선이 하나도 가지 않음 → 노멀 맵에 이음매·빈틈" : "광선이 모서리를 돌아 고르게 퍼짐 → 이음매 없음 (로우폴리도 같은 스무딩이어야 함)");
+          };
+        }
+      } },
+
+      { h: "결과: 로우폴리에 입히기" },
+      "구운 노멀 맵을 로우폴리에 입히면 ==모양(실루엣)은 그대로인데 빛을 받는 모습은 하이폴리==처럼 됩니다. 해를 움직여 비교해 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: -3.2, x1: 3.2, y0: -1.35, y1: 1.35 },
+        eq: ["밝기 = max(0, N_구운 · L)"],
+        setup(F, C, L) {
+          let ang = 0.6, mode = 1;
+          C.slider({ label: "해 방향", min: -1.4, max: 1.4, value: ang, fmt: x => num(x / DEG, 0) + "°", onInput: x => { ang = x; } });
+          C.seg({ options: [{ value: 0, label: "로우폴리만" }, { value: 1, label: "로우폴리 + 노멀 맵" }, { value: 2, label: "하이폴리(정답)" }], value: 1, onChange: x => { mode = x; } });
+          F.draw = g => {
+            const Ld = [Math.sin(ang), Math.cos(ang)];
+            const low = x => 0.25 * Math.sin(x * 0.9);
+            g.field(260, (x, y) => {
+              const sy = mode === 2 ? high(x) : low(x);
+              if (y > sy || y < sy - 1.0) return null;
+              const n = mode === 0 ? V.norm([-0.225 * Math.cos(x * 0.9), 1]) : highN(x);
+              const d = Math.max(0, V.dot(n, Ld)), depth = clamp((sy - y) * 1.5, 0, 1);
+              return [lerp(60, 230, d) * (1 - depth * 0.6), lerp(55, 205, d) * (1 - depth * 0.6), lerp(50, 170, d) * (1 - depth * 0.6), 255];
+            });
+            g.arrow([Math.sin(ang) * 1.2 + 2.2, Math.cos(ang) * 1.2 - 0.2], [2.2, -0.2], "gold", { w: 2.5 });
+          };
+        }
+      } },
+
+      { use: [
+        ["툴", "Marmoset·Substance·xNormal", "베이커의 Max Frontal/Rear Distance, Cage, 'Use Smoothed Normals', 'Match By Mesh Name'이 이 장의 설정 그대로입니다."],
+        ["TA", "베이킹 파이프라인", "로우·하이폴리 이름 규칙(_low/_high), 탄젠트 공간 일치(MikkTSpace), 출력 포맷(초록 채널 방향)을 정해 아티스트마다 결과가 다르지 않게 합니다."],
+        ["엔진", "UE 임포트 확인", "베이커와 엔진이 같은 탄젠트·스무딩을 쓰는지가 핵심입니다. 어긋나면 하드 엣지마다 줄이 보입니다(12장)."],
+        ["아트", "AO·곡률·두께 맵", "같은 광선 방식으로 AO(가려짐), 곡률(모서리 마모 마스크), 두께(서브서피스용)도 구워 재질 마스크로 씁니다."]
+      ] },
+
+      { recap: [
+        ["로우폴리 점 → 노멀 방향 광선 → 하이폴리 노멀 기록", "베이킹"],
+        ["광선 거리: 짧으면 구멍, 길면 엉뚱한 부품", "케이지 조절, 부품 분해 베이킹"],
+        ["평균 노멀 케이지", "모서리 빈틈 방지, 로우폴리 스무딩과 일치시킬 것"],
+        ["실루엣은 로우, 음영은 하이", "노멀 맵의 효과"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\40-heightblend.js ===== */
+/* 40 높이 기반 블렌딩과 지형 레이어 */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const hash = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const vnoise = (x, y) => { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, s = t => t * t * (3 - 2 * t); return lerp(lerp(hash(i, j), hash(i + 1, j), s(fx)), lerp(hash(i, j + 1), hash(i + 1, j + 1), s(fx)), s(fy)); };
+  // 재질 A: 벽돌(벽돌 위는 높고 줄눈은 낮음), 재질 B: 모래(잔물결)
+  function brick(u, v) {
+    const row = Math.floor(v * 4), off = (row % 2) * 0.5, fu = fract(u * 2 + off), fv = fract(v * 4);
+    const m = Math.min(fu, 1 - fu, (fv) * 0.5, (1 - fv) * 0.5);
+    const h = clamp(m * 14, 0, 1) * (0.75 + 0.25 * hash(Math.floor(u * 2 + off), row));
+    return { c: [lerp(90, 170, h), lerp(70, 85, h), lerp(60, 70, h)], h };
+  }
+  function sand(u, v) { const h = 0.5 + 0.25 * Math.sin(u * 30 + vnoise(u * 4, v * 4) * 6) * 0.5 + 0.2 * vnoise(u * 20, v * 20); return { c: [lerp(180, 225, h), lerp(150, 195, h), lerp(100, 140, h)], h: h * 0.6 }; }
+
+  lesson({
+    topic: "heightblend", title: "높이 기반 블렌딩", desc: "모래는 줄눈부터 채운다", stage: "테크아트 실전",
+    sym: { m: "teal", h: "red", k: "orange" },
+    hook: "두 재질을 마스크로 그냥 섞으면 반투명하게 겹쳐 보입니다. 실제로는 ==낮은 곳(벽돌 사이 줄눈)부터 모래가 차오릅니다==. 재질마다 높이 정보를 함께 써서 섞으면 이 모습이 나옵니다. 지형·바닥·벽 머티리얼의 기본기입니다.",
+    blocks: [
+      { h: "선형 블렌드 vs 높이 블렌드" },
+      "왼쪽에서 오른쪽으로 갈수록 모래 마스크가 커집니다. ==그냥 섞으면 흐릿한 반투명==, 높이 블렌드는 각 재질의 높이에 마스크를 더해 ==더 높은 쪽이 이기게== 합니다. 경계 날카로움을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 1, k = 0.08, shift = 0;
+          C.seg({ options: [{ value: 0, label: "선형 lerp" }, { value: 1, label: "높이 블렌드" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "경계 폭 $k$", min: 0.01, max: 0.5, value: k, onInput: x => { k = x; } });
+          C.slider({ label: "마스크 밀기", min: -0.6, max: 0.6, value: shift, onInput: x => { shift = x; } });
+          F.draw = g => {
+            g.field(260, (x, y) => {
+              const u = x, v = y, m = clamp(x / 2 + shift, 0, 1);
+              const A = brick(u, v), B = sand(u, v);
+              let w;
+              if (mode === 0) w = m;
+              else { const ha = A.h + (1 - m), hb = B.h + m, top = Math.max(ha, hb) - k; const wa = Math.max(ha - top, 0), wb = Math.max(hb - top, 0); w = wb / (wa + wb || 1); }
+              return [0, 1, 2].map(i => lerp(A.c[i], B.c[i], w)).concat(255);
+            }, { smooth: false });
+            const m0 = 0.5 - shift;
+            if (m0 > 0 && m0 < 1) g.line([m0 * 2, 0], [m0 * 2, 1], "white", { w: 1, dash: [4, 4], alpha: 0.6 });
+            L.set("eq", mode === 0 ? "$색 = lerp(A, B, m)$   반투명하게 겹쳐 보임" : "$높이_A = h_A + (1 − m),  높이_B = h_B + m$ → 위에서 $k$ 안쪽만 섞음");
+          };
+        }
+      } },
+      { key: "높이 블렌드의 핵심은 ==마스크에 높이 맵을 더한 뒤 비교하는 것==입니다. 높이 맵은 보통 기본색 텍스처의 알파나 패킹된 채널(37장)에 넣어 둡니다." },
+
+      { h: "버텍스 컬러로 직접 칠하기" },
+      "벽 메시의 정점마다 마스크 값을 붓으로 칠합니다(캔버스를 끌어 보세요, 첫 줄 버튼으로 지우기/칠하기 전환). 정점 사이는 보간되고, ==높이 블렌드가 그 경계를 줄눈 모양으로 다듬어== 줍니다. 레벨 아티스트가 이끼·먼지·젖은 자국을 칠하는 방법입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 }, captureTouch: true,
+        eq: ["정점 마스크 → (보간) → 높이 블렌드   ·   정점 {nx} × {ny}"],
+        setup(F, C, L) {
+          const NX = 25, NY = 13, V0 = new Float32Array(NX * NY);
+          let erase = false, rad = 0.12, showV = true;
+          C.seg({ options: [{ value: 0, label: "칠하기" }, { value: 1, label: "지우기" }], value: 0, onChange: x => { erase = !!x; } });
+          C.slider({ label: "붓 크기", min: 0.04, max: 0.35, value: rad, onInput: x => { rad = x; } });
+          C.seg({ options: [{ value: 1, label: "정점 보기" }, { value: 0, label: "숨기기" }], value: 1, onChange: x => { showV = !!x; } });
+          C.button("↺ 지우기", () => V0.fill(0));
+          F.onTap = p => {
+            for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+              const d = Math.hypot(i / (NX - 1) * 2 - p[0], j / (NY - 1) - p[1]);
+              if (d < rad) { const k = j * NX + i, s = (1 - d / rad) * 0.5; V0[k] = clamp(V0[k] + (erase ? -s : s), 0, 1); }
+            }
+          };
+          const mask = (x, y) => { const fx = x / 2 * (NX - 1), fy = y * (NY - 1), i = Math.min(NX - 2, Math.floor(fx)), j = Math.min(NY - 2, Math.floor(fy)), tx = fx - i, ty = fy - j; return lerp(lerp(V0[j * NX + i], V0[j * NX + i + 1], tx), lerp(V0[(j + 1) * NX + i], V0[(j + 1) * NX + i + 1], tx), ty); };
+          F.draw = g => {
+            g.field(240, (x, y) => {
+              const m = mask(x, y), A = brick(x, y);
+              const moss = { c: [lerp(70, 120, vnoise(x * 30, y * 30)), lerp(110, 160, vnoise(x * 30, y * 30)), 60], h: 0.3 + 0.3 * vnoise(x * 25, y * 25) };
+              const ha = A.h + (1 - m), hb = moss.h + m, top = Math.max(ha, hb) - 0.06, wa = Math.max(ha - top, 0), wb = Math.max(hb - top, 0), w = wb / (wa + wb || 1);
+              return [0, 1, 2].map(i => lerp(A.c[i], moss.c[i], w)).concat(255);
+            }, { smooth: false });
+            if (showV) for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) { const v = V0[j * NX + i]; g.dot([i / (NX - 1) * 2, j / (NY - 1)], v > 0.01 ? `rgba(131,193,103,${0.4 + v * 0.6})` : "rgba(236,239,244,0.35)", 2.5); }
+            L.set("nx", NX); L.set("ny", NY);
+          };
+        }
+      } },
+
+      { h: "지형 레이어: 경사와 높이로 자동 칠하기" },
+      "넓은 지형은 손으로 다 칠하지 않습니다. ==높이가 높으면 눈, 경사가 가파르면 바위, 나머지는 풀==처럼 규칙으로 레이어 가중치를 만들고, 필요한 곳만 손으로 고칩니다. 오른쪽 '가중치 보기'가 스플랫맵(RGBA 가중치 텍스처)입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["풀 = 기본,   바위 = smoothstep(경사 기준),   눈 = smoothstep(높이 기준) · (1 − 바위)"],
+        setup(F, C, L) {
+          let slopeT = 0.55, snowT = 0.62, view = 0;
+          C.slider({ label: "바위가 되는 경사", min: 0.1, max: 1.5, value: slopeT, onInput: x => { slopeT = x; } });
+          C.slider({ label: "눈이 쌓이는 높이", min: 0.3, max: 0.9, value: snowT, onInput: x => { snowT = x; } });
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "가중치 보기 (R 풀·G 바위·B 눈)" }], value: 0, onChange: x => { view = x; } });
+          const H = (x, y) => 0.55 * vnoise(x * 2.2, y * 2.2) + 0.3 * vnoise(x * 5, y * 5) + 0.12 * vnoise(x * 13, y * 13);
+          const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+          F.draw = g => {
+            g.field(220, (x, y) => {
+              const h = H(x, y), e = 0.004, gx = (H(x + e, y) - H(x - e, y)) / (2 * e), gy = (H(x, y + e) - H(x, y - e)) / (2 * e), slope = Math.hypot(gx, gy);
+              const rock = ss(slopeT - 0.1, slopeT + 0.1, slope), snow = ss(snowT - 0.03, snowT + 0.03, h) * (1 - rock), grass = clamp(1 - rock - snow, 0, 1);
+              if (view) return [grass * 255, rock * 255, snow * 255, 255];
+              const sh = 0.75 + 0.35 * (gx * -0.5 + gy * 0.5);
+              const col = [0, 1, 2].map(i => (grass * [80, 130, 60][i] + rock * [120, 110, 100][i] + snow * [235, 240, 245][i]) * sh);
+              return col.concat(255);
+            });
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "랜드스케이프 레이어", "UE 랜드스케이프의 Layer Blend 노드(Weight Blend·Height Blend)와 페인트 툴이 이 장입니다. 레이어마다 스플랫맵 채널을 하나씩 씁니다."],
+        ["엔진", "버텍스 페인트", "메시 페인트 모드로 정점 RGBA에 이끼·먼지·젖음을 칠하고, 머티리얼에서 Vertex Color 노드로 읽어 높이 블렌드합니다."],
+        ["TA", "레이어 수 관리", "픽셀마다 활성 레이어가 많을수록 텍스처 샘플이 늘어납니다. 레이어 수 제한·가상 텍스처(RVT)로 지형 비용을 관리합니다."],
+        ["실생활", "실제 지형 관찰", "눈은 평평하고 높은 곳에, 바위는 가파른 곳에 드러납니다. 규칙 기반 지형 셰이더가 자연스러운 이유입니다."]
+      ] },
+
+      { recap: [
+        ["lerp(A, B, m)", "선형 블렌드: 반투명하게 겹침"],
+        ["h_A + (1 − m)  vs  h_B + m", "높이 블렌드: 높은 쪽이 이김, k만큼만 섞음"],
+        ["버텍스 컬러 마스크", "레벨에서 직접 칠하기"],
+        ["경사·높이 규칙 → 스플랫맵", "지형 레이어 자동 배치"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\41-parallax.js ===== */
+/* 41 시차 매핑 (Parallax · POM) */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  // 벽돌 높이맵 (1 = 표면, 0 = 가장 깊음) 과 색
+  const bh = (u, v) => { const row = Math.floor(v * 4), off = (row % 2) * 0.5, fu = fract(u * 2 + off), fv = fract(v * 4); const m = Math.min(fu, 1 - fu, fv * 0.5, (1 - fv) * 0.5); return clamp(m * 12, 0, 1); };
+  const bc = (u, v, h) => { const row = Math.floor(v * 4), id = Math.floor(u * 2 + (row % 2) * 0.5) * 7 + row * 13, t = fract(Math.sin(id) * 43758.5); return h > 0.5 ? [150 + 50 * t, 70 + 20 * t, 55] : [120, 115, 105]; };
+
+  lesson({
+    topic: "parallax", title: "시차 매핑", desc: "평평한 면에 가짜 깊이", stage: "테크아트 실전",
+    sym: { V: "teal", h: "red", uv: "green", s: "orange" },
+    hook: "노멀 맵은 빛만 속이고 모양은 평평합니다. 비스듬히 보면 들통나죠. 시차 매핑은 ==보는 방향에 따라 UV를 밀어서== 높은 곳은 앞으로, 낮은 곳은 뒤로 물러난 것처럼 보이게 합니다. 폴리곤을 하나도 늘리지 않습니다.",
+    blocks: [
+      { h: "원리: 시선을 따라 높이맵 속으로" },
+      "옆에서 본 높이맵입니다(위가 표면). 시선이 표면에 닿은 점에서 그대로 읽으면 틀립니다. ==시선을 높이맵 안으로 연장해 실제로 부딪히는 점==을 찾아 그 UV를 써야 합니다. 단순 시차(한 번에 어림) 와 POM(여러 걸음 탐색)을 비교해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -0.2, x1: 4.2, y0: -1.3, y1: 0.9 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let ang = 0.9, mode = "pom", steps = 8, depth = 1;
+          F.handle({ color: "teal", get: () => [2 - Math.sin(ang) * 1.1, Math.cos(ang) * 1.1 * 0.7], set: (x, y) => { ang = clamp(Math.atan2(2 - x, Math.max(0.05, y / 0.7)), 0.1, 1.45); } });
+          C.seg({ options: [{ value: "none", label: "없음" }, { value: "simple", label: "단순 시차" }, { value: "pom", label: "POM" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "걸음 수", min: 2, max: 32, step: 1, value: steps, fmt: x => num(x, 0), onInput: x => { steps = x; } });
+          const H = x => bh(x / 4, 0.1) * depth;     // 단면 높이 (0 ~ 1)
+          const Y = h => (h - 1) * 1.0;              // 표면 y = 0, 바닥 y = −1
+          F.draw = g => {
+            const pts = []; for (let x = 0; x <= 4; x += 0.01) pts.push([x, Y(H(x))]);
+            g.poly(pts.concat([[4, -1.25], [0, -1.25]]), { fill: "rgba(150,90,70,0.45)", stroke: "orange", w: 2, close: true });
+            g.line([0, 0], [4, 0], "white", { w: 1.5, dash: [5, 4] });
+            const P0 = [2, 0], d = [-Math.sin(ang), -Math.cos(ang)];
+            const eye = [2 - Math.sin(ang) * 1.1, Math.cos(ang) * 1.1 * 0.7];
+            g.line(eye, P0, "teal", { w: 2.5 });
+            let hit = P0, msg = "";
+            if (mode === "simple") {
+              const h = H(P0[0]), off = (1 - h) * Math.tan(ang);
+              hit = [P0[0] - off, Y(H(P0[0] - off))];
+              g.line(P0, [P0[0] - off, 0], "orange", { w: 2 }); g.line([P0[0] - off, 0], hit, "orange", { w: 1, dash: [3, 3] });
+              msg = "$uv' = uv − V_xy / V_z · (1 − h)$   한 번에 어림 → 경사가 크면 틀림";
+            } else if (mode === "pom") {
+              let p = P0.slice(), prev = p;
+              const stepLen = 1 / steps / Math.cos(ang);
+              for (let i = 0; i < steps * 3; i++) {
+                const q = V.add(p, V.mul(d, stepLen));
+                g.dot(q, "yellow", 3.5);
+                if (q[1] <= Y(H(q[0]))) { hit = q; break; }
+                prev = q; p = q;
+              }
+              g.line(P0, hit, "yellow", { w: 2 });
+              msg = `$${steps}$ 걸음씩 들어가며 높이맵보다 아래로 내려가는 첫 점을 찾음 (걸음이 적으면 계단이 생김)`;
+            } else msg = "표면 점의 UV를 그대로 씀 → 깊이감 없음";
+            g.dot(hit, "pink", 6);
+            g.line([hit[0], hit[1]], [hit[0], 0.05], "pink", { w: 1, dash: [3, 3] });
+            L.set("eq", msg);
+          };
+        }
+      } },
+
+      { h: "결과: 벽돌 벽을 비스듬히 보기" },
+      "같은 평면에 같은 텍스처입니다. 기울기를 키워 보세요. ==POM은 벽돌이 실제로 튀어나온 것처럼== 줄눈을 가리지만, 가장자리 실루엣은 여전히 평평합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["깊이 {d}, 걸음 {n}"],
+        setup(F, C, L) {
+          let tilt = 1.0, mode = "pom", steps = 16, depth = 0.08;
+          C.seg({ options: [{ value: "none", label: "노멀 맵만" }, { value: "simple", label: "단순 시차" }, { value: "pom", label: "POM" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "기울기", min: 0, max: 1.35, value: tilt, fmt: x => num(x / DEG, 0) + "°", onInput: x => { tilt = x; } });
+          C.slider({ label: "깊이", min: 0, max: 0.2, value: depth, onInput: x => { depth = x; } });
+          C.slider({ label: "걸음 수", min: 2, max: 48, step: 1, value: steps, fmt: x => num(x, 0), onInput: x => { steps = x; } });
+          F.draw = g => {
+            // 카메라 앞 2만큼에 놓인 평면을 tilt만큼 눕힘. Tu·Tv는 평면 위 축, n은 카메라 쪽을 향한 노멀
+            const n = [0, Math.sin(tilt), -Math.cos(tilt)], Tu = [1, 0, 0], Tv = [0, Math.cos(tilt), Math.sin(tilt)], c0 = [0, 0, 2];
+            g.field(220, (x, y) => {
+              const rd = V3.norm([x * 0.6, y * 0.6, 1]), dn = V3.dot(n, rd);
+              if (dn > -1e-3) return [16, 19, 26, 255];
+              const t = V3.dot(n, c0) / dn, q = V3.sub(V3.mul(rd, t), c0);
+              let u = V3.dot(q, Tu) * 0.5 + 0.5, v = V3.dot(q, Tv) * 0.5 + 0.5;
+              if (Math.abs(u - 0.5) > 1.2 || Math.abs(v - 0.5) > 1.6) return [16, 19, 26, 255];
+              const Vt = [V3.dot(rd, Tu) / -dn, V3.dot(rd, Tv) / -dn];   // 표면 안으로 1 들어갈 때 UV가 움직이는 양
+              if (mode === "simple") { const h = bh(u, v); u += Vt[0] * (1 - h) * depth; v += Vt[1] * (1 - h) * depth; }
+              else if (mode === "pom") {
+                let lh = 1, cu = u, cv = v; const du = Vt[0] * depth / steps, dv = Vt[1] * depth / steps;
+                for (let i = 0; i < steps; i++) { const h = bh(cu, cv); if (h >= lh) break; lh -= 1 / steps; cu += du; cv += dv; }
+                u = cu; v = cv;
+              }
+              const h = bh(u, v), e = 0.003, nx = (bh(u - e, v) - bh(u + e, v)) * 3, ny = (bh(u, v - e) - bh(u, v + e)) * 3;
+              const nn = V3.norm([nx, ny, 1]), l = 0.35 + 0.65 * Math.max(0, V3.dot(nn, V3.norm([0.4, 0.5, 0.75])));
+              const c = bc(u, v, h), ao = 0.6 + 0.4 * h;
+              return [c[0] * l * ao, c[1] * l * ao, c[2] * l * ao, 255];
+            });
+            L.set("d", f2(depth)); L.set("n", mode === "pom" ? steps : "—");
+          };
+        }
+      } },
+      { ponder: "POM으로도 해결되지 않는 것은 무엇일까요?",
+        answer: "==실루엣과 그림자==입니다. 픽셀 안의 UV만 바꾸므로 면의 가장자리는 여전히 직선이고, 다른 물체에 드리우는 그림자도 평평한 면 기준입니다. 실루엣까지 필요하면 테셀레이션·나나이트 디스플레이스먼트로 실제 정점을 움직입니다." },
+
+      { use: [
+        ["엔진", "BumpOffset·ParallaxOcclusionMapping", "UE 머티리얼의 BumpOffset 노드가 단순 시차, ParallaxOcclusionMapping 함수가 POM입니다. Max/Min Steps가 이 장의 걸음 수입니다."],
+        ["게임", "바닥 타일과 벽", "돌길·벽돌 벽·카펫처럼 평평한 큰 면에서 효과가 가장 좋습니다. 정면에서 멀어질수록 걸음 수를 늘리고, 멀리서는 꺼서 비용을 아낍니다."],
+        ["TA", "높이맵 품질", "높이맵이 0~1 전체를 쓰도록 정규화하고, 날카로운 단차는 블러를 살짝 줘야 계단 현상이 줄어듭니다."],
+        ["실생활", "인테리어 매핑", "창문 안쪽에 방이 있는 것처럼 보이게 하는 '인테리어 매핑'도 시선을 상자 안으로 연장하는 같은 원리입니다."]
+      ] },
+
+      { recap: [
+        ["uv' = uv − V_xy / V_z · (1 − h) · 깊이", "단순 시차: 한 번에 어림"],
+        ["시선을 n걸음 연장해 첫 교차 찾기", "POM: 정확하지만 걸음 수만큼 비쌈"],
+        ["실루엣·그림자는 그대로", "필요하면 디스플레이스먼트"],
+        ["노멀 맵 + 시차", "빛과 깊이를 함께 속이기"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\42-decal.js ===== */
+/* 42 데칼 */
+(() => {
+  const f2 = n => num(n, 2);
+  const srgb = v => Math.round(255 * Math.pow(clamp(v, 0, 1), 1 / 2.2));
+  // 데칼 무늬: 원형 표지 + 가운데 화살표 (UV 0~1)
+  const decalTex = (u, v) => {
+    const r = Math.hypot(u - 0.5, v - 0.5);
+    if (r > 0.48) return null;
+    if (r > 0.4) return [0.95, 0.75, 0.1, 1];
+    const arrow = (Math.abs(u - 0.5) < 0.07 && v > 0.25 && v < 0.62) || (v >= 0.62 && v < 0.78 && Math.abs(u - 0.5) < (0.78 - v) * 1.2);
+    return arrow ? [0.95, 0.95, 0.95, 1] : [0.15, 0.35, 0.75, 0.9];
+  };
+
+  lesson({
+    topic: "decal", title: "데칼", desc: "상자로 투영해 덧칠하기", stage: "테크아트 실전",
+    sym: { P: "white", N: "yellow" },
+    hook: "총알 자국, 길바닥 표시, 낙서, 물웅덩이. 모델링을 다시 하지 않고 ==보이지 않는 상자를 놓아 그 안에 들어온 표면에 텍스처를 덧칠==하는 것이 데칼입니다. 디퍼드 렌더러(33장)에서는 G버퍼에 직접 덧씁니다.",
+    blocks: [
+      { h: "투영 상자: 월드 위치 → 데칼 UV" },
+      "옆에서 본 울퉁불퉁한 바닥과 데칼 상자입니다. 표면 점의 월드 위치를 ==상자 공간으로 옮기면 그게 곧 데칼 UV==입니다. 상자를 끌고 기울여 보세요. 투영 방향과 나란한 면(벽)에서는 텍스처가 길게 늘어나므로, 면 각도로 서서히 지웁니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["uv = (상자 역행렬 · P).xy + 0.5,   페이드 = smoothstep(각도 한계, 1, N·투영 방향)"],
+        setup(F, C, L) {
+          const ctr = [0, -0.6];
+          let ang = 0, w = 2.4, fade = true;
+          F.vec(ctr, "yellow", { snap: 0.01 });
+          C.slider({ label: "상자 기울기", min: -1, max: 1, value: ang, fmt: x => num(x / DEG, 0) + "°", onInput: x => { ang = x; } });
+          C.slider({ label: "상자 너비", min: 0.8, max: 5, value: w, onInput: x => { w = x; } });
+          C.seg({ options: [{ value: 1, label: "각도 페이드 켜기" }, { value: 0, label: "끄기" }], value: 1, onChange: x => { fade = !!x; } });
+          const ground = x => -1.2 + 0.25 * Math.sin(x * 1.5) + (x > 1.4 && x < 2.2 ? 1.0 : 0);
+          F.draw = g => {
+            const ax = [Math.cos(ang), Math.sin(ang)], ay = [-Math.sin(ang), Math.cos(ang)], h = 1.6;
+            const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => V.add(ctr, V.add(V.mul(ax, a * w / 2), V.mul(ay, b * h / 2))));
+            g.poly(corners, { fill: "rgba(244,211,69,0.06)", stroke: "yellow", w: 1.5, dash: [5, 4] });
+            g.arrow(V.add(ctr, V.mul(ay, h / 2)), V.add(ctr, V.mul(ay, -h / 2 + 0.1)), "yellow", { w: 2, head: 8, alpha: 0.6 });
+            for (let x = -4; x < 4; x += 0.02) {
+              const isStep = x > 1.38 && x < 1.42 || x > 2.18 && x < 2.22;
+              const p = [x + 0.01, ground(x + 0.01)];
+              const local = V.sub(p, ctr), lu = V.dot(local, ax) / w + 0.5, lv = V.dot(local, ay) / h + 0.5;
+              let col = "rgba(138,147,166,0.9)";
+              if (lu >= 0 && lu <= 1 && lv >= 0 && lv <= 1) {
+                const t = decalTex(lu, 0.5);
+                const nrm = isStep ? [1, 0] : V.norm([-0.375 * Math.cos(x * 1.5), 1]);
+                const f = fade ? clamp((V.dot(nrm, ay) - 0.3) / 0.4, 0, 1) : 1;
+                if (t && f > 0.02) col = `rgba(${srgb(t[0])},${srgb(t[1])},${srgb(t[2])},${f})`;
+              }
+              g.line([x, ground(x)], [x + 0.02, ground(x + 0.02)], col, { w: 6 });
+            }
+            g.line([1.4, ground(1.39)], [1.4, ground(1.41)], "grey", { w: 3 }); g.line([2.2, ground(2.19)], [2.2, ground(2.21)], "grey", { w: 3 });
+          };
+        }
+      } },
+
+      { h: "디퍼드 데칼: G버퍼에 덧칠" },
+      "위에서 비스듬히 본 바닥·상자·공 위에 데칼을 투영합니다. 픽셀마다 ==깊이로 월드 위치를 복원 → 상자 안이면 데칼 UV로 텍스처를 읽어 G버퍼의 색에 섞습니다==. 상자를 움직이면 공과 상자 옆면에도 감깁니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["데칼 상자 위치 ({x}, {z}),  크기 {s}"],
+        setup(F, C, L) {
+          let dx = 0.1, dz = 3.4, size = 1.4, fade = true;
+          C.slider({ label: "상자 x", min: -1.5, max: 1.5, value: dx, onInput: x => { dx = x; } });
+          C.slider({ label: "상자 z", min: 2.4, max: 4.6, value: dz, onInput: x => { dz = x; } });
+          C.slider({ label: "크기", min: 0.4, max: 2.4, value: size, onInput: x => { size = x; } });
+          C.seg({ options: [{ value: 1, label: "각도 페이드" }, { value: 0, label: "끄기 (옆면 늘어남)" }], value: 1, onChange: x => { fade = !!x; } });
+          const ro = [0, 1.4, 0];
+          function scene(rd) {
+            let best = { t: Infinity };
+            const sp = { c: [0.8, -0.35, 3.6], r: 0.45 };
+            const oc = V3.sub(ro, sp.c), b = V3.dot(oc, rd), c = V3.dot(oc, oc) - sp.r * sp.r, disc = b * b - c;
+            if (disc > 0) { const t = -b - Math.sqrt(disc); if (t > 0) { const p = V3.add(ro, V3.mul(rd, t)); best = { t, p, n: V3.norm(V3.sub(p, sp.c)), col: [0.6, 0.6, 0.65] }; } }
+            const bx = [[-1.2, -0.8, 2.9], [-0.4, -0.1, 3.7]];
+            let t0 = -Infinity, t1 = Infinity, nAx = 0;
+            for (let k = 0; k < 3; k++) { let a = (bx[0][k] - ro[k]) / rd[k], d = (bx[1][k] - ro[k]) / rd[k]; if (a > d) [a, d] = [d, a]; if (a > t0) { t0 = a; nAx = k; } t1 = Math.min(t1, d); }
+            if (t0 < t1 && t0 > 0 && t0 < best.t) { const n = [0, 0, 0]; n[nAx] = -Math.sign(rd[nAx]); best = { t: t0, p: V3.add(ro, V3.mul(rd, t0)), n, col: [0.55, 0.45, 0.35] }; }
+            if (rd[1] < 0) { const t = (-0.8 - ro[1]) / rd[1]; if (t < best.t) { const p = V3.add(ro, V3.mul(rd, t)); best = { t, p, n: [0, 1, 0], col: (Math.floor(p[0] * 2) + Math.floor(p[2] * 2)) % 2 ? [0.45, 0.46, 0.48] : [0.38, 0.39, 0.42] }; } }
+            return best;
+          }
+          F.draw = g => {
+            const Ld = V3.norm([0.4, 0.8, -0.3]);
+            g.field(220, (x, y) => {
+              const rd = V3.norm([x * 0.55, y * 0.55 - 0.45, 1]);
+              const h = scene(rd);
+              if (!isFinite(h.t)) return [20, 24, 32, 255];
+              let col = h.col.slice();
+              const lu = (h.p[0] - dx) / size + 0.5, lv = (h.p[2] - dz) / size + 0.5, ly = h.p[1] + 0.8;
+              if (lu >= 0 && lu <= 1 && lv >= 0 && lv <= 1 && ly < 1.2) {
+                const t = decalTex(lu, 1 - lv), f = fade ? clamp((h.n[1] - 0.25) / 0.4, 0, 1) : 1;
+                if (t) col = col.map((c, i) => lerp(c, t[i], t[3] * f));
+              }
+              const l = 0.25 + 0.75 * Math.max(0, V3.dot(h.n, Ld));
+              return col.map(c => srgb(c * l)).concat(255);
+            });
+            L.set("x", f2(dx)); L.set("z", f2(dz)); L.set("s", f2(size));
+          };
+        }
+      } },
+
+      { h: "어떤 채널에 덧칠하나" },
+      "데칼은 G버퍼의 ==원하는 채널만== 바꿀 수 있습니다. 물웅덩이는 색이 아니라 ==거칠기만 낮추고==, 긁힌 자국은 노멀만 바꿉니다. 해를 움직이며 비교해 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: -2, x1: 2, y0: -0.84, y1: 0.84 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = "rough", sunX = 0.3;
+          C.seg({ options: [{ value: "color", label: "색만" }, { value: "rough", label: "거칠기만 (물웅덩이)" }, { value: "normal", label: "노멀만 (긁힘)" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "해 위치", min: -1.5, max: 1.5, value: sunX, onInput: x => { sunX = x; } });
+          F.draw = g => {
+            const Ld = V3.norm([sunX, 0.35, -1]);
+            g.field(240, (x, y) => {
+              const rd = V3.norm([x * 0.5, y * 0.5 - 0.5, 1]);
+              if (rd[1] >= 0) return [30, 40, 60, 255];
+              const t = -1 / rd[1], p = V3.mul(rd, t);
+              const inD = Math.hypot((p[0] - 0) / 1.4, (p[2] - 3.2) / 0.9) < 1;
+              let base = [0.35, 0.32, 0.28], rough = 0.85, n = [0, 1, 0];
+              if (inD && mode === "color") base = [0.6, 0.2, 0.15];
+              if (inD && mode === "rough") { rough = 0.05; base = base.map(c => c * 0.7); }
+              if (inD && mode === "normal") n = V3.norm([Math.sin(p[0] * 40) * 0.4, 1, 0]);
+              const H = V3.norm(V3.add(Ld, V3.mul(rd, -1))), a = rough * rough;
+              const NoH = Math.max(0, V3.dot(n, H)), D = a * a / (Math.PI * Math.pow(NoH * NoH * (a * a - 1) + 1, 2));
+              const spec = Math.min(8, D * 0.08), dif = Math.max(0, V3.dot(n, Ld));
+              return base.map(c => srgb(c * (0.15 + 0.85 * dif) + spec)).concat(255);
+            });
+            L.set("eq", { color: "기본색 채널만 바꿈 → 칠한 페인트", rough: "거칠기만 낮춤 → 하늘·해가 비치는 물웅덩이", normal: "노멀만 바꿈 → 색은 그대로인데 빛에 따라 긁힌 결이 보임" }[mode]);
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "Decal Actor와 DBuffer", "UE의 데칼 머티리얼(Deferred Decal), Decal Blend Mode, DBuffer 데칼 옵션이 이 장입니다. Fade Screen Size로 작아지면 꺼서 비용을 줄입니다."],
+        ["게임", "총알 자국과 피", "총알 자국은 맞은 점에 작은 데칼 상자를 실시간으로 생성합니다. 개수 상한과 수명으로 성능을 관리합니다."],
+        ["레벨 아트", "디테일 덧칠", "길바닥 차선, 벽의 얼룩·낙서·누수 자국을 메시 수정 없이 얹어 반복되는 타일 텍스처를 감춥니다."],
+        ["TA", "정렬과 비용", "데칼끼리 겹치면 정렬 순서(Sort Order)가 필요하고, 큰 데칼은 덮는 모든 픽셀에서 계산되므로 크기를 작게 유지합니다."]
+      ] },
+
+      { recap: [
+        ["uv = (상자⁻¹ · P).xy + 0.5", "월드 위치를 상자 공간으로"],
+        ["smoothstep(N·투영 방향)", "옆면 늘어남을 각도로 페이드"],
+        ["G버퍼에 덧칠", "깊이로 위치 복원 → 상자 안이면 섞기"],
+        ["채널 선택", "색·거칠기·노멀 중 필요한 것만"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\43-toon.js ===== */
+/* 43 툰 셰이딩과 외곽선 */
+(() => {
+  const f2 = n => num(n, 2);
+  const srgb = v => Math.round(255 * Math.pow(clamp(v, 0, 1), 1 / 2.2));
+  const lin = c => Math.pow(c / 255, 2.2);
+
+  lesson({
+    topic: "toon", title: "툰 셰이딩과 외곽선", desc: "램프·림·외곽선", stage: "테크아트 실전",
+    sym: { N: "yellow", L: "gold", V: "teal" },
+    hook: "셀 애니메이션 느낌은 ==연속적인 명암을 몇 단계 색으로 끊고(램프), 윤곽선을 그리는== 두 가지로 만들어집니다. 둘 다 '아티스트가 정한 색'이 물리보다 우선한다는 점이 PBR과 다릅니다. 이 프로젝트의 ToonLit 셰이딩 모델이 이 장의 실전판입니다.",
+    blocks: [
+      { h: "램프 셰이딩: N·L을 색표로 바꾸기" },
+      "아래 색 띠가 램프 텍스처입니다. $N·L$(왼쪽 −1 … 오른쪽 1)을 가로 좌표로 써서 색을 읽습니다. ==경계 점(노란 핸들)을 끌어== 그림자 범위와 경계 부드러움을 바꿔 보세요. 그림자 색을 검정이 아닌 색조로 고르는 것이 툰 셰이딩의 핵심입니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -2, x1: 2, y0: -1.12, y1: 1.12 },
+        eq: ["색 = 램프(N·L · 0.5 + 0.5) · 기본색   ·   경계 {a}, {b}"],
+        setup(F, C, L) {
+          let e1 = -0.05, e2 = 0.45, soft = 0.02, shadeHue = "purple";
+          const sun = [-0.9, 0.6];
+          F.vec(sun, "gold", { snap: 0.01 });
+          F.handle({ color: "yellow", get: () => [-1.8 + (e1 + 1) / 2 * 3.6, -0.98], set: x => { e1 = clamp((x + 1.8) / 3.6 * 2 - 1, -1, e2 - 0.05); } });
+          F.handle({ color: "yellow", get: () => [-1.8 + (e2 + 1) / 2 * 3.6, -0.98], set: x => { e2 = clamp((x + 1.8) / 3.6 * 2 - 1, e1 + 0.05, 1); } });
+          C.slider({ label: "경계 부드러움", min: 0.002, max: 0.2, value: soft, onInput: x => { soft = x; } });
+          C.seg({ options: [{ value: "purple", label: "보라 그림자" }, { value: "teal", label: "청록 그림자" }, { value: "black", label: "검정 (비추천)" }], value: shadeHue, onChange: x => { shadeHue = x; } });
+          const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+          const ramp = k => {
+            const sh = shadeHue === "black" ? [0.04, 0.04, 0.05] : shadeHue === "purple" ? [0.35, 0.22, 0.45] : [0.18, 0.38, 0.42];
+            const mid = [0.75, 0.6, 0.6], lit = [1, 0.93, 0.85];
+            const t1 = ss(e1 - soft, e1 + soft, k), t2 = ss(e2 - soft, e2 + soft, k);
+            return sh.map((c, i) => lerp(lerp(c, mid[i], t1), lit[i], t2));
+          };
+          F.draw = g => {
+            const c = [0, 0.12], R = 0.85, base = [lin(250), lin(200), lin(180)];
+            const Ld = (() => { const d = [(sun[0] - c[0]) / R, (sun[1] - c[1]) / R], r = Math.min(V.len(d), 1.9), az = Math.atan2(d[1], d[0]), a = r * Math.PI / 2; return [Math.sin(a) * Math.cos(az), Math.sin(a) * Math.sin(az), Math.cos(a)]; })();
+            g.field(Math.round(R * 120), (x, y) => {
+              const nx = (x - c[0]) / R, ny = (y - c[1]) / R, r2 = nx * nx + ny * ny;
+              if (r2 > 1) return null;
+              const n = [nx, ny, Math.sqrt(1 - r2)], k = V3.dot(n, Ld), rc = ramp(k);
+              return base.map((b, i) => srgb(b * rc[i] * 1.1)).concat(255 * clamp((1 - r2) * 40, 0, 1));
+            }, { rect: { x0: c[0] - R, x1: c[0] + R, y0: c[1] - R, y1: c[1] + R } });
+            g.field(200, (x, y) => { const k = (x + 1.8) / 3.6 * 2 - 1, rc = ramp(k); return rc.map(v => srgb(v)).concat(255); }, { rect: { x0: -1.8, x1: 1.8, y0: -1.08, y1: -0.9 }, smooth: false });
+            g.text("램프: N·L = −1", [-1.8, -0.88], "grey", { size: 10, align: "left", dy: -6 }); g.text("1", [1.8, -0.88], "grey", { size: 10, align: "right", dy: -6 });
+            g.circle(sun, 0.07, "gold", { fill: "gold", w: 0 });
+            L.set("a", f2(e1)); L.set("b", f2(e2));
+          };
+        }
+      } },
+
+      { h: "외곽선 ①: 뒤집힌 껍데기(인버티드 헐)" },
+      "모델을 ==노멀 방향으로 조금 부풀린 복사본을 뒷면만 검게== 그리면, 원래 모델 뒤로 테두리만 삐져나옵니다. 가장 오래되고 싼 방법입니다. 각진 모서리에서 면 노멀로 부풀리면 ==틈이 벌어지는== 것을 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["껍데기 정점 = 위치 + 노멀 · 두께 ({w})"],
+        setup(F, C, L) {
+          let w = 0.08, smooth = true;
+          C.slider({ label: "두께", min: 0, max: 0.25, value: w, onInput: x => { w = x; } });
+          C.seg({ options: [{ value: 1, label: "부드러운 노멀로 부풀림" }, { value: 0, label: "면 노멀로 부풀림" }], value: 1, onChange: x => { smooth = !!x; } });
+          const shape = [[-1.2, -0.6], [-0.2, -0.7], [0.3, -0.2], [1.2, -0.5], [1.3, 0.4], [0.2, 0.7], [-0.6, 0.4], [-1.3, 0.3]];
+          F.draw = g => {
+            const n = shape.length, out = [];
+            for (let i = 0; i < n; i++) {
+              const a = shape[(i + n - 1) % n], p = shape[i], b = shape[(i + 1) % n];
+              const n1 = V.norm([p[1] - a[1], a[0] - p[0]]), n2 = V.norm([b[1] - p[1], p[0] - b[0]]);   // 반시계 다각형의 바깥 노멀
+              if (smooth) out.push([V.add(p, V.mul(V.norm(V.add(n1, n2)), w))]);
+              else out.push([V.add(p, V.mul(n1, w)), V.add(p, V.mul(n2, w))]);
+            }
+            if (smooth) g.poly(out.map(o => o[0]), { fill: "#05060a", stroke: "#05060a", w: 1 });
+            else for (let i = 0; i < n; i++) { const p = shape[i], q = shape[(i + 1) % n]; g.poly([out[i][1], out[(i + 1) % n][0], q, p], { fill: "#05060a" }); }
+            g.poly(shape, { fill: "rgba(240,200,170,1)" });
+            if (!smooth && w > 0.02) shape.forEach((p, i) => g.circle(p, 0.05, "red", { w: 1.5 }));
+            L.set("w", f2(w));
+          };
+        }
+      } },
+      "실무에서는 하드 엣지가 있는 모델도 ==외곽선용 부드러운 노멀을 따로 구워 버텍스 컬러나 UV 채널에 저장==하고 그 방향으로 부풀립니다. 카메라 거리에 따라 두께를 보정해 멀리서도 일정하게 보이게 합니다.",
+
+      { h: "외곽선 ②: 화면에서 깊이·노멀 경계 찾기" },
+      "후처리로 G버퍼(33장)의 ==깊이와 노멀이 이웃 픽셀과 크게 다른 곳==을 찾아 선을 긋습니다(소벨 필터, 27장). 물체 안쪽의 접힌 선까지 잡을 수 있습니다. 문턱값을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["선 = (|깊이 차| > {dt}) 또는 (1 − N·N_이웃 > {nt})"],
+        setup(F, C, L) {
+          let dt = 0.08, nt = 0.25, view = 0;
+          C.slider({ label: "깊이 문턱", min: 0.01, max: 0.5, value: dt, onInput: x => { dt = x; } });
+          C.slider({ label: "노멀 문턱", min: 0.02, max: 1, value: nt, onInput: x => { nt = x; } });
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "선만" }], value: 0, onChange: x => { view = x; } });
+          const ro = [0, 0.3, 0];
+          const hit = rd => {
+            let best = { t: 20, n: [0, 1, 0], id: 0 };
+            [[[-0.7, -0.1, 3.2], 0.55, 1], [[0.55, -0.25, 2.8], 0.4, 2]].forEach(([c, r, id]) => { const oc = V3.sub(ro, c), b = V3.dot(oc, rd), cc = V3.dot(oc, oc) - r * r, d = b * b - cc; if (d > 0) { const t = -b - Math.sqrt(d); if (t > 0 && t < best.t) best = { t, n: V3.norm(V3.sub(V3.add(ro, V3.mul(rd, t)), c)), id }; } });
+            const bx = [[0.2, -0.65, 3.4], [1.2, 0.15, 4.2]]; let t0 = -1e9, t1 = 1e9, ax = 0;
+            for (let k = 0; k < 3; k++) { let a = (bx[0][k] - ro[k]) / rd[k], d = (bx[1][k] - ro[k]) / rd[k]; if (a > d) [a, d] = [d, a]; if (a > t0) { t0 = a; ax = k; } t1 = Math.min(t1, d); }
+            if (t0 < t1 && t0 > 0 && t0 < best.t) { const n = [0, 0, 0]; n[ax] = -Math.sign(rd[ax]); best = { t: t0, n, id: 3 }; }
+            if (rd[1] < 0) { const t = (-0.65 - ro[1]) / rd[1]; if (t < best.t) best = { t, n: [0, 1, 0], id: 4 }; }
+            return best;
+          };
+          F.draw = g => {
+            const px = 4 / 200, Ld = V3.norm([0.5, 0.8, -0.4]);
+            const at = (x, y) => hit(V3.norm([x * 0.5, y * 0.5 - 0.15, 1]));
+            g.field(200, (x, y) => {
+              const h = at(x, y), hr = at(x + px, y), hu = at(x, y + px);
+              const dd = Math.max(Math.abs(h.t - hr.t), Math.abs(h.t - hu.t)) / h.t;
+              const nd = Math.max(1 - V3.dot(h.n, hr.n), 1 - V3.dot(h.n, hu.n));
+              const line = dd > dt || nd > nt;
+              if (view === 1) return line ? [20, 20, 25, 255] : [235, 235, 230, 255];
+              if (line) return [25, 20, 30, 255];
+              const base = [[0, 0, 0], [0.95, 0.55, 0.45], [0.45, 0.75, 0.95], [0.95, 0.85, 0.45], [0.75, 0.8, 0.7]][h.id] || [0.5, 0.6, 0.8];
+              const k = V3.dot(h.n, Ld) > 0.25 ? 1 : 0.62;
+              return h.t >= 20 ? [200, 220, 235, 255] : base.map(c => srgb(c * k * 0.9)).concat(255);
+            });
+            L.set("dt", f2(dt)); L.set("nt", f2(nt));
+          };
+        }
+      } },
+
+      { use: [
+        ["프로젝트", "ToonLit 셰이딩 모델", "이 저장소의 커스텀 엔진 ToonLit은 $N·L$을 툰 프로필 램프 아틀라스로 바꾸고, 그림자도 램프 안에 접어 '작가가 정한 어두운 색'이 나오게 합니다."],
+        ["게임", "애니메이션 풍 게임", "원신·길티기어·젤다는 램프 + 얼굴 그림자 텍스처 + 인버티드 헐 외곽선 조합을 쓰고, 노멀을 손으로 고쳐 얼굴 음영을 다듬습니다."],
+        ["TA", "외곽선 노멀 굽기", "하드 엣지 모델에 외곽선용 스무스 노멀을 구워 넣는 DCC 스크립트는 툰 프로젝트 TA의 단골 작업입니다."],
+        ["엔진", "포스트 프로세스 외곽선", "UE에서는 Custom Depth·Stencil로 대상만 골라 후처리 머티리얼에서 소벨 외곽선을 그립니다. 하이라이트 표시에도 같은 방법을 씁니다."]
+      ] },
+
+      { recap: [
+        ["램프(N·L · 0.5 + 0.5)", "명암을 단계 색으로, 그림자는 색조로"],
+        ["위치 + 노멀 · 두께, 뒷면만", "인버티드 헐 외곽선 (스무스 노멀 필요)"],
+        ["깊이·노멀 차이 > 문턱", "후처리 외곽선"],
+        ["작가가 정한 색 > 물리", "툰과 PBR의 차이"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\44-vfx.js ===== */
+/* 44 이펙트 셰이더: 디졸브 · 플립북 · 소프트 파티클 */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const hash = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const vn = (x, y) => { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, s = t => t * t * (3 - 2 * t); return lerp(lerp(hash(i, j), hash(i + 1, j), s(fx)), lerp(hash(i, j + 1), hash(i + 1, j + 1), s(fx)), s(fy)); };
+  const fbm = (x, y) => 0.5 * vn(x, y) + 0.3 * vn(x * 2.1, y * 2.1) + 0.2 * vn(x * 4.3, y * 4.3);
+  const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+  lesson({
+    topic: "vfx", title: "이펙트 셰이더", desc: "디졸브 · 플립북 · 소프트 파티클", stage: "테크아트 실전",
+    sym: { t: "teal", n: "yellow" },
+    hook: "이펙트 TA의 머티리얼은 대부분 ==노이즈 텍스처 하나와 문턱값 하나==로 시작합니다. 사라지는 효과, 연기 애니메이션, 바닥에 닿는 연기의 부드러운 경계까지, 자주 쓰는 세 가지 패턴을 만져 봅니다.",
+    blocks: [
+      { h: "디졸브: 노이즈에 문턱을 올리기" },
+      "노이즈 값이 문턱보다 작은 픽셀은 버리고(알파 0), ==문턱 바로 위의 얇은 띠만 빛나게== 칠하면 타 들어가며 사라지는 효과가 됩니다. 진행도를 움직이거나 재생해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["버림: n < 진행도   ·   불꽃 띠: 진행도 ≤ n < 진행도 + {w}"],
+        setup(F, C, L) {
+          let prog = 0.4, w = 0.06, dir = false;
+          C.play();
+          const ps = C.slider({ label: "진행도", min: 0, max: 1, value: prog, onInput: x => { prog = x; } });
+          C.slider({ label: "띠 두께", min: 0.005, max: 0.2, value: w, onInput: x => { w = x; } });
+          C.seg({ options: [{ value: 0, label: "노이즈만" }, { value: 1, label: "노이즈 + 아래에서 위로" }], value: 0, onChange: x => { dir = !!x; } });
+          F.loop((dt, t) => { prog = 0.5 - 0.5 * Math.cos(t * 0.7); ps.set(prog); });
+          F.draw = g => {
+            g.field(240, (x, y) => {
+              const r = Math.hypot(x / 1.1, y / 0.75);
+              if (r > 1) return [16, 19, 26, 255];
+              let n = fbm(x * 3 + 7, y * 3);
+              if (dir) n = n * 0.5 + (y + 0.75) / 1.5 * 0.5;
+              if (n < prog) return [16, 19, 26, 255];
+              if (n < prog + w) { const k = (n - prog) / w; return [255, lerp(240, 90, k), lerp(160, 20, k), 255]; }
+              const sh = 0.6 + 0.4 * (1 - r * r);
+              return [90 * sh, 140 * sh, 200 * sh, 255];
+            });
+          };
+        }
+      } },
+
+      { h: "플립북(SubUV): 그림 여러 장을 한 텍스처에" },
+      "폭발·연기 애니메이션은 ==4×4 칸에 프레임 16장을 그려 둔 텍스처==에서 시간에 따라 칸을 바꿔 읽습니다. 프레임 사이를 ==섞으면(블렌드)== 적은 프레임으로도 부드럽습니다. 재생 속도를 낮춰 차이를 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["칸 = floor(t · fps) mod 16,   uv = (칸 열 + uv_x, 칸 행 + uv_y) / 4   ·   프레임 {f}"],
+        setup(F, C, L) {
+          let fps = 6, blend = true;
+          C.play(true);
+          C.slider({ label: "fps", min: 1, max: 30, step: 1, value: fps, fmt: x => num(x, 0), onInput: x => { fps = x; } });
+          C.seg({ options: [{ value: 1, label: "프레임 블렌드" }, { value: 0, label: "끊어서" }], value: 1, onChange: x => { blend = !!x; } });
+          F.loop(() => {});
+          // 프레임 k의 연기 덩어리 (0~15): 커지며 옅어짐
+          const frameVal = (k, u, v) => { const t = k / 15, r = Math.hypot(u - 0.5, v - 0.42 - t * 0.12) / (0.18 + t * 0.3); const n = fbm(u * 5 + k * 0.7, v * 5 - k * 0.5); return clamp((1 - r) * 1.6 + (n - 0.5) * 1.2, 0, 1) * (1 - t * 0.6); };
+          F.draw = g => {
+            const ft = F.t * fps, k0 = Math.floor(ft) % 16, k1 = (k0 + 1) % 16, fr = ft - Math.floor(ft);
+            g.field(200, (x, y) => {
+              if (x < 2) {
+                const cx = Math.floor(x / 0.5), cy = Math.floor((2 - y) / 0.5), u = (x % 0.5) / 0.5, v = ((2 - y) % 0.5) / 0.5, k = cy * 4 + cx, a = frameVal(k, u, v);
+                const on = k === k0 || (blend && k === k1);
+                return [lerp(20, 220, a) + (on ? 25 : 0), lerp(24, 200, a), lerp(32, 190, a), 255];
+              }
+              const u = (x - 2.25) / 1.5, v = (2 - y - 0.25) / 1.5;
+              if (u < 0 || u > 1 || v < 0 || v > 1) return [16, 19, 26, 255];
+              const a = blend ? lerp(frameVal(k0, u, v), frameVal(k1, u, v), fr) : frameVal(k0, u, v);
+              return [lerp(16, 230, a), lerp(19, 215, a), lerp(26, 200, a), 255];
+            }, { smooth: false });
+            for (let i = 0; i <= 4; i++) { g.line([i * 0.5, 0], [i * 0.5, 2], "rgba(16,19,26,0.8)", { w: 1 }); g.line([0, i * 0.5], [2, i * 0.5], "rgba(16,19,26,0.8)", { w: 1 }); }
+            const cx = k0 % 4, cy = Math.floor(k0 / 4);
+            g.poly([[cx * 0.5, 2 - cy * 0.5], [cx * 0.5 + 0.5, 2 - cy * 0.5], [cx * 0.5 + 0.5, 2 - cy * 0.5 - 0.5], [cx * 0.5, 2 - cy * 0.5 - 0.5]], { stroke: "yellow", w: 2.5 });
+            L.set("f", k0);
+          };
+        }
+      } },
+
+      { h: "소프트 파티클: 바닥과 만나는 경계 지우기" },
+      "연기 판(쿼드)이 바닥을 뚫고 지나가면 ==날카로운 직선 경계==가 보입니다. 픽셀마다 '뒤에 있는 장면까지의 깊이 − 파티클 깊이'를 재서, 가까울수록 투명하게 만들면 부드럽게 녹아듭니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["알파 × saturate((장면 깊이 − 파티클 깊이) / {f})"],
+        setup(F, C, L) {
+          let fade = 0.35;
+          C.slider({ label: "페이드 거리", min: 0.001, max: 1, value: fade, onInput: x => { fade = x; } });
+          C.play(true);
+          F.loop(() => {});
+          F.draw = g => {
+            const t = F.t;
+            g.field(220, (x, y) => {
+              // 바닥 평면(멀어질수록 화면 위로) 깊이, 파티클은 깊이 3인 세로 판
+              const floorD = y < 0.1 ? 1.2 / (0.1 - y + 0.15) : 99;
+              let col = y < 0.1 ? [110, 100, 85] : [40, 50, 70];
+              const pd = 3, inQuad = Math.abs(x) < 1.1 && y > -0.85 && y < 0.95;
+              if (inQuad) {
+                const u = (x + 1.1) / 2.2, v = (y + 0.85) / 1.8;
+                const a = clamp((1 - Math.hypot(u - 0.5, (v - 0.35) * 0.9) * 2.2) * 1.5 + (fbm(u * 4, v * 4 - t * 0.4) - 0.5), 0, 1) * 0.85;
+                if (floorD > pd) {
+                  const soft = clamp((floorD - pd) / fade, 0, 1);
+                  col = col.map((c, i) => lerp(c, [220, 220, 225][i], a * soft));
+                }
+              }
+              return [...col, 255];
+            });
+            L.set("f", f2(fade));
+          };
+        }
+      } },
+      { key: "이펙트 머티리얼의 비용은 ==화면을 덮는 반투명 픽셀 수 × 겹친 장수==입니다(46장). 작은 프레임, 잘라 낸 모양(컷아웃), 적은 겹침이 이펙트 최적화의 기본입니다." },
+
+      { use: [
+        ["엔진", "나이아가라와 머티리얼", "UE Niagara의 SubUV 모듈과 머티리얼의 SubUV_Function·Flipbook, DepthFade 노드(소프트 파티클), 노이즈 + 문턱 디졸브가 이 장 그대로입니다."],
+        ["게임", "캐릭터 사망·소환 연출", "디졸브는 적이 사라지거나 장비가 소환될 때 가장 많이 쓰입니다. 띠 색을 불꽃·전기·얼음으로 바꿔 변주합니다."],
+        ["TA", "플립북 굽기", "Houdini·EmberGen에서 연기 시뮬레이션을 플립북으로 굽고, 모션 벡터 텍스처를 함께 구우면 프레임 사이를 더 매끄럽게 보간할 수 있습니다."],
+        ["실생활", "옛날 애니메이션", "플립북은 이름 그대로 종이 모서리에 그린 그림을 넘겨 보는 '플립북'과 같은 원리입니다."]
+      ] },
+
+      { recap: [
+        ["clip(노이즈 − 진행도) + 띠", "디졸브"],
+        ["칸 = floor(t·fps) mod N", "플립북, 프레임 블렌드로 부드럽게"],
+        ["saturate(깊이 차 / 페이드)", "소프트 파티클"],
+        ["반투명 픽셀 × 겹침", "이펙트 비용의 정체"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\45-grading.js ===== */
+/* 45 컬러 그레이딩과 LUT */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const hash = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const vn = (x, y) => { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, s = t => t * t * (3 - 2 * t); return lerp(lerp(hash(i, j), hash(i + 1, j), s(fx)), lerp(hash(i, j + 1), hash(i + 1, j + 1), s(fx)), s(fy)); };
+  // 원본 이미지(감마 공간 0~1): 노을 하늘 · 산 · 호수 · 풀
+  function scene(u, v) {
+    if (v > 0.55) { const t = (v - 0.55) / 0.45, sun = Math.exp(-Math.pow(Math.hypot(u - 0.7, v - 0.62) / 0.06, 2)); return [lerp(0.95, 0.35, t) + sun * 0.3, lerp(0.6, 0.45, t) + sun * 0.3, lerp(0.45, 0.7, t) + sun * 0.1]; }
+    const ridge = 0.45 + 0.08 * Math.sin(u * 9) + 0.05 * vn(u * 12, 1);
+    if (v > ridge) return [0.35, 0.3, 0.4];
+    if (v > 0.32) { const n = vn(u * 30, v * 30); return [0.2 + 0.1 * n, 0.35 + 0.15 * n, 0.15]; }
+    if (v > 0.18) return [0.3 + 0.2 * vn(u * 50, v * 10), 0.45, 0.55];
+    return [0.12, 0.2, 0.09 + 0.06 * vn(u * 40, v * 40)];
+  }
+  const luma = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  // 단조 3차 보간 커브: 점 (0,0), p1..p3, (1,1)
+  function curve(pts, x) {
+    const P = [[0, 0], ...pts, [1, 1]];
+    let i = 0; while (i < P.length - 2 && x > P[i + 1][0]) i++;
+    const a = P[i], b = P[i + 1], t = (x - a[0]) / (b[0] - a[0] || 1);
+    const s = t * t * (3 - 2 * t), lin = lerp(a[1], b[1], t), sm = lerp(a[1], b[1], s);
+    return clamp(lerp(lin, sm, 0.5), 0, 1);
+  }
+
+  lesson({
+    topic: "grading", title: "컬러 그레이딩과 LUT", desc: "화면 전체의 색 보정", stage: "테크아트 실전",
+    sym: {},
+    hook: "같은 장면도 색 보정 하나로 아침·노을·공포 분위기가 됩니다. 영화의 색 보정을 게임은 ==매 프레임 모든 픽셀에 적용==해야 하므로, 복잡한 보정을 미리 ==3D 색 표(LUT) 한 장으로 구워 두고 한 번 읽는== 방법을 씁니다.",
+    blocks: [
+      { h: "톤 커브: 밝기별로 다르게" },
+      "가로가 입력 밝기, 세로가 출력 밝기입니다. 세 점(어두운 곳·중간·밝은 곳)을 끌어 보세요. ==S자로 만들면 대비가 올라가고==, 어두운 점을 올리면 그림자가 뜹니다. 아래 막대그래프는 밝기 분포(히스토그램)입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["출력 = 커브(입력)   — 각 채널에 같은 커브 적용"],
+        setup(F, C, L) {
+          const pts = [[0.25, 0.18], [0.5, 0.52], [0.75, 0.84]];
+          const G0 = [2.25, 0.35], GS = 1.5;
+          pts.forEach((p, i) => F.handle({ color: ["blue", "green", "gold"][i], get: () => [G0[0] + p[0] * GS, G0[1] + p[1] * GS], set: (x, y) => { p[1] = clamp((y - G0[1]) / GS, 0, 1); p[0] = clamp((x - G0[0]) / GS, i === 0 ? 0.05 : pts[i - 1][0] + 0.05, i === 2 ? 0.95 : pts[i + 1][0] - 0.05); } }));
+          F.draw = g => {
+            const hist = new Array(32).fill(0);
+            g.field(200, (x, y) => {
+              if (x > 2 || y < 0.1 || y > 1.9) return null;
+              const c = scene(x / 2, (y - 0.1) / 1.8).map(v => curve(pts, clamp(v, 0, 1)));
+              hist[Math.min(31, Math.floor(luma(c) * 32))]++;
+              return c.map(v => v * 255).concat(255);
+            }, { rect: { x0: 0, x1: 2, y0: 0.1, y1: 1.9 }, smooth: false });
+            g.poly([G0, [G0[0] + GS, G0[1]], [G0[0] + GS, G0[1] + GS], [G0[0], G0[1] + GS]], { stroke: "rgba(236,239,244,0.25)", w: 1 });
+            g.line(G0, [G0[0] + GS, G0[1] + GS], "grey", { w: 1, dash: [3, 4] });
+            const mx = Math.max(...hist);
+            hist.forEach((h, i) => g.poly([[G0[0] + i / 32 * GS, G0[1]], [G0[0] + (i + 1) / 32 * GS, G0[1]], [G0[0] + (i + 1) / 32 * GS, G0[1] + h / mx * 0.5], [G0[0] + i / 32 * GS, G0[1] + h / mx * 0.5]], { fill: "rgba(236,239,244,0.12)" }));
+            const cp = []; for (let i = 0; i <= 60; i++) { const x = i / 60; cp.push([G0[0] + x * GS, G0[1] + curve(pts, x) * GS]); }
+            g.poly(cp, { stroke: "yellow", w: 2.5, close: false });
+            g.text("입력 →", [G0[0] + GS, G0[1]], "grey", { size: 10, align: "right", dy: 10 });
+          };
+        }
+      } },
+
+      { h: "3D LUT: 모든 색에 대한 답을 미리 표로" },
+      "색 보정(채도·색온도·대비)을 ==가능한 모든 RGB 조합에 대해 미리 계산해 3D 표==로 만듭니다. 화면에서는 픽셀 색을 좌표로 써서 표를 읽기만 하면 됩니다. 위 띠가 펼친 LUT(파랑 칸 단위로 자른 슬라이스)입니다. 표 크기를 줄이면 무엇이 변하는지 보세요.",
+      { fig: {
+        aspect: 0.56, view: { x0: 0, x1: 4, y0: 0, y1: 2.24 },
+        eq: ["결과 = LUT[r, g, b]   ({n}³ 칸, 보간: {it})"],
+        setup(F, C, L) {
+          let sat = 1.3, temp = 0.15, con = 1.15, n = 16, tri = true;
+          C.slider({ label: "채도", min: 0, max: 2, value: sat, onInput: x => { sat = x; } });
+          C.slider({ label: "색온도", min: -0.4, max: 0.4, value: temp, onInput: x => { temp = x; } });
+          C.slider({ label: "대비", min: 0.6, max: 1.6, value: con, onInput: x => { con = x; } });
+          C.seg({ options: [{ value: 4, label: "4³" }, { value: 8, label: "8³" }, { value: 16, label: "16³" }, { value: 32, label: "32³" }], value: 16, onChange: x => { n = +x; } });
+          C.seg({ options: [{ value: 1, label: "3선형 보간" }, { value: 0, label: "가장 가까운 칸" }], value: 1, onChange: x => { tri = !!x; } });
+          const grade = c => { const l = luma(c); let o = c.map(v => lerp(l, v, sat)); o = [o[0] + temp * 0.3, o[1] + temp * 0.05, o[2] - temp * 0.3]; return o.map(v => clamp((v - 0.5) * con + 0.5, 0, 1)); };
+          F.draw = g => {
+            const lut = [];
+            for (let b = 0; b < n; b++) for (let gg = 0; gg < n; gg++) for (let r = 0; r < n; r++) lut.push(grade([r / (n - 1), gg / (n - 1), b / (n - 1)]));
+            const at = (r, gg, b) => lut[(b * n + gg) * n + r];
+            const look = c => {
+              const f = c.map(v => clamp(v, 0, 1) * (n - 1));
+              if (!tri) return at(Math.round(f[0]), Math.round(f[1]), Math.round(f[2]));
+              const i = f.map(v => Math.min(n - 2, Math.floor(v))), t = f.map((v, k) => v - i[k]);
+              const res = [0, 0, 0];
+              for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const w = (dx ? t[0] : 1 - t[0]) * (dy ? t[1] : 1 - t[1]) * (dz ? t[2] : 1 - t[2]), q = at(i[0] + dx, i[1] + dy, i[2] + dz); for (let k = 0; k < 3; k++) res[k] += q[k] * w; }
+              return res;
+            };
+            // 펼친 LUT 띠
+            g.field(n * n, (x, y) => { const i = Math.floor(x / 4 * n * n), b = Math.floor(i / n), r = i % n, gg = Math.floor((y - 1.9) / 0.3 * n); const q = at(r, clamp(gg, 0, n - 1), b); return q.map(v => v * 255).concat(255); }, { rect: { x0: 0, x1: 4, y0: 1.9, y1: 2.2 }, rows: n, smooth: false });
+            g.field(220, (x, y) => {
+              if (y > 1.82) return null;
+              const left = x < 2, u = (left ? x : x - 2) / 2, c = scene(u, y / 1.82);
+              return (left ? c : look(c)).map(v => v * 255).concat(255);
+            }, { rect: { x0: 0, x1: 4, y0: 0, y1: 1.82 }, smooth: false });
+            g.line([2, 0], [2, 1.82], "white", { w: 2 });
+            g.text("원본", [1, 1.72], "white", { size: 12, bold: true }); g.text("LUT 적용", [3, 1.72], "white", { size: 12, bold: true });
+            L.set("n", n); L.set("it", tri ? "3선형" : "없음 → 표가 작으면 색 띠");
+          };
+        }
+      } },
+      { key: "LUT 하나에 ==채도·색온도·대비·커브·영화풍 보정까지 모두== 들어갑니다. 보정이 아무리 복잡해도 실행 비용은 텍스처 읽기 한 번입니다. 그래서 아트 디렉터가 포토샵에서 만든 보정을 그대로 게임에 가져올 수 있습니다." },
+
+      { h: "리프트 · 감마 · 게인: 어두운 곳·중간·밝은 곳에 따로 색 넣기" },
+      "세 색상환의 점을 끌어 ==그림자(리프트), 중간톤(감마), 밝은 곳(게인)==에 서로 다른 색을 섞습니다. 영화의 '청록 그림자 + 주황 피부'(틸 앤 오렌지)를 만들어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["결과 = (게인 · (입력 + 리프트 · (1 − 입력)))^(1 / 감마)"],
+        setup(F, C, L) {
+          const W = [[0.45, 0.42], [1.35, 0.42], [2.25, 0.42]], R = 0.32;
+          const off = [[-0.12, 0.1], [0, 0], [0.1, -0.06]];
+          off.forEach((o, i) => F.handle({ color: "white", get: () => V.add(W[i], o), set: (x, y) => { let d = V.sub([x, y], W[i]); if (V.len(d) > R) d = V.mul(V.norm(d), R); o[0] = d[0]; o[1] = d[1]; } }));
+          const tint = o => { const a = Math.atan2(o[1], o[0]), s = V.len(o) / R; return [0.5 + 0.5 * Math.cos(a), 0.5 + 0.5 * Math.cos(a - 2.094), 0.5 + 0.5 * Math.cos(a + 2.094)].map(c => (c - 0.5) * s); };
+          F.draw = g => {
+            const lift = tint(off[0]).map(v => v * 0.3), gam = tint(off[1]).map(v => 1 + v * 0.8), gain = tint(off[2]).map(v => 1 + v * 0.6);
+            g.field(220, (x, y) => {
+              if (x < 2.8 && y < 0.9) {
+                for (let i = 0; i < 3; i++) { const d = V.sub([x, y], W[i]); if (V.len(d) < R) { const a = Math.atan2(d[1], d[0]), s = V.len(d) / R; return [0.5 + 0.5 * Math.cos(a), 0.5 + 0.5 * Math.cos(a - 2.094), 0.5 + 0.5 * Math.cos(a + 2.094)].map(c => lerp(0.5, c, s) * 230).concat(255); } }
+                return [16, 19, 26, 255];
+              }
+              if (y < 0.95) return [16, 19, 26, 255];
+              const c = scene(x / 4, (y - 0.95) / 1.05);
+              const o = c.map((v, k) => Math.pow(clamp(gain[k] * (v + lift[k] * (1 - v)), 0, 1), 1 / gam[k]));
+              return o.map(v => v * 255).concat(255);
+            }, { smooth: false });
+            ["리프트 (그림자)", "감마 (중간)", "게인 (밝은 곳)"].forEach((t, i) => g.text(t, [W[i][0], 0.03], "grey", { size: 11, dy: -2 }));
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "포스트 프로세스 그레이딩", "UE 포스트 프로세스의 Color Grading(Global·Shadows·Midtones·Highlights 색상환)과 Color Grading LUT 텍스처가 이 장입니다. 16³ LUT를 256×16 스트립으로 저장합니다."],
+        ["TA", "LUT 파이프라인", "중립 LUT 스트립을 스크린샷 위에 얹어 포토샵·DaVinci에서 보정하고, 그 LUT만 잘라 엔진에 넣는 흐름을 아티스트에게 툴로 제공합니다."],
+        ["게임", "상황별 분위기", "실내·실외, 체력 낮음, 회상 장면마다 포스트 프로세스 볼륨으로 LUT를 바꾸고 섞어 분위기를 전환합니다."],
+        ["실생활", "사진 필터와 영화", "인스타그램 필터와 영화 색 보정(DI)이 같은 커브·LUT입니다. 카메라 회사의 'Log → Rec.709' 변환표도 LUT로 배포됩니다."]
+      ] },
+
+      { recap: [
+        ["출력 = 커브(입력)", "톤 커브: S자 = 대비"],
+        ["결과 = LUT[r, g, b]", "모든 보정을 3D 표 한 장으로, 3선형 보간"],
+        ["리프트 · 감마 · 게인", "그림자·중간·밝은 곳에 따로 색"],
+        ["보정 비용 = 텍스처 읽기 한 번", "실시간 그레이딩의 핵심"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\46-shadercost.js ===== */
+/* 46 셰이더 비용 · 퍼뮤테이션 · 오버드로 */
+(() => {
+  const f0 = n => num(n, 0);
+
+  lesson({
+    topic: "shadercost", title: "셰이더 비용과 오버드로", desc: "무엇이 프레임을 먹는가", stage: "테크아트 실전",
+    sym: { n: "orange" },
+    hook: "TA의 큰 역할 중 하나는 ==아름다움을 지키면서 프레임 예산 안에 넣는 것==입니다. 픽셀당 셰이더 비용 × 겹쳐 그린 횟수, 그리고 셰이더 변형(퍼뮤테이션) 수가 가장 흔한 범인입니다.",
+    blocks: [
+      { h: "셰이더 복잡도 뷰: 비용 × 겹침" },
+      "불투명 바닥 위에 반투명 연기 판 여러 장을 겹쳤습니다(판을 끌어 보세요). 각 픽셀의 비용은 ==그 픽셀을 덮은 모든 머티리얼의 명령어 수 합==입니다. 초록 → 빨강 → 흰색 순으로 비쌉니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 8, y0: 0, y1: 4 },
+        eq: ["픽셀 비용 = 불투명 {o} + Σ 반투명 판 {t} × 겹친 수   ·   가장 비싼 픽셀 {mx}"],
+        setup(F, C, L) {
+          let opaque = 120, trans = 90;
+          const Q = [[2.2, 2.0], [3.0, 2.3], [3.6, 1.8], [5.6, 2.2], [4.4, 2.6]];
+          Q.forEach(p => F.vec(p, "white", { snap: 0.02 }));
+          C.slider({ label: "바닥 머티리얼 명령어", min: 40, max: 400, step: 10, value: opaque, fmt: f0, onInput: x => { opaque = x; } });
+          C.slider({ label: "연기 머티리얼 명령어", min: 20, max: 300, step: 10, value: trans, fmt: f0, onInput: x => { trans = x; } });
+          F.draw = g => {
+            let mx = 0;
+            g.field(200, (x, y) => {
+              let c = opaque;
+              Q.forEach(p => { if (Math.abs(x - p[0]) < 1.1 && Math.abs(y - p[1]) < 1.1) c += trans; });
+              mx = Math.max(mx, c);
+              const k = clamp(c / 900, 0, 1.2);
+              const col = k < 0.5 ? [lerp(40, 240, k * 2), lerp(180, 200, k * 2), 60] : k < 1 ? [240, lerp(200, 40, (k - 0.5) * 2), lerp(60, 40, (k - 0.5) * 2)] : [255, lerp(40, 255, (k - 1) * 5), lerp(40, 255, (k - 1) * 5)];
+              return [...col, 255];
+            });
+            Q.forEach(p => g.poly([[p[0] - 1.1, p[1] - 1.1], [p[0] + 1.1, p[1] - 1.1], [p[0] + 1.1, p[1] + 1.1], [p[0] - 1.1, p[1] + 1.1]], { stroke: "rgba(16,19,26,0.6)", w: 1 }));
+            L.set("o", opaque); L.set("t", trans); L.set("mx", mx);
+          };
+        }
+      } },
+      { key: "같은 연기라도 ==겹쳐 놓은 곳이 열 배 비쌉니다==. 화면 가득 찬 반투명(가까이 다가간 연기, 비 효과)이 프레임 저하의 단골 원인입니다." },
+
+      { h: "컷아웃: 투명한 테두리를 잘라 내기" },
+      "파티클은 보통 사각형 판에 그립니다. 그런데 그림의 대부분이 투명하면 ==투명한 픽셀도 셰이더를 돌립니다==. 그림 모양을 따라 다각형으로 잘라 내면 그만큼 픽셀이 줄어듭니다. 꼭짓점 수를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["그리는 넓이: 사각형 100% → 컷아웃 {p}%   (그림이 차지하는 넓이 {s}%)"],
+        setup(F, C, L) {
+          let nv = 8;
+          C.slider({ label: "컷아웃 꼭짓점 수", min: 3, max: 16, step: 1, value: nv, fmt: f0, onInput: x => { nv = x; } });
+          const shapeR = a => 0.55 + 0.25 * Math.cos(a * 3) + 0.1 * Math.sin(a * 5);
+          F.draw = g => {
+            const c = [0, 0];
+            g.poly([[-0.95, -0.95], [0.95, -0.95], [0.95, 0.95], [-0.95, 0.95]], { stroke: "orange", w: 1.5, dash: [5, 4], fill: "rgba(255,134,47,0.08)" });
+            const sp = []; for (let i = 0; i < 120; i++) { const a = i / 120 * TAU; sp.push([Math.cos(a) * shapeR(a), Math.sin(a) * shapeR(a)]); }
+            g.poly(sp, { fill: "rgba(236,239,244,0.75)" });
+            // 볼록 껍질에 가깝게: 바깥으로 살짝 부풀린 nv각형
+            const hull = []; for (let i = 0; i < nv; i++) { const a = i / nv * TAU; let r = 0; for (let k = -6; k <= 6; k++) r = Math.max(r, shapeR(a + k / 6 * Math.PI / nv)); hull.push([Math.cos(a) * r / Math.cos(Math.PI / nv), Math.sin(a) * r / Math.cos(Math.PI / nv)]); }
+            const hc = hull.map(p => [clamp(p[0], -0.95, 0.95), clamp(p[1], -0.95, 0.95)]);
+            g.poly(hc, { stroke: "teal", w: 2, fill: "rgba(92,208,179,0.12)" });
+            const area = pts => Math.abs(pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+            const quad = 1.9 * 1.9;
+            L.set("p", f0(area(hc) / quad * 100)); L.set("s", f0(area(sp) / quad * 100));
+            g.text("사각형 판", [-0.95, 0.95], "orange", { size: 11, align: "left", dy: -8 }); g.text("컷아웃", [1.2, 0], "teal", { size: 12, bold: true, align: "left" });
+          };
+        }
+      } },
+      "꼭짓점을 늘리면 픽셀은 줄지만 정점·삼각형이 늘어 8개 안팎이 보통의 균형점입니다. 반투명이 아니라 ==알파 테스트(구멍 뚫기)==를 쓰는 잎사귀도 같은 이유로 컷아웃을 씁니다.",
+
+      { h: "퍼뮤테이션 폭발" },
+      "머티리얼의 '정적 스위치'는 분기를 없애 주지만, ==스위치 하나마다 셰이더가 두 벌==로 컴파일됩니다. 여기에 품질 단계·플랫폼·정점 종류가 곱해집니다. 스위치를 켜 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["셰이더 수 = 2^{n} (스위치) × {q} (품질) × {p} (플랫폼) × {v} (정점 종류) = {total}"],
+        setup(F, C, L) {
+          let n = 4, q = 3, p = 2, v = 4;
+          C.slider({ label: "정적 스위치 수", min: 0, max: 14, step: 1, value: n, fmt: f0, onInput: x => { n = x; } });
+          C.slider({ label: "품질 단계", min: 1, max: 4, step: 1, value: q, fmt: f0, onInput: x => { q = x; } });
+          C.slider({ label: "플랫폼", min: 1, max: 4, step: 1, value: p, fmt: f0, onInput: x => { p = x; } });
+          C.slider({ label: "정점 종류(스태틱·스켈레탈·인스턴스…)", min: 1, max: 8, step: 1, value: v, fmt: f0, onInput: x => { v = x; } });
+          F.draw = g => {
+            const total = Math.pow(2, n) * q * p * v, sec = total * 0.4;
+            const lw = clamp(Math.log10(total) / 7, 0, 1);
+            g.poly([[0.5, 2.2], [9.5, 2.2], [9.5, 3.0], [0.5, 3.0]], { stroke: "rgba(236,239,244,0.25)", w: 1 });
+            g.poly([[0.5, 2.2], [0.5 + 9 * lw, 2.2], [0.5 + 9 * lw, 3.0], [0.5, 3.0]], { fill: total > 1e5 ? PAL.red : total > 1e4 ? PAL.orange : PAL.green });
+            ["1", "10", "100", "1천", "1만", "10만", "100만", "1000만"].forEach((t, i) => g.text(t, [0.5 + i / 7 * 9, 2.2], "grey", { size: 10, dy: 10 }));
+            g.text(`컴파일 ≈ ${sec > 3600 ? num(sec / 3600, 1) + "시간" : sec > 60 ? num(sec / 60, 0) + "분" : num(sec, 0) + "초"} (셰이더당 0.4초 가정, 코어 1개)`, [5, 3.6], "white", { size: 13, bold: true });
+            L.set("n", n); L.set("q", q); L.set("p", p); L.set("v", v); L.set("total", total.toLocaleString());
+          };
+        }
+      } },
+      { key: "TA는 ==마스터 머티리얼 수를 줄이고, 스위치 대신 파라미터(런타임 분기)를 쓸 곳을 가르고==, 쓰지 않는 사용처(Usage) 플래그를 꺼서 퍼뮤테이션을 관리합니다. 셰이더 캐시가 커지면 로딩 끊김(PSO 컴파일 히치)도 늘어납니다." },
+
+      { use: [
+        ["엔진", "뷰 모드", "UE의 Shader Complexity, Quad Overdraw, Shader Complexity & Quads 뷰 모드가 이 장의 히트맵입니다. 머티리얼 에디터의 Stats 창이 명령어 수를 보여 줍니다."],
+        ["엔진", "파티클 컷아웃", "Niagara 스프라이트의 Cutout Texture 설정이 이 장의 컷아웃입니다. SubUV 프레임마다 자동으로 다각형을 만듭니다."],
+        ["TA", "마스터 머티리얼 설계", "프로젝트 전체가 몇 개의 마스터 머티리얼과 인스턴스로 돌아가게 설계하면 퍼뮤테이션·메모리·유지보수가 모두 줄어듭니다."],
+        ["최적화", "PSO 캐시", "PC·콘솔 첫 실행 끊김의 원인은 셰이더 변형을 그 자리에서 컴파일하는 것입니다. PSO 캐시 수집과 미리 컴파일로 줄입니다."]
+      ] },
+
+      { recap: [
+        ["픽셀 비용 = Σ (덮은 머티리얼 명령어)", "셰이더 복잡도 = 비용 × 겹침"],
+        ["컷아웃 다각형", "투명한 픽셀은 그리지 않기"],
+        ["2^스위치 × 품질 × 플랫폼 × 정점 종류", "퍼뮤테이션 폭발"],
+        ["마스터 머티리얼 + 인스턴스", "변형 수 관리"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\47-impostor.js ===== */
+/* 47 빌보드와 임포스터 */
+(() => {
+  const f0 = n => num(n, 0);
+  // 간단한 3D 물체(나무 비슷한 모양): 줄기 상자 + 잎 공 3개를 방향 yaw에서 본 2D 실루엣 색
+  function viewObj(yaw, pitch, u, v) {
+    // 화면 (u, v) ∈ [−1, 1] → 광선을 쏴서 색을 구함 (정사영)
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const right = [cy, 0, -sy], up = [-sy * sp, cp, -cy * sp], fwd = [sy * cp, sp, cy * cp];
+    const o = V3.add(V3.add(V3.mul(right, u * 1.3), V3.mul(up, v * 1.3 + 0.2)), V3.mul(fwd, -3)), d = fwd;
+    let best = { t: 9, c: null };
+    [[[0, 0.55, 0], 0.55, [0.35, 0.65, 0.3]], [[0.35, 0.3, 0.2], 0.4, [0.3, 0.6, 0.28]], [[-0.3, 0.25, -0.15], 0.38, [0.42, 0.7, 0.33]]].forEach(([c, r, col]) => {
+      const oc = V3.sub(o, c), b = V3.dot(oc, d), cc = V3.dot(oc, oc) - r * r, disc = b * b - cc;
+      if (disc > 0) { const t = -b - Math.sqrt(disc); if (t < best.t) { const n = V3.norm(V3.sub(V3.add(o, V3.mul(d, t)), c)); const l = 0.35 + 0.65 * Math.max(0, V3.dot(n, V3.norm([0.5, 0.8, 0.3]))); best = { t, c: col.map(x => x * l) }; } }
+    });
+    // 줄기
+    const bx = [[-0.08, -0.9, -0.08], [0.08, 0.2, 0.08]]; let t0 = -9, t1 = 9;
+    for (let k = 0; k < 3; k++) { if (Math.abs(d[k]) < 1e-6) { if (o[k] < bx[0][k] || o[k] > bx[1][k]) { t0 = 9; } continue; } let a = (bx[0][k] - o[k]) / d[k], e = (bx[1][k] - o[k]) / d[k]; if (a > e) [a, e] = [e, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, e); }
+    if (t0 < t1 && t0 < best.t) best = { t: t0, c: [0.4, 0.28, 0.18] };
+    return best.c;
+  }
+
+  lesson({
+    topic: "impostor", title: "빌보드와 임포스터", desc: "멀리는 사진 한 장으로", stage: "테크아트 실전",
+    sym: {},
+    hook: "멀리 있는 숲의 나무 수천 그루를 진짜 메시로 그릴 필요는 없습니다. ==여러 각도에서 찍어 둔 사진을 판 하나에 붙여== 카메라 방향에 맞는 사진을 고르면, 삼각형 2개로 나무 한 그루가 됩니다.",
+    blocks: [
+      { h: "빌보드: 늘 카메라를 보는 판" },
+      "위에서 본 장면입니다. 카메라(흰 점)를 끌어 보세요. 빌보드 판은 ==항상 카메라를 향해 돌아서== 정면 그림만 보여 줍니다. 가장 싸지만, 돌아가도 같은 그림이라 가까이서는 티가 납니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["판의 방향 = normalize(카메라 − 판 위치)"],
+        setup(F, C, L) {
+          const cam = [-3, -1.2];
+          F.vec(cam, "white", { snap: 0.01 });
+          let seed = 4; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+          const trees = Array.from({ length: 14 }, () => [rnd() * 6 - 2, rnd() * 3.4 - 1.7]);
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            trees.forEach(p => {
+              const d = V.norm(V.sub(cam, p)), s = V.perp(d);
+              g.line(V.add(p, V.mul(s, 0.28)), V.sub(p, V.mul(s, 0.28)), "green", { w: 4 });
+              g.line(p, V.add(p, V.mul(d, 0.2)), "green", { w: 1, alpha: 0.6 });
+              g.line(cam, p, "white", { w: 0.6, alpha: 0.15 });
+            });
+            g.circle(cam, 0.13, "white", { fill: PAL.bg, w: 2.5 });
+          };
+        }
+      } },
+
+      { h: "옥타헤드럴 임포스터: 방향별 사진 모음" },
+      "물체를 ==반구 위 여러 방향에서 미리 찍어 한 장의 아틀라스==에 모아 둡니다(왼쪽). 실행 중에는 카메라 방향에 가장 가까운 칸(노란 테두리)을 골라 보여 줍니다. 회전시키며 진짜 메시(오른쪽 위)와 비교해 보세요. 칸 수가 적으면 ==뚝뚝 바뀌는 것(팝핑)==이 보이고, 이웃 칸을 섞으면 부드러워집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["아틀라스 {g} × {g} = {n}방향   ·   현재 칸 ({ci}, {cj})"],
+        setup(F, C, L) {
+          let gsz = 6, yaw = 0.6, pitch = 0.3, blend = true;
+          const ys = C.slider({ label: "카메라 방위", min: -3.14, max: 3.14, value: yaw, fmt: x => f0(x / DEG) + "°", onInput: x => { yaw = x; } });
+          C.slider({ label: "카메라 높이", min: 0, max: 1.4, value: pitch, fmt: x => f0(x / DEG) + "°", onInput: x => { pitch = x; } });
+          C.seg({ options: [{ value: 4, label: "4×4" }, { value: 6, label: "6×6" }, { value: 10, label: "10×10" }], value: 6, onChange: x => { gsz = +x; } });
+          C.seg({ options: [{ value: 1, label: "이웃 섞기" }, { value: 0, label: "가장 가까운 칸만" }], value: 1, onChange: x => { blend = !!x; } });
+          C.play();
+          F.loop(dt => { yaw += dt * 0.5; if (yaw > Math.PI) yaw -= TAU; ys.set(yaw); });
+          // 단순화: 아틀라스의 가로 = 방위, 세로 = 높이 (반구를 격자로)
+          const cellDir = (i, j) => [(i + 0.5) / gsz * TAU - Math.PI, (j + 0.5) / gsz * Math.PI / 2];
+          F.draw = g => {
+            const A = 1.9, cs = A / gsz;
+            g.field(220, (x, y) => {
+              if (x < 2) {
+                if (y > 1.95 || y < 0.05 || x < 0.05 || x > 1.95) return [16, 19, 26, 255];
+                const i = Math.floor((x - 0.05) / cs), j = Math.floor((y - 0.05) / cs), [cyw, cp] = cellDir(i, j);
+                const u = ((x - 0.05) - i * cs) / cs * 2 - 1, v = ((y - 0.05) - j * cs) / cs * 2 - 1, c = viewObj(cyw, cp, u, v);
+                return c ? c.map(q => q * 255).concat(255) : [24, 28, 38, 255];
+              }
+              // 오른쪽 위: 진짜 메시, 오른쪽 아래: 임포스터
+              const top = y > 1, u = (x - 3) / 0.9, v = (top ? y - 1.5 : y - 0.5) / 0.45;
+              if (Math.abs(u) > 1 || Math.abs(v) > 1) return [16, 19, 26, 255];
+              if (top) { const c = viewObj(yaw, pitch, u, v); return c ? c.map(q => q * 255).concat(255) : [30, 36, 48, 255]; }
+              const fi = ((yaw + Math.PI) / TAU) * gsz - 0.5, fj = clamp(pitch / (Math.PI / 2) * gsz - 0.5, 0, gsz - 1);
+              const i0 = Math.floor(fi), j0 = Math.floor(fj), ti = fi - i0, tj = fj - j0;
+              const sample = (i, j) => { const [a, b] = cellDir(((i % gsz) + gsz) % gsz, clamp(j, 0, gsz - 1)); return viewObj(a, b, u, v) || [30 / 255, 36 / 255, 48 / 255]; };
+              let c;
+              if (!blend) c = sample(Math.round(fi), Math.round(fj));
+              else { const a = sample(i0, j0), b = sample(i0 + 1, j0), cc = sample(i0, j0 + 1), d = sample(i0 + 1, j0 + 1); c = a.map((_, k) => lerp(lerp(a[k], b[k], ti), lerp(cc[k], d[k], ti), tj)); }
+              return c.map(q => q * 255).concat(255);
+            }, { smooth: false });
+            const ci = ((Math.round(((yaw + Math.PI) / TAU) * gsz - 0.5) % gsz) + gsz) % gsz, cj = clamp(Math.round(pitch / (Math.PI / 2) * gsz - 0.5), 0, gsz - 1);
+            g.poly([[0.05 + ci * cs, 0.05 + cj * cs], [0.05 + (ci + 1) * cs, 0.05 + cj * cs], [0.05 + (ci + 1) * cs, 0.05 + (cj + 1) * cs], [0.05 + ci * cs, 0.05 + (cj + 1) * cs]], { stroke: "yellow", w: 2.5 });
+            g.text("진짜 메시", [3, 1.97], "white", { size: 11, bold: true }); g.text("임포스터", [3, 0.97], "white", { size: 11, bold: true });
+            L.set("g", gsz); L.set("n", gsz * gsz); L.set("ci", ci); L.set("cj", cj);
+          };
+        }
+      } },
+      { key: "실제 옥타헤드럴 임포스터는 반구를 팔면체로 펼쳐 방향을 고르게 배치하고, ==깊이·노멀도 함께 구워== 조명과 시차까지 맞춥니다. 칸 수 × 해상도가 메모리, 섞는 칸 수(보통 3)가 비용입니다." },
+
+      { h: "LOD 사다리와 전환" },
+      "거리에 따라 메시 → 낮은 LOD → 임포스터 순으로 바뀝니다. 바뀌는 순간의 ==팝핑을 디더 크로스페이드==(30장)로 숨깁니다. 거리를 움직여 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["거리 {d} m → {lod}   ·   삼각형 {tri}개"],
+        setup(F, C, L) {
+          let dist = 30, fadeW = 6;
+          C.slider({ label: "거리 (m)", min: 1, max: 300, value: dist, fmt: x => f0(x), onInput: x => { dist = x; } });
+          C.slider({ label: "크로스페이드 폭", min: 0.5, max: 30, value: fadeW, onInput: x => { fadeW = x; } });
+          const LODS = [["LOD0 (메시)", 12000, 0], ["LOD1", 3000, 25], ["LOD2", 600, 60], ["임포스터", 2, 120]];
+          F.draw = g => {
+            let li = 0; LODS.forEach((l, i) => { if (dist >= l[2]) li = i; });
+            const next = LODS[li + 1], fade = next ? clamp((dist - (next[2] - fadeW)) / fadeW, 0, 1) : 0;
+            const X = d => 0.4 + Math.log10(d) / Math.log10(300) * 9.2;
+            LODS.forEach((l, i) => { const x0 = X(Math.max(1, l[2])), x1 = i < 3 ? X(LODS[i + 1][2]) : X(300); g.poly([[x0, 2.6], [x1, 2.6], [x1, 3.3], [x0, 3.3]], { fill: hexA([PAL.teal, PAL.green, PAL.yellow, PAL.orange][i], i === li ? 0.7 : 0.25) }); g.text(l[0], [(x0 + x1) / 2, 2.95], "white", { size: 11, bold: i === li }); });
+            g.line([X(dist), 2.4], [X(dist), 3.5], "white", { w: 2 });
+            // 디더 크로스페이드 미리보기 (8×8 픽셀)
+            const BAY = [0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22, 3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21];
+            for (let i = 0; i < 16; i++) for (let j = 0; j < 8; j++) {
+              const showNext = (BAY[(j % 8) * 8 + (i % 8)] + 0.5) / 64 < fade;
+              g.poly([[3 + i * 0.25, 0.3 + j * 0.25], [3.25 + i * 0.25, 0.3 + j * 0.25], [3.25 + i * 0.25, 0.55 + j * 0.25], [3 + i * 0.25, 0.55 + j * 0.25]], { fill: showNext ? PAL.orange : PAL.teal, stroke: "rgba(16,19,26,0.4)", w: 0.5 });
+            }
+            g.text("전환 중 픽셀: 현재 LOD(청록) / 다음 LOD(주황)", [3, 0.3], "grey", { size: 11, align: "left", dy: -10 });
+            L.set("d", f0(dist)); L.set("lod", LODS[li][0] + (fade > 0 && next ? ` → ${next[0]} ${f0(fade * 100)}%` : "")); L.set("tri", LODS[li][1].toLocaleString());
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "Impostor Baker·HLOD", "UE의 Impostor Baker 플러그인, 폴리지 LOD의 빌보드, HLOD의 임포스터 생성이 이 장입니다. SpeedTree도 마지막 LOD를 빌보드로 만듭니다."],
+        ["게임", "오픈월드 숲과 군중", "수만 그루 숲, 경기장 관중, 먼 건물이 임포스터입니다. 가까이 오면 진짜 메시로 바뀝니다."],
+        ["TA", "LOD 기준 정하기", "화면 크기(Screen Size) 기준으로 LOD 전환점을 정하고, 디더 페이드 폭과 임포스터 해상도를 프로젝트 기준으로 잡습니다."],
+        ["실생활", "무대 배경 그림", "연극 무대의 원경 그림막, 영화의 매트 페인팅이 같은 발상입니다. 멀리 있으면 평면이어도 모릅니다."]
+      ] },
+
+      { recap: [
+        ["판 방향 = 카메라 쪽", "빌보드: 가장 싸지만 돌아가도 같은 그림"],
+        ["방향별 사진 아틀라스", "임포스터: 카메라 방향에 맞는 칸 선택·섞기"],
+        ["메시 → LOD → 임포스터", "거리(화면 크기)별 사다리"],
+        ["디더 크로스페이드", "전환 팝핑 숨기기"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\48-pca.js ===== */
+/* 48 PCA: 주성분 분석 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 2×2 공분산의 고유값·고유벡터
+  function pca2(pts) {
+    const n = pts.length, m = [0, 0];
+    pts.forEach(p => { m[0] += p[0] / n; m[1] += p[1] / n; });
+    let sxx = 0, sxy = 0, syy = 0;
+    pts.forEach(p => { const dx = p[0] - m[0], dy = p[1] - m[1]; sxx += dx * dx / n; sxy += dx * dy / n; syy += dy * dy / n; });
+    const tr = sxx + syy, det = sxx * syy - sxy * sxy, disc = Math.sqrt(Math.max(0, tr * tr / 4 - det));
+    const l1 = tr / 2 + disc, l2 = tr / 2 - disc;
+    const v1 = Math.abs(sxy) > 1e-9 ? V.norm([l1 - syy, sxy]) : (sxx >= syy ? [1, 0] : [0, 1]);
+    return { m, sxx, sxy, syy, l1, l2, v1, v2: V.perp(v1) };
+  }
+
+  lesson({
+    topic: "pca", title: "PCA: 주성분 분석", desc: "데이터가 가장 퍼진 방향", stage: "TA 도구 상자",
+    sym: { "λ": "orange", v: "yellow", "Σ": "purple" },
+    hook: "점들이 흩어져 있을 때 ==가장 길게 퍼진 방향==을 찾는 방법이 PCA입니다. 공분산 행렬의 고유벡터가 그 방향입니다. 텍스처 압축의 끝 색 고르기, 물체에 딱 맞는 상자 만들기, 색 팔레트 뽑기에 TA가 실제로 씁니다.",
+    blocks: [
+      { h: "가장 퍼진 방향 찾기" },
+      "점을 끌어 보세요. [[yellow:노란 축]]이 첫째 주성분(가장 길게 퍼진 방향), [[teal:청록 축]]이 둘째입니다. 회색 선을 돌려 보면 ==점들을 그 선에 그림자 낼 때의 퍼짐(분산)이 노란 축에서 가장 큽니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["Σ = [[{a}, {b}; {b}, {c}]]   →   λ_1 = {l1},  λ_2 = {l2}", "회색 선 위 분산 = {pv}"],
+        setup(F, C, L) {
+          const pts = [[-2.4, -1.2], [-1.6, -0.5], [-0.8, -0.9], [-0.2, 0.1], [0.5, 0.2], [1.1, 0.9], [1.9, 0.6], [2.6, 1.4], [0.2, -0.6], [-1.1, 0.3]];
+          let ang = 0.2;
+          pts.forEach(p => F.vec(p, "white", { snap: 0.02 }));
+          C.slider({ label: "회색 선 각도", min: -1.57, max: 1.57, value: ang, fmt: x => num(x / DEG, 0) + "°", onInput: x => { ang = x; } });
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            const P = pca2(pts), d = [Math.cos(ang), Math.sin(ang)];
+            const pv = pts.reduce((s, p) => s + Math.pow(V.dot(V.sub(p, P.m), d), 2), 0) / pts.length;
+            g.line(V.sub(P.m, V.mul(d, 5)), V.add(P.m, V.mul(d, 5)), "grey", { w: 1.5, alpha: 0.7 });
+            pts.forEach(p => { const q = V.add(P.m, V.mul(d, V.dot(V.sub(p, P.m), d))); g.line(p, q, "grey", { w: 1, dash: [2, 3], alpha: 0.5 }); g.dot(q, "grey", 3); });
+            // 타원
+            const e = []; for (let k = 0; k <= 48; k++) { const a = k / 48 * TAU; e.push(V.add(P.m, V.add(V.mul(P.v1, Math.cos(a) * Math.sqrt(P.l1) * 2), V.mul(P.v2, Math.sin(a) * Math.sqrt(Math.max(0, P.l2)) * 2)))); }
+            g.poly(e, { stroke: "purple", w: 1.5, fill: "rgba(177,137,198,0.08)" });
+            g.arrow(P.m, V.add(P.m, V.mul(P.v1, Math.sqrt(P.l1) * 2)), "yellow", { w: 3.5 });
+            g.arrow(P.m, V.add(P.m, V.mul(P.v2, Math.sqrt(Math.max(0, P.l2)) * 2)), "teal", { w: 3.5 });
+            g.dot(P.m, "pink", 5);
+            L.set("a", f2(P.sxx)); L.set("b", f2(P.sxy)); L.set("c", f2(P.syy)); L.set("l1", f2(P.l1)); L.set("l2", f2(P.l2)); L.set("pv", f2(pv));
+          };
+        }
+      } },
+      { key: "공분산 행렬 $Σ$의 ==고유벡터 = 퍼짐의 방향, 고유값 = 그 방향의 분산==입니다. 4장의 행렬 그림으로 보면, $Σ$는 원을 타원으로 늘리는 변환이고 고유벡터는 '방향은 그대로 늘어나기만 하는' 특별한 축입니다." },
+
+      { h: "실전 ①: BC1 압축의 끝 색 고르기" },
+      "37장의 BC1은 블록의 16색을 ==직선 위 4단계==로 표현합니다. 그 직선을 경계 상자의 대각선으로 고르면 색이 비스듬히 퍼진 블록에서 오차가 커지고, ==PCA 축으로 고르면== 줄어듭니다. 색 점(R–G 평면)을 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -0.1, x1: 2.3, y0: -0.1, y1: 1.1 },
+        eq: ["오차 합: 경계 상자 대각선 {e1}   vs   PCA 축 {e2}"],
+        setup(F, C, L) {
+          const cols = [[0.15, 0.75], [0.25, 0.7], [0.3, 0.6], [0.42, 0.55], [0.5, 0.45], [0.55, 0.42], [0.65, 0.33], [0.75, 0.25], [0.8, 0.2], [0.35, 0.68], [0.6, 0.38], [0.7, 0.3]];
+          let method = "pca";
+          cols.forEach(p => F.vec(p, "white", { snap: 0.005, constrain: q => [clamp(q[0], 0, 1), clamp(q[1], 0, 1)] }));
+          C.seg({ options: [{ value: "box", label: "경계 상자 대각선" }, { value: "pca", label: "PCA 축" }], value: method, onChange: x => { method = x; } });
+          const encode = endp => { const pal = [0, 1 / 3, 2 / 3, 1].map(t => V.lerp(endp[0], endp[1], t)); let err = 0; const q = cols.map(c => { let b = pal[0], bd = 1e9; pal.forEach(p => { const d = V.len(V.sub(c, p)); if (d < bd) { bd = d; b = p; } }); err += bd; return b; }); return { pal, q, err }; };
+          F.draw = g => {
+            g.field(120, (x, y) => (x >= 0 && x <= 1 && y >= 0 && y <= 1 ? [x * 255, y * 255, 90, 255] : null), { rect: { x0: 0, x1: 1, y0: 0, y1: 1 }, smooth: true });
+            const mn = [Math.min(...cols.map(c => c[0])), Math.min(...cols.map(c => c[1]))], mx = [Math.max(...cols.map(c => c[0])), Math.max(...cols.map(c => c[1]))];
+            const P = pca2(cols), proj = cols.map(c => V.dot(V.sub(c, P.m), P.v1));
+            const box = [mn, mx], pcaE = [V.add(P.m, V.mul(P.v1, Math.min(...proj))), V.add(P.m, V.mul(P.v1, Math.max(...proj)))];
+            const A = encode(box), B = encode(pcaE), use = method === "pca" ? B : A, endp = method === "pca" ? pcaE : box;
+            g.poly([mn, [mx[0], mn[1]], mx, [mn[0], mx[1]]], { stroke: "rgba(236,239,244,0.4)", w: 1, dash: [4, 4] });
+            g.line(endp[0], endp[1], method === "pca" ? "yellow" : "orange", { w: 2.5 });
+            use.pal.forEach(p => g.circle(p, 0.025, "white", { w: 2 }));
+            cols.forEach((c, i) => g.line(c, use.q[i], "red", { w: 1, alpha: 0.7 }));
+            // 오른쪽: 원래 블록 vs 압축 블록
+            cols.forEach((c, i) => {
+              const x = 1.25 + (i % 4) * 0.12, y = 0.95 - Math.floor(i / 4) * 0.12, q = use.q[i];
+              g.poly([[x, y], [x + 0.11, y], [x + 0.11, y - 0.11], [x, y - 0.11]], { fill: `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},90)` });
+              g.poly([[x + 0.55, y], [x + 0.66, y], [x + 0.66, y - 0.11], [x + 0.55, y - 0.11]], { fill: `rgb(${Math.round(q[0] * 255)},${Math.round(q[1] * 255)},90)` });
+            });
+            g.text("원본", [1.47, 1.0], "white", { size: 11, bold: true }); g.text("압축", [2.02, 1.0], "white", { size: 11, bold: true });
+            g.text("R →", [1, 0], "grey", { size: 10, dy: 10, align: "right" }); g.text("G ↑", [0, 1], "grey", { size: 10, dx: -14 });
+            L.set("e1", num(A.err, 3)); L.set("e2", num(B.err, 3));
+          };
+        }
+      } },
+
+      { h: "실전 ②: 물체에 딱 맞는 상자(OBB)" },
+      "충돌·컬링용 상자를 축에 맞춰(AABB) 만들면 비스듬한 물체에서 빈 공간이 많습니다. ==PCA 축으로 상자를 돌리면==(OBB) 훨씬 꼭 맞습니다. 물체를 돌려 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["넓이: AABB {a}   vs   PCA OBB {b}   ({r}%)"],
+        setup(F, C, L) {
+          let rot = 0.6;
+          C.slider({ label: "물체 회전", min: -1.57, max: 1.57, value: rot, fmt: x => num(x / DEG, 0) + "°", onInput: x => { rot = x; } });
+          let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+          const base = Array.from({ length: 60 }, () => [(rnd() - 0.5) * 4.4, (rnd() - 0.5) * 1.1 + Math.sin(rnd() * 6) * 0.15]);
+          F.draw = g => {
+            const pts = base.map(p => V.rot(p, rot));
+            const mn = [Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1]))], mx = [Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))];
+            const P = pca2(pts), a = pts.map(p => V.dot(V.sub(p, P.m), P.v1)), b = pts.map(p => V.dot(V.sub(p, P.m), P.v2));
+            const a0 = Math.min(...a), a1 = Math.max(...a), b0 = Math.min(...b), b1 = Math.max(...b);
+            const corner = (s, t) => V.add(P.m, V.add(V.mul(P.v1, s), V.mul(P.v2, t)));
+            g.poly([mn, [mx[0], mn[1]], mx, [mn[0], mx[1]]], { stroke: "orange", w: 2, fill: "rgba(255,134,47,0.08)" });
+            g.poly([corner(a0, b0), corner(a1, b0), corner(a1, b1), corner(a0, b1)], { stroke: "yellow", w: 2.5, fill: "rgba(244,211,69,0.1)" });
+            pts.forEach(p => g.dot(p, "white", 3));
+            const A = (mx[0] - mn[0]) * (mx[1] - mn[1]), B = (a1 - a0) * (b1 - b0);
+            L.set("a", f2(A)); L.set("b", f2(B)); L.set("r", num(B / A * 100, 0));
+          };
+        }
+      } },
+
+      { use: [
+        ["TA", "텍스처 압축기", "BC1·BC7 인코더(DirectXTex, ISPC 등)는 블록 색의 PCA 축으로 시작점을 잡고 미세 조정합니다. 압축 품질 옵션 차이가 이 탐색량입니다."],
+        ["엔진", "충돌·바운드", "메시의 OBB·캡슐 충돌체 자동 생성, 오클루더 박스, 데칼 상자 맞추기에 PCA 축을 씁니다."],
+        ["TA", "색 팔레트·스타일 분석", "레퍼런스 이미지 색들의 주성분으로 주된 색 흐름을 뽑아 팔레트·LUT 제작이나 색 일관성 검사에 씁니다."],
+        ["실생활", "얼굴 인식과 데이터 분석", "고유얼굴(eigenface), 설문 데이터 요약, 주식 수익률의 주된 변동 요인 찾기가 모두 PCA입니다."]
+      ] },
+
+      { recap: [
+        ["Σ = 평균에서의 공분산", "데이터의 퍼짐을 행렬로"],
+        ["Σ v = λ v", "고유벡터 = 퍼짐 방향, 고유값 = 분산"],
+        ["PCA 축 위 4단계", "BC1 끝 색 선택"],
+        ["PCA 축으로 돌린 상자", "OBB: AABB보다 꼭 맞음"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\49-colorspace.js ===== */
+/* 49 색 공간: YCbCr과 OkLab */
+(() => {
+  const f2 = n => num(n, 2);
+  const toLin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const toS = c => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(Math.max(0, c), 1 / 2.4) - 0.055);
+  const B8 = v => Math.round(clamp(v, 0, 1) * 255);
+  // OkLab (선형 sRGB 기준)
+  function oklab([r, g, b]) {
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+  }
+  function fromOklab([L, a, b]) {
+    const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3), m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3), s = Math.pow(L - 0.0894841775 * a - 1.2914855480 * b, 3);
+    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+  }
+  const ycc = ([r, g, b]) => { const y = 0.299 * r + 0.587 * g + 0.114 * b; return [y, 0.5 + (b - y) * 0.564, 0.5 + (r - y) * 0.713]; };
+  const rgbFromYcc = ([y, cb, cr]) => [y + 1.403 * (cr - 0.5), y - 0.344 * (cb - 0.5) - 0.714 * (cr - 0.5), y + 1.773 * (cb - 0.5)];
+  const fract = x => x - Math.floor(x);
+  // 사진 대용 이미지 (sRGB 0~1)
+  function photo(u, v) {
+    const sky = v > 0.6, c = sky ? [0.45 + 0.4 * (1 - v), 0.6 + 0.2 * (1 - v), 0.9] : [0.25 + 0.2 * Math.sin(u * 40) * Math.sin(v * 30), 0.45, 0.2];
+    if (Math.hypot(u - 0.3, v - 0.45) < 0.16) return [0.9, 0.25, 0.2];
+    if (Math.abs(u - 0.7) < 0.12 && v < 0.6 && v > 0.15) return fract(v * 12) < 0.5 ? [0.95, 0.85, 0.2] : [0.15, 0.15, 0.6];
+    return c;
+  }
+
+  lesson({
+    topic: "colorspace", title: "YCbCr과 OkLab", desc: "눈에 맞춘 색 좌표", stage: "TA 도구 상자",
+    sym: { Y: "white", L: "white" },
+    hook: "RGB는 화면을 위한 좌표이지 눈을 위한 좌표가 아닙니다. 눈은 ==밝기에 민감하고 색 차이에는 둔합니다==. 이것을 이용해 밝기와 색을 나눈 YCbCr로 영상을 압축하고, 눈이 느끼는 거리대로 색을 배치한 OkLab으로 자연스러운 그라데이션과 색 조작을 합니다.",
+    blocks: [
+      { h: "YCbCr: 밝기와 색을 나누기" },
+      "이미지를 밝기 $Y$와 색 차이 두 장(Cb 파랑 쪽, Cr 빨강 쪽)으로 나눴습니다. '색 해상도 1/4'로 바꿔도 ==거의 차이가 없지만==, 밝기 해상도를 줄이면 바로 흐려집니다. JPEG·동영상이 색을 절반 해상도로 저장(4:2:0)하는 이유입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["Y = 0.299 R + 0.587 G + 0.114 B   ·   {mode}"],
+        setup(F, C, L) {
+          let mode = "420", view = "rgb";
+          C.seg({ options: [{ value: "444", label: "4:4:4 원본" }, { value: "420", label: "색 해상도 1/4 (4:2:0)" }, { value: "yhalf", label: "밝기 해상도 1/4" }], value: mode, onChange: x => { mode = x; } });
+          C.seg({ options: [{ value: "rgb", label: "결과" }, { value: "y", label: "Y" }, { value: "cb", label: "Cb" }, { value: "cr", label: "Cr" }], value: view, onChange: x => { view = x; } });
+          F.draw = g => {
+            const W = 96, H = 48, blk = 4;
+            g.field(W * 2, (x, y, i, j) => {
+              const u = x / 4, v = y / 2;
+              const q = (a, n) => (Math.floor(a * n) + 0.5) / n;          // 블록 중심으로 내림
+              const full = ycc(photo(u, v)), low = ycc(photo(q(u, W / blk), q(v, H / blk)));
+              let c = mode === "444" ? full : mode === "420" ? [full[0], low[1], low[2]] : [low[0], full[1], full[2]];
+              if (view === "y") return [B8(c[0]), B8(c[0]), B8(c[0]), 255];
+              if (view === "cb") return [B8(0.5), B8(0.5 - (c[1] - 0.5) * 0.5), B8(c[1]), 255];
+              if (view === "cr") return [B8(c[2]), B8(0.5 - (c[2] - 0.5) * 0.5), B8(0.5), 255];
+              return rgbFromYcc(c).map(B8).concat(255);
+            }, { rows: H * 2, smooth: false });
+            L.set("mode", mode === "444" ? "모든 픽셀이 Y·Cb·Cr 모두 가짐 (3바이트)" : mode === "420" ? "Cb·Cr은 4픽셀이 하나를 공유 (평균 1.5바이트, 절반)" : "반대로 밝기를 4픽셀이 공유하면 흐려짐이 바로 보임");
+          };
+        }
+      } },
+
+      { h: "OkLab: 섞을 때 눈에 고르게" },
+      "두 색 사이 그라데이션을 세 공간에서 만들었습니다. sRGB 숫자로 섞으면 가운데가 칙칙하고, 선형 RGB로 섞으면 밝은 쪽으로 쏠립니다. ==OkLab은 눈이 느끼는 밝기·색 거리가 고르도록 만든 공간==이라 가운데가 자연스럽습니다. 아래 회색 띠는 각 그라데이션의 지각 밝기($L$)입니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: 0, x1: 4, y0: 0, y1: 2.24 },
+        eq: ["가운데 색의 밝기 L: sRGB {a} · 선형 {b} · OkLab {c}"],
+        setup(F, C, L) {
+          const pairs = { "파랑 → 노랑": [[0.1, 0.2, 0.9], [1, 0.9, 0.2]], "빨강 → 청록": [[0.9, 0.15, 0.2], [0.1, 0.8, 0.75]], "검정 → 흰색": [[0, 0, 0], [1, 1, 1]], "보라 → 초록": [[0.5, 0.1, 0.8], [0.3, 0.85, 0.2]] };
+          let key = "파랑 → 노랑";
+          C.seg({ options: Object.keys(pairs).map(k => ({ value: k, label: k })), value: key, onChange: x => { key = x; } });
+          const mixes = (A, Bc, t) => {
+            const s = A.map((a, i) => lerp(a, Bc[i], t));
+            const l = A.map((a, i) => toS(lerp(toLin(a), toLin(Bc[i]), t)));
+            const oa = oklab(A.map(toLin)), ob = oklab(Bc.map(toLin)), o = fromOklab(oa.map((v, i) => lerp(v, ob[i], t))).map(toS);
+            return [s, l, o];
+          };
+          F.draw = g => {
+            const [A, Bc] = pairs[key];
+            g.field(300, (x, y) => {
+              const t = clamp((x - 0.1) / 3.8, 0, 1), row = Math.floor((2.2 - y) / 0.36);
+              if (x < 0.1 || x > 3.9 || row < 0 || row > 5) return null;
+              const m = mixes(A, Bc, t), k = row >> 1;
+              if (row % 2 === 0) return m[k].map(B8).concat(255);
+              const Lp = oklab(m[k].map(toLin))[0];
+              return [B8(Lp), B8(Lp), B8(Lp), 255];
+            }, { smooth: false });
+            ["sRGB 숫자로", "선형 RGB로", "OkLab으로"].forEach((t, k) => g.text(t, [0.1, 2.2 - k * 0.72], "white", { size: 11, align: "left", dy: 8, bold: true }));
+            const m = mixes(A, Bc, 0.5).map(c => oklab(c.map(toLin))[0]);
+            L.set("a", f2(m[0])); L.set("b", f2(m[1])); L.set("c", f2(m[2]));
+          };
+        }
+      } },
+
+      { h: "색상만 돌리기: HSV vs OkLCh" },
+      "같은 '밝기·채도'로 색상만 한 바퀴 돌렸습니다. HSV는 숫자상 밝기가 같아도 ==노랑은 눈부시고 파랑은 어둡습니다==(아래 회색 띠를 보세요). OkLCh(OkLab의 극좌표)는 ==지각 밝기를 그대로 두고 색상만== 돌립니다. UI 색 팔레트·팀 색 생성에 바로 쓰입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["OkLCh: L = {l}, C = {c}, h = 0° → 360°"],
+        setup(F, C, L) {
+          let Lv = 0.7, Cv = 0.13;
+          C.slider({ label: "밝기 L", min: 0.3, max: 0.9, value: Lv, onInput: x => { Lv = x; } });
+          C.slider({ label: "채도 C", min: 0, max: 0.25, value: Cv, onInput: x => { Cv = x; } });
+          const hsv = (h, s, v) => { const f = n => { const k = (n + h * 6) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); }; return [f(5), f(3), f(1)]; };
+          F.draw = g => {
+            g.field(300, (x, y) => {
+              const h = clamp((x - 0.1) / 3.8, 0, 1), row = Math.floor((2 - y) / 0.45);
+              if (x < 0.1 || x > 3.9 || row < 0 || row > 3) return null;
+              let c;
+              if (row < 2) c = hsv(h, 0.75, 0.9);
+              else { const a = h * TAU; c = fromOklab([Lv, Cv * Math.cos(a), Cv * Math.sin(a)]).map(v => toS(clamp(v, 0, 1))); }
+              if (row % 2 === 1) { const Lp = oklab(c.map(toLin))[0]; return [B8(Lp), B8(Lp), B8(Lp), 255]; }
+              return c.map(B8).concat(255);
+            }, { smooth: false });
+            g.text("HSV (밝기 V 고정)", [0.1, 2], "white", { size: 11, align: "left", dy: 8, bold: true });
+            g.text("OkLCh (지각 밝기 L 고정)", [0.1, 1.1], "white", { size: 11, align: "left", dy: 8, bold: true });
+            L.set("l", f2(Lv)); L.set("c", f2(Cv));
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "텍스처·영상 압축", "동영상(미디어 텍스처), JPEG 임포트, 일부 텍스처 압축 포맷이 YCbCr 4:2:0을 씁니다. 색 경계가 뭉개지는 것은 이 때문입니다."],
+        ["TA", "그라데이션 툴", "UI·이펙트용 그라데이션 램프를 OkLab에서 보간해 굽으면 가운데가 칙칙해지는 문제가 사라집니다. CSS도 `oklch()`를 지원합니다."],
+        ["게임", "팀 색·피아 식별", "팀 색 8개를 OkLCh에서 색상만 고르게 돌려 만들면 밝기가 같아 어느 색도 튀지 않고, 색맹 검사도 L값으로 쉽게 합니다."],
+        ["실생활", "TV 방송과 사진", "아날로그 컬러 TV가 흑백 TV와 호환되도록 밝기(Y)와 색 신호를 나눈 것이 YCbCr의 기원입니다."]
+      ] },
+
+      { recap: [
+        ["Y = 0.299R + 0.587G + 0.114B", "밝기와 색 차이로 분리"],
+        ["4:2:0", "색은 절반 해상도로도 눈치채지 못함"],
+        ["OkLab (L, a, b)", "지각적으로 고른 색 공간: 보간·거리"],
+        ["OkLCh = 밝기·채도·색상", "밝기를 지키며 색상만 돌리기"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\50-gather.js ===== */
+/* 50 TextureGather */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const hash = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+
+  lesson({
+    topic: "gather", title: "TextureGather", desc: "2×2 텍셀을 한 번에", stage: "TA 도구 상자",
+    sym: { x: "green", y: "red", z: "blue", w: "orange", f: "yellow" },
+    hook: "보통 텍스처 읽기는 바이리니어로 섞인 값 하나를 돌려줍니다. `Gather`는 ==섞기 전의 이웃 텍셀 4개(한 채널)를 한 번에== 돌려줍니다. 섞는 방법을 직접 정하고 싶을 때(그림자 비교, 최소·최대, 커스텀 필터) 읽기 횟수를 4분의 1로 줄입니다.",
+    blocks: [
+      { h: "무엇을 돌려주나" },
+      "작은 텍스처를 확대했습니다. 흰 점(UV)을 끌어 보세요. `GatherRed`는 바이리니어가 쓸 ==바로 그 2×2 텍셀의 R 값 넷==을 $(x, y, z, w)$로 돌려줍니다. 순서는 ==왼쪽 아래 $x$에서 시작해 반시계==($x$ → $y$ 오른쪽 아래 → $z$ 오른쪽 위 → $w$ 왼쪽 위)입니다. 텍스처 좌표는 $v$가 아래로 커집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 8, y0: 0, y1: 4 },
+        eq: ["Gather = (x, y, z, w) = ({gx}, {gy}, {gz}, {gw})", "바이리니어 = lerp(lerp(w, z, f_x), lerp(x, y, f_x), f_y) = {bl}"],
+        setup(F, C, L) {
+          const N = 6, cs = 0.62, O = [0.3, 0.2];
+          const val = (i, j) => Math.round(hash(i, j) * 9) / 9;
+          const P = [2.2, 1.9];
+          F.vec(P, "white", { snap: 0.005, constrain: q => [clamp(q[0], O[0] + cs * 0.5, O[0] + cs * (N - 0.5)), clamp(q[1], O[1] + cs * 0.5, O[1] + cs * (N - 0.5))] });
+          F.draw = g => {
+            const top = O[1] + N * cs, cell = (i, j) => [O[0] + i * cs, top - (j + 1) * cs];   // j(= v)는 아래로 증가
+            const tx = (P[0] - O[0]) / cs - 0.5, ty = (top - P[1]) / cs - 0.5, i0 = Math.floor(tx), j0 = Math.floor(ty), fx = tx - i0, fy = ty - j0;
+            for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+              const v = val(i, j), c = Math.round(40 + 200 * v);
+              const inQ = (i === i0 || i === i0 + 1) && (j === j0 || j === j0 + 1);
+              const b = cell(i, j);
+              g.poly([b, [b[0] + cs, b[1]], [b[0] + cs, b[1] + cs], [b[0], b[1] + cs]], { fill: `rgb(${c},${Math.round(c * 0.4)},${Math.round(c * 0.35)})`, stroke: inQ ? "yellow" : "rgba(16,19,26,0.6)", w: inQ ? 2.5 : 1 });
+              g.text(num(v, 2), [b[0] + cs / 2, b[1] + cs / 2], "white", { size: 10 });
+            }
+            // D3D 규칙: w = (0,0) 왼쪽 위, z = (1,0) 오른쪽 위, y = (1,1) 오른쪽 아래, x = (0,1) 왼쪽 아래
+            const W = val(i0, j0), Z = val(i0 + 1, j0), Y = val(i0 + 1, j0 + 1), X = val(i0, j0 + 1);
+            [["w", i0, j0, "orange"], ["z", i0 + 1, j0, "blue"], ["y", i0 + 1, j0 + 1, "red"], ["x", i0, j0 + 1, "green"]].forEach(([t, i, j, c]) => { const b = cell(i, j); g.tex(t, [b[0] + cs * 0.2, b[1] + cs * 0.8], c, { size: 15, bold: true }); });
+            const bl = lerp(lerp(W, Z, fx), lerp(X, Y, fx), fy);
+            // 오른쪽: 반환값
+            const R0 = 5.0;
+            [["x", X, "green"], ["y", Y, "red"], ["z", Z, "blue"], ["w", W, "orange"]].forEach(([s, v, c], k) => { g.poly([[R0 + k * 0.7, 0.8], [R0 + k * 0.7 + 0.55, 0.8], [R0 + k * 0.7 + 0.55, 0.8 + v * 2.2], [R0 + k * 0.7, 0.8 + v * 2.2]], { fill: c }); g.tex(s, [R0 + k * 0.7 + 0.27, 0.8], c, { dy: 14 }); });
+            g.text("Gather 한 번이 돌려주는 값", [R0 + 1.35, 3.4], "white", { size: 11, bold: true });
+            L.set("gx", f2(X)); L.set("gy", f2(Y)); L.set("gz", f2(Z)); L.set("gw", f2(W)); L.set("bl", f2(bl));
+          };
+        }
+      } },
+
+      { h: "그림자 필터링: 한 번에 네 번 비교" },
+      "섀도우 맵(18장)은 '섞은 깊이'가 아니라 ==텍셀마다 비교한 결과를 섞어야== 합니다. `GatherCmp`는 4개 텍셀을 각각 비교한 결과를 한 번에 줍니다. 이를 바이리니어 가중치로 섞으면 읽기 한 번으로 부드러운 가장자리가 나옵니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 1, res = 16;
+          C.seg({ options: [{ value: 0, label: "비교 1번 (점)" }, { value: 1, label: "Gather 1번 (2×2 가중)" }, { value: 2, label: "Gather 4번 (4×4)" }], value: 1, onChange: x => { mode = x; } });
+          C.slider({ label: "섀도우 맵 해상도", min: 6, max: 40, step: 1, value: res, fmt: x => num(x, 0), onInput: x => { res = x; } });
+          F.draw = g => {
+            const px = 4 / res;
+            const occ = (i, j) => { const x = (i + 0.5) * px - 2, y = (j + 0.5) * px - 1; return Math.hypot(x + 0.2, y) < 0.7 || (x > 0.6 && x < 1.3 && y > -0.6 && y < 0.5) ? 1 : 0; };
+            const g4 = (tx, ty) => { const i = Math.floor(tx), j = Math.floor(ty), fx = tx - i, fy = ty - j; return lerp(lerp(occ(i, j), occ(i + 1, j), fx), lerp(occ(i, j + 1), occ(i + 1, j + 1), fx), fy); };
+            g.field(240, (x, y) => {
+              const tx = (x + 2) / px - 0.5, ty = (y + 1) / px - 0.5;
+              let s;
+              if (mode === 0) s = occ(Math.round(tx), Math.round(ty));
+              else if (mode === 1) s = g4(tx, ty);
+              else s = (g4(tx - 1, ty - 1) + g4(tx + 1, ty - 1) + g4(tx - 1, ty + 1) + g4(tx + 1, ty + 1)) / 4;
+              const lit = 1 - s;
+              return [lerp(45, 235, lit), lerp(45, 222, lit), lerp(60, 185, lit), 255];
+            });
+            L.set("eq", ["읽기 1번, 비교 1번 → 계단", "읽기 1번, 비교 4번을 바이리니어 가중으로 → 부드러운 1텍셀 가장자리", "읽기 4번, 비교 16번 → 더 넓고 부드러운 PCF"][mode]);
+          };
+        }
+      } },
+
+      { h: "깊이 피라미드: 4개 중 가장 먼 값" },
+      "가려짐 컬링(35장)에 쓰는 HZB는 깊이 버퍼를 절반씩 줄이며 ==2×2 중 가장 먼 깊이(최댓값)==를 남깁니다. 평균이 아니라 최댓값이 필요하니 바이리니어로는 안 되고, Gather 한 번으로 4개를 받아 `max`를 취합니다. 단계를 올려 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["HZB[n+1](p) = max(Gather(HZB[n], p))   ·   단계 {lv}: {s}×{s}"],
+        setup(F, C, L) {
+          let lv = 1;
+          C.slider({ label: "피라미드 단계", min: 0, max: 4, step: 1, value: lv, fmt: x => num(x, 0), onInput: x => { lv = x; } });
+          const N = 32, base = [];
+          for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = i / N, y = j / N; let d = 0.9 - y * 0.3; if (Math.hypot(x - 0.35, y - 0.4) < 0.2) d = 0.3; if (x > 0.6 && x < 0.85 && y > 0.2 && y < 0.75) d = 0.45; base.push(d); }
+          const levels = [base];
+          for (let k = 1; k <= 4; k++) { const s = N >> k, p = levels[k - 1], ps = s * 2, c = []; for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) c.push(Math.max(p[2 * j * ps + 2 * i], p[2 * j * ps + 2 * i + 1], p[(2 * j + 1) * ps + 2 * i], p[(2 * j + 1) * ps + 2 * i + 1])); levels.push(c); }
+          F.draw = g => {
+            const s = N >> lv, d = levels[lv];
+            g.field(256, (x, y) => {
+              if (x < 2) { const i = Math.floor(x / 2 * N), j = Math.floor((2 - y) / 2 * N); const v = base[j * N + i]; return [v * 255, v * 230, v * 200, 255]; }
+              const i = Math.floor((x - 2) / 2 * s), j = Math.floor((2 - y) / 2 * s); const v = d[j * s + i]; return [v * 255, v * 230, v * 200, 255];
+            }, { smooth: false });
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            g.text("깊이 버퍼 (어두울수록 가까움)", [1, 1.93], "white", { size: 11, bold: true }); g.text("HZB 단계 " + lv + " (보수적으로 가장 먼 값)", [3, 1.93], "white", { size: 11, bold: true });
+            L.set("lv", lv); L.set("s", s);
+          };
+        }
+      } },
+      { key: "`Gather`는 ==읽는 양은 그대로, 읽는 횟수만 4분의 1==입니다. 바이리니어 섞기가 맞지 않는 데이터(깊이 비교, 최댓값, 물체 ID, 가중 평균을 직접 정해야 하는 디노이저)에서 빛을 발합니다." },
+
+      { use: [
+        ["엔진", "그림자 필터", "UE의 섀도우 필터링은 GatherCmp 기반 PCF를 씁니다. 그림자 품질 옵션은 Gather 횟수(커널 크기)를 바꾸는 것입니다."],
+        ["엔진", "HZB와 컬링", "Hierarchical Z-Buffer 생성, 나나이트의 가려짐 컬링이 2×2 max(또는 min) 축소입니다."],
+        ["셰이더", "커스텀 필터", "깊이를 고려한 업샘플(양방향 필터), 디노이저, 엣지 검출에서 4개 이웃을 한 번에 받아 가중치를 직접 계산합니다."],
+        ["TA", "주의할 점", "반환 순서(x, y, z, w)가 직관과 다르고, 텍셀 중심 오프셋(0.5)을 잘못 주면 한 칸 밀린 값을 받습니다. 디버그 뷰로 꼭 확인합니다."]
+      ] },
+
+      { recap: [
+        ["Gather(t, uv) = (x, y, z, w)", "섞기 전 2×2 텍셀 한 채널"],
+        ["x 왼쪽 아래 → y → z → w 왼쪽 위", "반환 순서 (반시계)"],
+        ["GatherCmp + 바이리니어 가중", "읽기 1번 부드러운 그림자"],
+        ["max(Gather)", "HZB 깊이 피라미드"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\51-aa.js ===== */
+/* 51 안티에일리어싱 총정리 */
+(() => {
+  const f0 = n => num(n, 0);
+  const fract = x => x - Math.floor(x);
+  // 테스트 장면 (해상도 무관한 연속 함수): 기울어진 가장자리 + 가는 선 + 반짝이는 하이라이트
+  function sceneAt(x, y, t) {
+    const inTri = (y - 0.15) * 1.2 - (x - 0.05) * 0.5 < 0 && x * 0.9 + y < 1.5 && y > 0.12;
+    let c = inTri ? [0.85, 0.55, 0.35] : [0.12, 0.14, 0.2];
+    for (let k = 0; k < 3; k++) { const d = Math.abs((x - 1.1 - k * 0.18) * Math.cos(0.3) + (y - 0.5) * Math.sin(0.3)); if (d < 0.006 && y > 0.1 && y < 0.9) c = [0.9, 0.9, 0.95]; }
+    // 하이라이트: 거칠기가 낮은 곡면 위의 날카로운 반사 (노멀이 빠르게 변함)
+    const r = Math.hypot(x - 1.65, y - 0.5);
+    if (r < 0.3) { const n = Math.sin(x * 120 + t) * Math.cos(y * 110) * 0.5 + 0.5; c = [0.3, 0.35, 0.5].map(v => v + Math.pow(n, 40) * 3); }
+    return c;
+  }
+  const W = 64, H = 32;
+  const luma = c => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+  const tone = v => Math.round(255 * Math.pow(clamp(v / (1 + v * 0.3), 0, 1), 1 / 2.2));
+
+  lesson({
+    topic: "aa", title: "안티에일리어싱 총정리", desc: "계단·지글거림을 다루는 방법들", stage: "TA 도구 상자",
+    sym: {},
+    hook: "에일리어싱은 두 종류입니다. ==모서리의 계단(기하 에일리어싱)==과 ==표면 안의 지글거림(셰이딩 에일리어싱)==. 방법마다 잡는 것과 놓치는 것이 다릅니다. 같은 장면에 하나씩 적용해 봅니다.",
+    blocks: [
+      { h: "방법별 결과 비교" },
+      "64×32 픽셀로 그린 장면을 확대했습니다. 왼쪽은 기울어진 모서리, 가운데는 가는 선, 오른쪽은 반짝이는 하이라이트입니다. ==MSAA는 모서리를 고치지만 하이라이트 지글거림은 못 고칩니다==. 재생하면 하이라이트가 움직입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = "none";
+          C.seg({ options: [{ value: "none", label: "없음" }, { value: "ssaa", label: "SSAA 4×" }, { value: "msaa", label: "MSAA 4×" }, { value: "fxaa", label: "FXAA" }], value: mode, onChange: x => { mode = x; } });
+          C.play();
+          F.loop(() => {});
+          const SS = [[0.375, 0.125], [0.875, 0.375], [0.125, 0.625], [0.625, 0.875]];
+          F.draw = g => {
+            const t = F.t * 2, img = [];
+            for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+              const cx = (i + 0.5) / W * 2, cy = 1 - (j + 0.5) / H;
+              let c;
+              if (mode === "ssaa") { c = [0, 0, 0]; SS.forEach(s => { const q = sceneAt((i + s[0]) / W * 2, 1 - (j + s[1]) / H, t); for (let k = 0; k < 3; k++) c[k] += q[k] / 4; }); }
+              else if (mode === "msaa") {
+                // 커버리지는 4번, 셰이딩은 픽셀 중심에서 1번: 같은 '물체'에 속한 샘플은 중심 색을 씀
+                const center = sceneAt(cx, cy, t), ids = SS.map(s => { const q = sceneAt((i + s[0]) / W * 2, 1 - (j + s[1]) / H, t); return q; });
+                c = [0, 0, 0];
+                ids.forEach(q => { const same = Math.abs(luma(q) - luma(center)) < 0.25 || Math.hypot(cx - 1.65, cy - 0.5) < 0.3; for (let k = 0; k < 3; k++) c[k] += (same ? center[k] : q[k]) / 4; });
+              } else c = sceneAt(cx, cy, t);
+              img.push(c);
+            }
+            let out = img;
+            if (mode === "fxaa") {
+              out = img.map((c, k) => {
+                const i = k % W, j = Math.floor(k / W), L0 = luma(c);
+                const n = [[0, -1], [0, 1], [-1, 0], [1, 0]].map(([di, dj]) => img[clamp(j + dj, 0, H - 1) * W + clamp(i + di, 0, W - 1)]);
+                const ls = n.map(luma), mx = Math.max(L0, ...ls), mn = Math.min(L0, ...ls);
+                if (mx - mn < 0.12) return c;
+                const horiz = Math.abs(ls[0] + ls[1] - 2 * L0) > Math.abs(ls[2] + ls[3] - 2 * L0);
+                const a = horiz ? n[0] : n[2], b = horiz ? n[1] : n[3];
+                return c.map((v, q) => v * 0.5 + (a[q] + b[q]) * 0.25);
+              });
+            }
+            g.field(W, (x, y, i, j) => out[j * W + i].map(tone).concat(255), { rows: H, smooth: false });
+            L.set("eq", { none: "픽셀 중심 한 점만: 모서리 계단 + 가는 선 끊김 + 하이라이트 지글거림", ssaa: "픽셀마다 4번 그려 평균: 모두 해결, 비용도 4배", msaa: "커버리지만 4번, 셰이딩은 1번: 모서리·가는 선은 해결, 하이라이트 지글거림은 그대로", fxaa: "다 그린 뒤 밝기 경계를 찾아 흐림: 매우 싸지만 가는 선은 이미 끊겨 복원 못 함, 글자도 흐려짐" }[mode]);
+          };
+        }
+      } },
+
+      { h: "FXAA 안에서 일어나는 일" },
+      "FXAA는 기하 정보 없이 ==완성된 이미지의 밝기만 보고== 경계를 찾아 그 방향과 수직으로 살짝 섞습니다. 단계별로 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let step = 1, thr = 0.12;
+          C.seg({ options: [{ value: 0, label: "① 밝기(luma)" }, { value: 1, label: "② 경계 찾기" }, { value: 2, label: "③ 방향" }, { value: 3, label: "④ 결과" }], value: step, onChange: x => { step = x; } });
+          C.slider({ label: "경계 문턱", min: 0.02, max: 0.5, value: thr, onInput: x => { thr = x; } });
+          F.draw = g => {
+            const img = [];
+            for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) img.push(sceneAt((i + 0.5) / W * 2, 1 - (j + 0.5) / H, 0));
+            g.field(W, (x, y, i, j) => {
+              const c = img[j * W + i], L0 = luma(c);
+              const n = [[0, -1], [0, 1], [-1, 0], [1, 0]].map(([di, dj]) => img[clamp(j + dj, 0, H - 1) * W + clamp(i + di, 0, W - 1)]), ls = n.map(luma);
+              const edge = Math.max(L0, ...ls) - Math.min(L0, ...ls) >= thr, horiz = Math.abs(ls[0] + ls[1] - 2 * L0) > Math.abs(ls[2] + ls[3] - 2 * L0);
+              if (step === 0) { const v = tone(L0); return [v, v, v, 255]; }
+              if (step === 1) return edge ? [252, 98, 85, 255] : [tone(L0) * 0.3, tone(L0) * 0.3, tone(L0) * 0.3, 255];
+              if (step === 2) return !edge ? [20, 22, 30, 255] : horiz ? [131, 193, 103, 255] : [88, 196, 221, 255];
+              if (!edge) return c.map(tone).concat(255);
+              const a = horiz ? n[0] : n[2], b = horiz ? n[1] : n[3];
+              return c.map((v, q) => tone(v * 0.5 + (a[q] + b[q]) * 0.25)).concat(255);
+            }, { rows: H, smooth: false });
+            L.set("eq", ["밝기만 봅니다 (색 정보는 버림)", "이웃과 밝기 차가 문턱보다 크면 경계(빨강)", "경계가 가로(초록)인지 세로(파랑)인지 판단", "경계와 수직 방향 이웃과 섞어 계단을 누그러뜨림"][step]);
+          };
+        }
+      } },
+
+      { h: "비용과 장단점" },
+      "해상도를 고르면 방법별 ==상대 비용과 메모리==가 바뀝니다. 실무에서는 하나만 쓰지 않고, 셰이딩 쪽은 재질에서(거칠기 보정·밉), 화면 쪽은 TAA·업스케일러로 함께 다룹니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5, stretch: true },
+        eq: ["{res} 기준 · 막대 = 픽셀 셰이딩 비용, 글자 = 추가 메모리와 약점"],
+        setup(F, C, L) {
+          let rs = "1440p";
+          C.seg({ options: [{ value: "1080p", label: "1080p" }, { value: "1440p", label: "1440p" }, { value: "4K", label: "4K" }], value: rs, onChange: x => { rs = x; } });
+          const M = [["없음", 1, 0, "계단·지글거림 모두"], ["SSAA 4×", 4, 3, "비용 4배"], ["MSAA 4×", 1.3, 3, "셰이딩 지글거림, 디퍼드와 궁합 나쁨"], ["FXAA·SMAA", 1.05, 0, "흐림, 가는 선 복원 불가"], ["TAA", 1.1, 1, "움직임 잔상(고스팅)"], ["TSR·DLSS (업스케일)", 0.55, 1, "잔상, 미세 디테일 환각"]];
+          F.draw = g => {
+            const px = { "1080p": 2.07, "1440p": 3.69, "4K": 8.29 }[rs];
+            M.forEach(([name, cost, mem, weak], k) => {
+              const y = 4.5 - k * 0.75, w = cost / 4 * 5.2;
+              g.text(name, [2.1, y], "white", { size: 12, bold: true, align: "right" });
+              g.poly([[2.3, y - 0.22], [2.3 + w, y - 0.22], [2.3 + w, y + 0.22], [2.3, y + 0.22]], { fill: cost > 2 ? PAL.red : cost > 1.2 ? PAL.orange : PAL.teal });
+              g.text(`×${num(cost, 2)}  +${num(px * 4 * mem, 0)}MB · ${weak}`, [2.4 + w, y], "grey", { size: 11, align: "left" });
+            });
+            L.set("res", rs);
+          };
+        }
+      } },
+      { key: "셰이딩 에일리어싱은 ==화면 후처리보다 재질에서 먼저== 막는 것이 정석입니다. 노멀 맵 밉에 따라 거칠기를 키우는 보정(Toksvig·Specular AA), 너무 가는 디테일 피하기가 그 예입니다." },
+
+      { use: [
+        ["엔진", "안티에일리어싱 방법 설정", "UE 프로젝트 설정의 Anti-Aliasing Method: None·FXAA·TAA·MSAA(포워드 전용)·TSR. 디퍼드에서 MSAA를 쓸 수 없는 이유가 G버퍼 메모리입니다."],
+        ["엔진", "Specular AA", "머티리얼의 'Normal Curvature to Roughness'와 노멀 맵 밉 거칠기 보정이 셰이딩 에일리어싱을 재질에서 줄이는 옵션입니다."],
+        ["게임", "옵션 메뉴 해석", "그래픽 옵션의 AA 선택지는 이 장의 표 그대로의 거래입니다. 경쟁 게임은 잔상 없는 SMAA를, 시네마틱 게임은 TAA·DLSS를 선호합니다."],
+        ["TA", "에셋 가이드", "가는 전선·철망·머리카락처럼 픽셀보다 가는 형태는 알파 테스트 대신 두께 보정·반투명 디더·전용 셰이더로 다루도록 가이드합니다."]
+      ] },
+
+      { recap: [
+        ["SSAA", "다 고치지만 비용 N배"],
+        ["MSAA", "커버리지만 N번: 모서리만 해결"],
+        ["FXAA·SMAA", "후처리 경계 흐리기: 싸지만 흐림"],
+        ["TAA·TSR", "시간 누적 (30장): 고스팅 관리 필요"],
+        ["Specular AA", "셰이딩 지글거림은 재질에서"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\52-edgefill.js ===== */
+/* 52 Edge Extend Fill: 투명 텍셀 채우기 */
+(() => {
+  const f0 = n => num(n, 0);
+  const N = 48;
+  // 잎사귀 알파 마스크 + 초록 색. 투명한 곳의 RGB는 '정해지지 않은 값'(보통 검정·흰색)
+  const leafA = (i, j) => { const u = (i + 0.5) / N - 0.5, v = (j + 0.5) / N - 0.5, r = Math.hypot(u * 1.6, v); const a = Math.atan2(v, u * 1.6); return r < 0.33 + 0.06 * Math.cos(a * 7) ? 1 : 0; };
+  const leafC = (i, j) => [0.25 + 0.3 * (i / N), 0.65 - 0.2 * (j / N), 0.2];
+
+  // 바깥 텍셀을 가장 가까운 불투명 색으로 채우기 (팽창 n번)
+  function dilate(rgb, a, n) {
+    let c = rgb.slice(), al = a.slice();
+    for (let k = 0; k < n; k++) {
+      const nc = c.slice(), na = al.slice();
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        const id = j * N + i; if (al[id]) continue;
+        let s = [0, 0, 0], cnt = 0;
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([di, dj]) => { const x = i + di, y = j + dj; if (x >= 0 && y >= 0 && x < N && y < N && al[y * N + x]) { const q = c[y * N + x]; s = s.map((v, t) => v + q[t]); cnt++; } });
+        if (cnt) { nc[id] = s.map(v => v / cnt); na[id] = 1; }
+      }
+      c = nc; al = na;
+    }
+    return c;
+  }
+
+  lesson({
+    topic: "edgefill", title: "Edge Extend Fill", desc: "투명한 곳의 색을 채워 두기", stage: "TA 도구 상자",
+    sym: {},
+    hook: "알파로 잘라 쓰는 텍스처(잎·머리카락·UI 아이콘)는 투명한 곳의 RGB가 보이지 않으니 아무 값이나 들어 있곤 합니다. 그런데 ==바이리니어 필터와 밉맵은 그 보이지 않는 색까지 섞습니다==. 가장자리의 검은·흰 테를 막으려면 투명한 영역을 ==가장자리 색으로 바깥으로 늘려 채워== 둡니다.",
+    blocks: [
+      { h: "문제와 해결: 팽창(Dilation)" },
+      "잎사귀 텍스처를 확대하고 밉을 올려 봤습니다. 투명 영역의 RGB가 검정이면 ==가장자리가 검게 물듭니다==. 채우기 반복 수를 늘리면 테두리가 사라집니다. 'RGB만 보기'로 채워진 색을 확인하세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["채우기 {n}회   ·   밉 {m} 에서 픽셀 하나 = 원본 {k}×{k} 평균"],
+        setup(F, C, L) {
+          let n = 0, mip = 2, view = 0, bg = "black", cache = null;
+          C.slider({ label: "채우기 반복", min: 0, max: 16, step: 1, value: n, fmt: f0, onInput: x => { n = x; } });
+          C.slider({ label: "밉 단계", min: 0, max: 4, step: 1, value: mip, fmt: f0, onInput: x => { mip = x; } });
+          C.seg({ options: [{ value: "black", label: "투명부 검정" }, { value: "white", label: "투명부 흰색" }], value: bg, onChange: x => { bg = x; cache = null; } });
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "RGB만 보기" }], value: 0, onChange: x => { view = x; } });
+          F.draw = g => {
+            if (!cache || cache.n !== n || cache.bg !== bg) {
+              const a = [], rgb = [];
+              for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const al = leafA(i, j); a.push(al); rgb.push(al ? leafC(i, j) : bg === "black" ? [0, 0, 0] : [1, 1, 1]); }
+              const filled = dilate(rgb, a, n);
+              // 밉 사슬: RGB와 알파를 각각 평균 (일반 알파 방식)
+              const lv = [{ c: filled, a, s: N }];
+              for (let k = 1; k <= 4; k++) { const p = lv[k - 1], s = p.s >> 1, c = [], al = []; for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) { const ids = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([di, dj]) => (2 * j + dj) * p.s + 2 * i + di); c.push([0, 1, 2].map(t => ids.reduce((q, id) => q + p.c[id][t], 0) / 4)); al.push(ids.reduce((q, id) => q + p.a[id], 0) / 4); } lv.push({ c, a: al, s }); }
+              cache = { n, bg, lv };
+            }
+            const L0 = cache.lv[mip], s = L0.s, BG = [0.55, 0.6, 0.7];
+            g.field(256, (x, y) => {
+              const left = x < 2, u = (left ? x : x - 2) / 2, v = (2 - y) / 2;
+              // 왼쪽: 텍스처 원래 크기로(밉 단계 그대로), 오른쪽: 바이리니어로 확대
+              const fx = u * s - 0.5, fy = v * s - 0.5, i = Math.floor(fx), j = Math.floor(fy), tx = left ? 0 : fx - i, ty = left ? 0 : fy - j;
+              const at = (a, b) => { const ii = clamp(a, 0, s - 1), jj = clamp(b, 0, s - 1), id = jj * s + ii; return [...L0.c[id], L0.a[id]]; };
+              const q = left ? at(Math.round(fx), Math.round(fy)) : [0, 1, 2, 3].map(t => lerp(lerp(at(i, j)[t], at(i + 1, j)[t], tx), lerp(at(i, j + 1)[t], at(i + 1, j + 1)[t], tx), ty));
+              if (view === 1) return [q[0] * 255, q[1] * 255, q[2] * 255, 255];
+              const al = clamp((q[3] - 0.5) * 6 + 0.5, 0, 1);       // 알파 테스트를 조금 부드럽게
+              return BG.map((b, t) => lerp(b, q[t], al) * 255).concat(255);
+            }, { smooth: false });
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            g.text("밉 " + mip, [1, 1.93], "white", { size: 11, bold: true }); g.text("바이리니어로 확대", [3, 1.93], "white", { size: 11, bold: true });
+            L.set("n", n); L.set("m", mip); L.set("k", 1 << mip);
+          };
+        }
+      } },
+
+      { h: "빠르게 채우기: 점프 플러딩" },
+      "한 칸씩 늘리면 큰 텍스처에서 수백 번 반복해야 합니다. 점프 플러딩은 ==처음엔 멀리(절반 크기) 건너뛰며 '가장 가까운 씨앗'을 전하고, 점점 보폭을 반으로 줄입니다==. $log_2 N$번만에 모든 칸이 가장 가까운 색을 알게 됩니다. 씨앗을 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 64, y0: 0, y1: 32 },
+        eq: ["단계 {k} / {tot}   ·   보폭 {st}칸"],
+        setup(F, C, L) {
+          const seeds = [[10, 8, "red"], [40, 24, "teal"], [52, 6, "gold"], [22, 26, "purple"], [32, 14, "green"]];
+          let pass = 6;
+          seeds.forEach(sd => F.handle({ color: sd[2], get: () => [sd[0], sd[1]], set: (x, y) => { sd[0] = clamp(Math.round(x), 0, 63); sd[1] = clamp(Math.round(y), 0, 31); } }));
+          C.slider({ label: "진행 단계", min: 0, max: 6, step: 1, value: pass, fmt: f0, onInput: x => { pass = x; } });
+          F.draw = g => {
+            const Wd = 64, Hd = 32, near = new Int16Array(Wd * Hd).fill(-1);
+            seeds.forEach((sd, k) => { near[Math.round(sd[1]) * Wd + Math.round(sd[0])] = k; });
+            let step = 32;
+            for (let p = 0; p < pass; p++) {
+              const nx = Int16Array.from(near);
+              for (let j = 0; j < Hd; j++) for (let i = 0; i < Wd; i++) {
+                let best = near[j * Wd + i], bd = best >= 0 ? Math.hypot(seeds[best][0] - i, seeds[best][1] - j) : 1e9;
+                for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+                  const x = i + di * step, y = j + dj * step; if (x < 0 || y < 0 || x >= Wd || y >= Hd) continue;
+                  const s = near[y * Wd + x]; if (s < 0) continue;
+                  const d = Math.hypot(seeds[s][0] - i, seeds[s][1] - j); if (d < bd) { bd = d; best = s; }
+                }
+                nx[j * Wd + i] = best;
+              }
+              near.set(nx); step = Math.max(1, step >> 1);
+            }
+            for (let j = 0; j < Hd; j++) for (let i = 0; i < Wd; i++) { const s = near[j * Wd + i]; if (s >= 0) g.poly([[i - 0.5, j - 0.5], [i + 0.5, j - 0.5], [i + 0.5, j + 0.5], [i - 0.5, j + 0.5]], { fill: hexA(PAL[seeds[s][2]], 0.55) }); }
+            L.set("k", pass); L.set("tot", 6); L.set("st", pass < 6 ? (32 >> pass) : "끝");
+          };
+        }
+      } },
+      "보폭이 크게 시작하므로 ==텍스처가 4096이어도 12번==이면 끝납니다. GPU에서 패스마다 모든 픽셀을 동시에 처리하므로 실시간으로도 돌아갑니다. 거리장(23장 SDF) 생성에도 같은 방법을 씁니다.",
+
+      { h: "부드럽게 채우기: 푸시-풀" },
+      "가장 가까운 색으로 채우면 경계가 각지게 갈라집니다(보로노이 모양). 푸시-풀은 ==알파로 가중한 평균으로 밉을 끝까지 내렸다가(풀), 다시 올라오며 빈 곳만 위 단계 색으로 채웁니다(푸시)==. 듬성듬성한 점에서 부드러운 색 바탕이 만들어집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["풀: 색 = Σ(색·α) / Σα,  푸시: α < 1 인 곳만 위 단계 색으로 채움   ·   단계 {lv}"],
+        setup(F, C, L) {
+          let lv = 5, dens = 0.03;
+          C.slider({ label: "사용할 단계 수", min: 0, max: 5, step: 1, value: lv, fmt: f0, onInput: x => { lv = x; } });
+          C.slider({ label: "점 밀도", min: 0.005, max: 0.15, value: dens, onInput: x => { dens = x; } });
+          const S = 64;
+          F.draw = g => {
+            let seed = 9; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            const c0 = [], a0 = [];
+            for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) { const on = rnd() < dens; a0.push(on ? 1 : 0); c0.push(on ? [0.5 + 0.5 * Math.sin(i * 0.15), 0.5 + 0.5 * Math.cos(j * 0.2), 0.5 + 0.5 * Math.sin((i + j) * 0.08)] : [0, 0, 0]); }
+            const P = [{ c: c0, a: a0, s: S }];
+            for (let k = 1; k <= lv; k++) { const p = P[k - 1], s = p.s >> 1, c = [], a = []; for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) { let w = 0, acc = [0, 0, 0]; [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([di, dj]) => { const id = (2 * j + dj) * p.s + 2 * i + di; w += p.a[id]; for (let t = 0; t < 3; t++) acc[t] += p.c[id][t] * p.a[id]; }); c.push(w ? acc.map(v => v / w) : [0, 0, 0]); a.push(Math.min(1, w)); } P.push({ c, a, s }); }
+            for (let k = lv - 1; k >= 0; k--) { const p = P[k], up = P[k + 1]; for (let j = 0; j < p.s; j++) for (let i = 0; i < p.s; i++) { const id = j * p.s + i, uid = (j >> 1) * up.s + (i >> 1); const a = p.a[id]; p.c[id] = p.c[id].map((v, t) => v * a + up.c[uid][t] * (1 - a)); p.a[id] = Math.max(a, up.a[uid]); } }
+            g.field(256, (x, y) => {
+              const left = x < 2, i = Math.floor((left ? x : x - 2) / 2 * S), j = Math.floor((2 - y) / 2 * S), id = j * S + i;
+              if (left) return a0[id] ? c0[id].map(v => v * 255).concat(255) : [20, 22, 30, 255];
+              return P[0].c[id].map(v => v * 255).concat(255);
+            }, { smooth: false });
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            g.text("입력 (듬성한 점)", [1, 1.93], "white", { size: 11, bold: true }); g.text("푸시-풀로 채움", [3, 1.93], "white", { size: 11, bold: true });
+            L.set("lv", lv);
+          };
+        }
+      } },
+      { key: "알파 텍스처는 ==저장 전에 반드시 바깥을 채워 두는 것==이 규칙입니다. 프리멀티플라이드 알파(14장)로 저장하면 이 문제 자체가 사라지지만, 알파 테스트 머티리얼에서는 여전히 채우기가 필요합니다." },
+
+      { use: [
+        ["툴", "Substance·포토샵 플러그인", "Substance의 Dilation, 포토샵의 'Solidify'·'Flaming Pear' 같은 플러그인, UE 임포트 시 'Chroma Key/Dilate' 옵션이 이 장의 채우기입니다."],
+        ["TA", "익스포트 파이프라인", "잎·머리카락·데칼 텍스처를 내보낼 때 자동으로 바깥을 채우는 스크립트를 넣어 두면 가장자리 테 문제가 프로젝트에서 사라집니다."],
+        ["엔진", "라이트맵·베이크 패딩", "라이트맵과 베이크 텍스처도 UV 섬 바깥을 채우는 'Edge Padding'이 있어야 밉에서 검은 이음매가 생기지 않습니다(38장)."],
+        ["셰이더", "JFA·푸시-풀 활용", "점프 플러딩은 외곽선 두께·SDF 생성·보로노이 무늬에, 푸시-풀은 구멍 난 깊이·속도 버퍼 메우기와 저밀도 샘플 보간에 씁니다."]
+      ] },
+
+      { recap: [
+        ["투명 텍셀 RGB도 필터에 섞인다", "검은·흰 테의 원인"],
+        ["팽창: 가장 가까운 불투명 색으로", "Edge Extend Fill"],
+        ["점프 플러딩: 보폭 N/2, N/4 … 1", "log₂N 번에 가장 가까운 씨앗 전파"],
+        ["푸시-풀: 알파 가중 밉 → 빈 곳 채우기", "부드러운 채우기"]
+      ] }
+    ]
+  });
+})();
+
+
 /* ===== js\app.js ===== */
 buildLab();
 // 단독 실행 시 #3 처럼 번호로 주제를 고를 수 있습니다(라이브러리에서는 라이브러리가 주소를 맡습니다).
@@ -8477,7 +10611,9 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     "움직임과 시뮬레이션": "뼈·정점·물리로 움직이기",
     "화면 후처리": "다 그린 화면을 한 번 더 가공하기",
     "빛을 따라가는 렌더링": "광선을 쏘아 장면 그리기",
-    "하드웨어와 성능": "수천 개를 동시에, 그리고 덜 그리기"
+    "하드웨어와 성능": "수천 개를 동시에, 그리고 덜 그리기",
+    "테크아트 실전": "텍스처·베이킹·머티리얼·이펙트·최적화 작업",
+    "TA 도구 상자": "실무에 바로 꺼내 쓰는 수학과 기법"
   };
   var lab = window.GFXLab;
   var lessons = lab ? lab.lessons : [];
