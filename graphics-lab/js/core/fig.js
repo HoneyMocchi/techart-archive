@@ -143,7 +143,7 @@ function makeFig(block, opts, lessonCtx) {
   let last = null;
   // 터치: 핸들 근처에서 시작하면 가로채고, 아니면 세로 스크롤은 페이지에 양보합니다.
   // 3D 회전 그림은 가로로 끌면 돌고(touch-action: pan-y), 세로로 끌면 페이지가 스크롤됩니다.
-  const wantsTouch = (sx, sy) => !!(pick(sx, sy, 56) || (singleGrab() && pick(sx, sy, 110)));
+  const wantsTouch = (sx, sy) => !!(opts.captureTouch || pick(sx, sy, 56) || (singleGrab() && pick(sx, sy, 110)));   // captureTouch: 붓칠처럼 그림 전체를 가로채야 하는 경우
   const singleGrab = () => (opts.grabNearest ?? F.handles.length === 1) && F.handles.length && !F.onPan && !F.onTap;
   F.canvas.addEventListener("touchstart", e => {
     const r = F.canvas.getBoundingClientRect(), t = e.touches[0];
