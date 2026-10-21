@@ -4732,7 +4732,139 @@ function render() {
 })();
 
 
-/* ===== js\lessons\12-lighting.js ===== */
+/* ===== js\lessons\12-tangent.js ===== */
+/* 12 탄젠트 공간과 노멀 맵 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 노멀 맵 무늬: 볼록한 원형 돌기(타일)의 기울기
+  const bumpN = (u, v, s) => {
+    const fu = u - Math.floor(u) - 0.5, fv = v - Math.floor(v) - 0.5, r2 = (fu * fu + fv * fv) * 6;
+    if (r2 > 1) return [0, 0, 1];
+    const k = s * (1 - r2) * 2.4;
+    return V3.norm([fu * k, fv * k, 1]);
+  };
+
+  lesson({
+    topic: "tangent", title: "탄젠트 공간과 노멀 맵", desc: "면마다 다른 '위쪽' 기준", stage: "3D에서 화면으로",
+    sym: { T: "red", B: "green", N: "blue", n: "yellow", L: "gold", u: "green", v: "red" },
+    hook: "노멀 맵의 파란 색은 '위쪽'이라는 뜻인데, 그 '위쪽'은 월드의 위가 아니라 ==그 픽셀이 붙은 면의 위쪽==입니다. 면마다 기준 축 세 개(T, B, N)를 세워 두는 것이 탄젠트 공간입니다.",
+    blocks: [
+      { h: "면마다 축 세 개: T, B, N" },
+      "곡면 위의 점마다 [[red:$T$]](텍스처 $u$가 늘어나는 방향), [[green:$B$]]($v$ 방향), [[blue:$N$]](면 노멀)이 섭니다. 점을 곡면 위에서 끌어 보세요. ==노멀 맵의 값 $(x, y, z)$ 는 이 세 축으로 읽습니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["n_월드 = x·T + y·B + z·N = TBN · n_맵", "n_맵 = ({mx}, {my}, {mz})"],
+        setup(F, C, L) {
+          let s = 0.3, tilt = [0.35, 0.25];
+          const cam = makeCam(F, { yaw: 0.5, pitch: 0.55, dist: 9, fov: 36, scale: 1.25 });
+          cam.orbit();
+          C.slider({ label: "곡면 위 위치", min: -2.2, max: 2.2, value: s, onInput: x => { s = x; } });
+          C.slider({ label: "노멀 맵 x (T 쪽)", min: -0.9, max: 0.9, value: tilt[0], onInput: x => { tilt[0] = x; } });
+          C.slider({ label: "노멀 맵 y (B 쪽)", min: -0.9, max: 0.9, value: tilt[1], onInput: x => { tilt[1] = x; } });
+          // 원통형 곡면: (x, sin, cos)
+          const P = (u, v) => [u, Math.sin(v) * 1.4, Math.cos(v) * 1.4 - 1.4];
+          F.draw = g => {
+            for (let i = -6; i <= 6; i++) {
+              const pts = []; for (let k = 0; k <= 30; k++) pts.push(P(i * 0.4, -1.3 + k / 30 * 2.6));
+              for (let k = 0; k < 30; k++) cam.line(pts[k], pts[k + 1], "rgba(88,196,221,0.35)", { w: 1 });
+            }
+            for (let k = 0; k <= 12; k++) { const v = -1.3 + k / 12 * 2.6; cam.line(P(-2.4, v), P(2.4, v), "rgba(88,196,221,0.35)", { w: 1 }); }
+            const u0 = 0.4, v0 = s * 0.5;
+            const p = P(u0, v0), T = [1, 0, 0], B = [0, Math.cos(v0), -Math.sin(v0)], N = V3.cross(T, B);
+            const nm = V3.norm([tilt[0], tilt[1], 1]);
+            const nw = V3.add(V3.add(V3.mul(T, nm[0]), V3.mul(B, nm[1])), V3.mul(N, nm[2]));
+            cam.arrow(p, V3.add(p, V3.mul(T, 1)), "red", { w: 3.5, label: "T" });
+            cam.arrow(p, V3.add(p, V3.mul(B, 1)), "green", { w: 3.5, label: "B" });
+            cam.arrow(p, V3.add(p, V3.mul(N, 1)), "blue", { w: 3.5, label: "N" });
+            cam.arrow(p, V3.add(p, V3.mul(nw, 1.4)), "yellow", { w: 4, label: "n" });
+            cam.dot(p, "white", 5);
+            g.textS("빈 곳을 끌어 시점 돌리기", F.w - 10, F.h - 10, "rgba(236,239,244,0.45)", { align: "right", base: "bottom", size: 12, halo: false });
+            L.set("mx", f2(nm[0])); L.set("my", f2(nm[1])); L.set("mz", f2(nm[2]));
+          };
+        }
+      } },
+      { key: "탄젠트 공간 노멀 맵은 ==면이 어느 쪽을 보든 '위 = 파랑'==으로 저장됩니다. 그래서 같은 벽돌 노멀 맵을 바닥·벽·휘어진 기둥 어디에나 붙일 수 있고, 모델이 애니메이션으로 휘어도 따라갑니다." },
+
+      { h: "노멀 맵 색 읽기" },
+      "왼쪽은 돌기 무늬의 노멀 맵(RGB = $N · 0.5 + 0.5$), 오른쪽은 그것으로 조명한 결과입니다. 해를 움직여 보세요. ==빨강이 진하면 오른쪽($+T$)으로, 초록이 진하면 위쪽($+B$)으로 기울어진== 픽셀입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["색(R, G, B) → n = (R, G, B) · 2 − 1", "{gflip}"],
+        setup(F, C, L) {
+          let strength = 0.6, flipG = false;
+          const sun = [2.6, 1.5];
+          F.vec(sun, "gold", { snap: 0.01 });
+          C.slider({ label: "세기", min: 0, max: 1.5, value: strength, onInput: x => { strength = x; } });
+          C.seg({ options: [{ value: 0, label: "OpenGL (Y+)" }, { value: 1, label: "DirectX (Y−)로 잘못 읽기" }], value: 0, onChange: x => { flipG = !!x; } });
+          F.draw = g => {
+            const Ld = V3.norm([(sun[0] - 2) * 0.6, (sun[1]) * 0.6, 0.6]);
+            g.field(240, (x, y) => {
+              const left = x < 0, u = (left ? x + 4 : x) / 1.3, v = (y + 2) / 1.3;
+              let n = bumpN(u, v, strength);
+              if (left) return [(n[0] * 0.5 + 0.5) * 255, (n[1] * 0.5 + 0.5) * 255, (n[2] * 0.5 + 0.5) * 255, 255];
+              if (flipG) n = [n[0], -n[1], n[2]];
+              const d = Math.max(0, V3.dot(n, Ld));
+              return [60 + 180 * d, 50 + 150 * d, 45 + 110 * d, 255];
+            }, { smooth: false });
+            g.line([0, -2], [0, 2], "white", { w: 2 });
+            g.text("노멀 맵 (RGB)", [-2, 1.85], "white", { size: 12, bold: true }); g.text("조명 결과", [2, 1.85], "white", { size: 12, bold: true });
+            g.circle(sun, 0.14, "gold", { fill: "gold", w: 0 });
+            L.set("gflip", flipG ? "초록 채널 방향이 반대인 맵을 그대로 읽으면 돌기가 ==움푹 팬 것처럼== 보입니다" : "돌기가 해 쪽은 밝고 반대쪽은 어두운 볼록한 모양");
+          };
+        }
+      } },
+      "DirectX 계열(UE)과 OpenGL 계열(Unity·Blender 기본)은 ==초록 채널 방향이 반대==입니다. 다른 툴에서 구운 노멀 맵이 빛을 반대로 받는다면 초록 채널 뒤집기가 답입니다.",
+
+      { h: "탄젠트는 UV에서 나온다" },
+      "$T$와 $B$는 아무렇게나 정하는 게 아니라 ==삼각형 위에서 UV가 늘어나는 방향==으로 계산합니다(MikkTSpace 표준). UV를 돌리면 탄젠트도 따라 돕니다. UV 삼각형의 꼭짓점을 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["[T B] = [e_1 e_2] · [[Δu_1, Δu_2; Δv_1, Δv_2]]^(−1)"],
+        setup(F, C, L) {
+          const P = [[0.6, -1.5], [3.6, -1.1], [1.6, 1.6]];
+          const UV = [[-3.6, -1.6], [-1.2, -1.6], [-2.4, 0.6]];
+          UV.forEach(q => F.vec(q, "green", { snap: 0.02 }));
+          F.draw = g => {
+            g.grid(0.4, { minor: false, axes: false, color: "rgba(88,196,221,0.07)" });
+            g.poly(UV, { fill: "rgba(131,193,103,0.15)", stroke: "green", w: 2 });
+            g.poly(P, { fill: "rgba(88,196,221,0.12)", stroke: "blue", w: 2 });
+            g.arrow([-3.8, -1.9], [-3.0, -1.9], "red", { w: 2, head: 7, label: "u" }); g.arrow([-3.8, -1.9], [-3.8, -1.1], "green", { w: 2, head: 7, label: "v" });
+            g.text("UV 공간", [-2.4, 1.85], "white", { size: 12, bold: true }); g.text("모델(위치) 공간", [2.1, 1.85], "white", { size: 12, bold: true });
+            const e1 = V.sub(P[1], P[0]), e2 = V.sub(P[2], P[0]), d1 = V.sub(UV[1], UV[0]), d2 = V.sub(UV[2], UV[0]);
+            const det = d1[0] * d2[1] - d2[0] * d1[1] || 1e-6;
+            const T = V.mul(V.sub(V.mul(e1, d2[1]), V.mul(e2, d1[1])), 1 / det), B = V.mul(V.sub(V.mul(e2, d1[0]), V.mul(e1, d2[0])), 1 / det);
+            const c = V.mul(V.add(V.add(P[0], P[1]), P[2]), 1 / 3);
+            g.arrow(c, V.add(c, V.mul(V.norm(T), 1)), "red", { w: 3.5, label: "T" });
+            g.arrow(c, V.add(c, V.mul(V.norm(B), 1)), "green", { w: 3.5, label: "B" });
+            // UV 공간의 격자를 모델 공간으로 옮겨 보여 줌
+            for (let k = 0; k <= 4; k++) {
+              const map = q => { const w = [q[0] - UV[0][0], q[1] - UV[0][1]]; const a = (w[0] * d2[1] - d2[0] * w[1]) / det, b = (d1[0] * w[1] - w[0] * d1[1]) / det; return V.add(P[0], V.add(V.mul(e1, a), V.mul(e2, b))); };
+              const cu = V.lerp(UV[0], UV[1], k / 4);
+              g.line(map(cu), map(V.add(cu, [0, 0.6])), "red", { w: 1, alpha: 0.45 });
+            }
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "탄젠트 계산과 임포트", "UE는 메시를 가져올 때 MikkTSpace로 탄젠트를 만듭니다. 베이커(Substance·Marmoset)와 같은 방식을 써야 노멀 맵 이음매가 안 생깁니다."],
+        ["아트", "초록 채널 뒤집기", "UE 텍스처 설정의 'Flip Green Channel'이 이 장의 OpenGL/DirectX 차이를 바로잡는 체크박스입니다."],
+        ["셰이더", "디테일 노멀 섞기", "기본 노멀 맵 위에 작은 디테일 노멀을 얹을 때는 단순 더하기 대신 탄젠트 공간에서 돌려 섞는 방식(RNM·화이트아웃)을 씁니다."],
+        ["게임", "캐릭터 피부·갑옷", "캐릭터가 움직여도 노멀 맵이 따라가는 것은 정점마다 탄젠트를 스키닝(24장)과 함께 돌려 주기 때문입니다."]
+      ] },
+
+      { recap: [
+        ["n_월드 = TBN · n_맵", "탄젠트 공간 → 월드"],
+        ["n = RGB · 2 − 1", "노멀 맵 색 읽기"],
+        ["T, B = UV가 늘어나는 방향", "탄젠트는 UV에서 계산 (MikkTSpace)"],
+        ["초록 채널 방향", "DirectX와 OpenGL이 반대"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\13-lighting.js ===== */
 /* 08 노멀과 조명 */
 (() => {
   const f2 = n => num(n, 2);
@@ -4953,7 +5085,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\13-color.js ===== */
+/* ===== js\lessons\14-color.js ===== */
 /* 12 색 · 감마 · 블렌딩 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5103,7 +5235,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\14-pbr.js ===== */
+/* ===== js\lessons\15-pbr.js ===== */
 /* 14 PBR 재질 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5241,7 +5373,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\15-fresnel.js ===== */
+/* ===== js\lessons\16-fresnel.js ===== */
 /* 15 프레넬과 굴절 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5426,7 +5558,146 @@ function render() {
 })();
 
 
-/* ===== js\lessons\16-shadow.js ===== */
+/* ===== js\lessons\17-ibl.js ===== */
+/* 17 환경광 · 큐브맵 · 구면 조화 */
+(() => {
+  const f2 = n => num(n, 2);
+  const srgb = v => Math.round(255 * Math.pow(clamp(v / (1 + v), 0, 1), 1 / 2.2));
+  // 절차적 환경: 하늘·땅·해·빨간 벽. rough가 크면 해와 벽이 넓고 흐리게 퍼짐(프리필터 근사)
+  function env(d, sunAz, rough = 0) {
+    const up = d[1], sun = V3.norm([Math.cos(sunAz) * 0.8, 0.45, Math.sin(sunAz) * 0.8]);
+    let c = up > 0 ? [0.35 + 0.3 * (1 - up), 0.55 + 0.25 * (1 - up), 0.95] : [0.35, 0.27, 0.2];
+    const az = Math.atan2(d[2], d[0]), wall = Math.exp(-Math.pow(Math.sin((az - 2.4) / 2) / (0.25 + rough * 0.5), 2)) * clamp(1 - Math.abs(up) * 2, 0, 1);
+    c = c.map((v, i) => lerp(v, [1.1, 0.15, 0.1][i], wall * (1 - rough * 0.5)));
+    const cs = V3.dot(d, sun), w = 0.0008 + rough * rough * 0.6;
+    const s = Math.exp((cs - 1) / w) * 0.0008 / w * 110;   // 퍼져도 전체 에너지는 같게
+    return c.map((v, i) => v + s * [1, 0.9, 0.7][i]);
+  }
+  function ball(g, c, R, shade, cols = 160) {
+    g.field(cols, (x, y) => {
+      const nx = (x - c[0]) / R, ny = (y - c[1]) / R, r2 = nx * nx + ny * ny;
+      if (r2 > 1) return null;
+      const col = shade([nx, ny, Math.sqrt(1 - r2)]);
+      return [srgb(col[0]), srgb(col[1]), srgb(col[2]), 255 * clamp((1 - r2) * 40, 0, 1)];
+    }, { rect: { x0: c[0] - R, x1: c[0] + R, y0: c[1] - R, y1: c[1] + R } });
+  }
+  // 구면 조화 기저 9개 (L0~L2)
+  const SHB = d => { const [x, y, z] = d; return [0.282095, 0.488603 * y, 0.488603 * z, 0.488603 * x, 1.092548 * x * y, 1.092548 * y * z, 0.315392 * (3 * z * z - 1), 1.092548 * x * z, 0.546274 * (x * x - y * y)]; };
+  const A = [Math.PI, 2.094395, 2.094395, 2.094395, 0.785398, 0.785398, 0.785398, 0.785398, 0.785398];   // 코사인 컨볼루션 계수
+  const DIRS = []; { let s = 0.5; for (let i = 0; i < 600; i++) { const z = 1 - 2 * (i + 0.5) / 600, r = Math.sqrt(1 - z * z), p = i * 2.399963; DIRS.push([r * Math.cos(p), z, r * Math.sin(p)]); void s; } }
+
+  lesson({
+    topic: "ibl", title: "환경광과 구면 조화", desc: "주변 전체가 광원", stage: "빛과 색",
+    sym: { d: "yellow", R: "pink", L: "gold", N: "yellow", Y: "purple" },
+    hook: "현실의 물체는 해만이 아니라 ==하늘·땅·벽 전체에서 오는 빛==을 받습니다. 주변 360°를 사진 한 장(큐브맵)으로 담아 두고 그것을 광원으로 쓰는 것이 이미지 기반 조명(IBL)입니다.",
+    blocks: [
+      { h: "큐브맵: 방향으로 찾아 읽는 텍스처" },
+      "큐브맵은 상자의 여섯 면에 주변을 찍어 둔 것입니다. 읽을 때는 UV 대신 ==방향 벡터 하나==를 줍니다. 가장 큰 성분이 고르는 면, 나머지 두 성분이 그 면 위의 위치가 됩니다. 방향을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["d = ({dx}, {dy}, {dz})   →   가장 큰 성분 {ax} → {face} 면"],
+        setup(F, C, L) {
+          let az = 0.6, el = 0.3, sunAz = 0.8;
+          C.slider({ label: "방향 수평각", min: -3.14, max: 3.14, value: az, fmt: x => num(x / DEG, 0) + "°", onInput: x => { az = x; } });
+          C.slider({ label: "방향 높이", min: -1.5, max: 1.5, value: el, fmt: x => num(x / DEG, 0) + "°", onInput: x => { el = x; } });
+          // 펼친 십자형: [면, 칸 x, 칸 y] (칸 크기 0.9)
+          const FACES = [["+Y", 1, 2], ["−X", 0, 1], ["+Z", 1, 1], ["+X", 2, 1], ["−Z", 3, 1], ["−Y", 1, 0]];
+          const faceDir = (f, a, b) => ({ "+X": [1, b, -a], "−X": [-1, b, a], "+Y": [a, 1, -b], "−Y": [a, -1, b], "+Z": [a, b, 1], "−Z": [-a, b, -1] })[f];
+          const S = 0.95, O = [-3.9, -1.45];
+          F.draw = g => {
+            g.field(260, (x, y) => {
+              const cx = Math.floor((x - O[0]) / S), cy = Math.floor((y - O[1]) / S);
+              const f = FACES.find(q => q[1] === cx && q[2] === cy);
+              if (!f) return null;
+              const a = ((x - O[0]) / S - cx) * 2 - 1, b = ((y - O[1]) / S - cy) * 2 - 1;
+              const c = env(V3.norm(faceDir(f[0], a, b)), sunAz);
+              return [srgb(c[0]), srgb(c[1]), srgb(c[2]), 255];
+            }, { smooth: false });
+            FACES.forEach(([n, cx, cy]) => { g.poly([[O[0] + cx * S, O[1] + cy * S], [O[0] + (cx + 1) * S, O[1] + cy * S], [O[0] + (cx + 1) * S, O[1] + (cy + 1) * S], [O[0] + cx * S, O[1] + (cy + 1) * S]], { stroke: "rgba(16,19,26,0.8)", w: 1.5 }); g.text(n, [O[0] + (cx + 0.5) * S, O[1] + (cy + 0.85) * S], "white", { size: 11, bold: true }); });
+            const d = [Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)];
+            const ax = [0, 1, 2].reduce((m, i) => (Math.abs(d[i]) > Math.abs(d[m]) ? i : m), 0);
+            const face = (d[ax] > 0 ? "+" : "−") + "XYZ"[ax];
+            const f = FACES.find(q => q[0] === face), m = Math.abs(d[ax]);
+            const ab = { "+X": [-d[2], d[1]], "−X": [d[2], d[1]], "+Y": [d[0], -d[2]], "−Y": [d[0], d[2]], "+Z": [d[0], d[1]], "−Z": [-d[0], d[1]] }[face].map(v => v / m);
+            const P = [O[0] + (f[1] + (ab[0] + 1) / 2) * S, O[1] + (f[2] + (ab[1] + 1) / 2) * S];
+            g.circle(P, 0.07, "yellow", { fill: "yellow", w: 2 });
+            // 오른쪽: 위에서 본 방향
+            const c0 = [2.6, 0];
+            g.circle(c0, 1.2, "grey", { w: 1, dash: [4, 4] });
+            g.poly([[c0[0] - 0.85, c0[1] - 0.85], [c0[0] + 0.85, c0[1] - 0.85], [c0[0] + 0.85, c0[1] + 0.85], [c0[0] - 0.85, c0[1] + 0.85]], { stroke: "rgba(88,196,221,0.6)", w: 1.5 });
+            g.arrow(c0, V.add(c0, [d[0] * 1.2, d[2] * 1.2]), "yellow", { w: 3, label: "d" });
+            g.text("위에서 본 방향 (x, z)", [c0[0], -1.55], "grey", { size: 11 });
+            L.set("dx", f2(d[0])); L.set("dy", f2(d[1])); L.set("dz", f2(d[2])); L.set("ax", "xyz"[ax]); L.set("face", face);
+          };
+        }
+      } },
+
+      { h: "반사: 거칠수록 흐린 주변" },
+      "매끈한 공은 주변이 그대로 비치고, 거친 공은 ==주변이 뿌옇게 번져== 비칩니다. 실시간에서는 거칠기별로 미리 흐린 큐브맵을 밉맵 단계에 저장해 두고(프리필터), 거칠기에 맞는 단계를 읽습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["R = reflect(−V, N),   색 = 프리필터된 큐브맵(R, 거칠기 → 밉 단계)"],
+        setup(F, C, L) {
+          let rough = 0.15, sunAz = 0.9;
+          C.slider({ label: "거칠기", min: 0, max: 1, value: rough, onInput: x => { rough = x; } });
+          C.slider({ label: "해 방향", min: -3.14, max: 3.14, value: sunAz, fmt: x => num(x / DEG, 0) + "°", onInput: x => { sunAz = x; } });
+          F.draw = g => {
+            g.field(200, (x, y) => { const d = V3.norm([x * 0.45, y * 0.45, 1]); const c = env(d, sunAz); return [srgb(c[0]), srgb(c[1]), srgb(c[2]), 255]; });
+            ball(g, [-1.4, -0.1], 1.25, N => { const R = V3.sub(V3.mul(N, 2 * N[2]), [0, 0, 1]); return env(V3.norm([R[0], R[1], -R[2]]), sunAz, rough).map(v => v * 0.9); }, 150);
+            ball(g, [1.6, -0.1], 1.25, N => { const R = V3.sub(V3.mul(N, 2 * N[2]), [0, 0, 1]); return env(V3.norm([R[0], R[1], -R[2]]), sunAz, Math.min(1, rough + 0.5)).map((v, i) => v * [0.95, 0.75, 0.4][i]); }, 150);
+            g.text("거칠기 " + num(rough, 2), [-1.4, -1.55], "white", { size: 12, bold: true }); g.text("금 · 거칠기 " + num(Math.min(1, rough + 0.5), 2), [1.6, -1.55], "white", { size: 12, bold: true });
+          };
+        }
+      } },
+
+      { h: "확산 환경광: 숫자 9개로 요약하기" },
+      "확산광은 주변 전체를 코사인으로 평균 낸 아주 부드러운 값이라, ==자세한 그림이 필요 없습니다==. 그래서 주변을 구면 조화(SH) 계수 9개로 요약해 둡니다. 띠(L0 → L2)를 늘려 가며 정답(직접 적분)과 비교해 보세요. 빨간 벽 쪽 면이 붉게 물드는 것까지 9개 숫자가 담습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["E(N) ≈ Σ A_l · c_lm · Y_lm(N)   ({k}개 계수)"],
+        setup(F, C, L) {
+          let band = 2, sunAz = 0.9, cache = null;
+          C.seg({ options: [{ value: 0, label: "L0 (1개)" }, { value: 1, label: "L1 (4개)" }, { value: 2, label: "L2 (9개)" }], value: band, onChange: x => { band = x; } });
+          C.slider({ label: "해 방향", min: -3.14, max: 3.14, value: sunAz, fmt: x => num(x / DEG, 0) + "°", onInput: x => { sunAz = x; } });
+          const project = () => {
+            const co = Array.from({ length: 9 }, () => [0, 0, 0]);
+            DIRS.forEach(d => { const c = env(d, sunAz, 0.3), b = SHB(d); for (let k = 0; k < 9; k++) for (let i = 0; i < 3; i++) co[k][i] += c[i] * b[k]; });
+            return co.map(v => v.map(x => x * 4 * Math.PI / DIRS.length));
+          };
+          const truth = (N) => { const s = [0, 0, 0]; DIRS.forEach(d => { const k = Math.max(0, V3.dot(N, d)); if (k > 0) { const c = env(d, sunAz, 0.3); for (let i = 0; i < 3; i++) s[i] += c[i] * k; } }); return s.map(v => v * 4 * Math.PI / DIRS.length / Math.PI); };
+          F.draw = g => {
+            if (!cache || cache.az !== sunAz) cache = { az: sunAz, co: project(), tcache: new Map() };
+            const nk = [1, 4, 9][band];
+            const shE = N => { const b = SHB(N), s = [0, 0, 0]; for (let k = 0; k < nk; k++) for (let i = 0; i < 3; i++) s[i] += A[k] * cache.co[k][i] * b[k]; return s.map(v => Math.max(0, v / Math.PI)); };
+            // 구의 노멀을 그대로 월드 방향으로 사용 (z+ 가 화면 앞쪽)
+            ball(g, [-1.6, 0], 1.3, N => shE(N).map(v => v * 1.2), 140);
+            ball(g, [1.6, 0], 1.3, N => { const key = Math.round(N[0] * 16) + "," + Math.round(N[1] * 16); let v = cache.tcache.get(key); if (!v) { v = truth(N); cache.tcache.set(key, v); } return v.map(x => x * 1.2); }, 100);
+            g.text("SH 근사", [-1.6, -1.55], "white", { size: 12, bold: true }); g.text("정답 (600방향 적분)", [1.6, -1.55], "white", { size: 12, bold: true });
+            L.set("k", nk);
+          };
+        }
+      } },
+      { key: "실시간 환경광은 ==확산은 SH 몇 개, 반사는 거칠기별로 흐린 큐브맵==으로 나눠 처리합니다. 둘 다 '미리 계산해 두고 싸게 읽기'라는 같은 전략입니다." },
+
+      { use: [
+        ["엔진", "Sky Light와 반사 캡처", "UE의 Sky Light가 주변을 큐브맵으로 캡처해 확산(SH)과 반사(프리필터 큐브맵)를 만들고, Reflection Capture 액터가 실내 곳곳의 반사를 담당합니다."],
+        ["엔진", "라이트맵·볼륨 라이트맵", "움직이는 물체의 간접광은 공간 곳곳에 SH 계수를 구워 둔 볼륨 라이트맵(프로브)에서 읽습니다."],
+        ["아트", "HDRI 조명", "제품·캐릭터 룩뎁에서 HDRI 사진 한 장을 걸면 그 장소의 빛이 그대로 재현되는 것이 IBL입니다."],
+        ["실생활", "영화 합성", "실사 촬영장에서 크롬 공·360° 카메라로 주변을 찍어 두고, CG 물체를 같은 빛으로 비춰 합성합니다."]
+      ] },
+
+      { recap: [
+        ["큐브맵(d)", "방향으로 읽는 텍스처: 가장 큰 성분 = 면"],
+        ["프리필터 큐브맵", "거칠기별로 흐린 반사를 밉 단계에 저장"],
+        ["E(N) ≈ Σ A_l c_lm Y_lm(N)", "확산 환경광을 SH 9개로"],
+        ["IBL", "주변 전체를 광원으로"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\18-shadow.js ===== */
 /* 16 그림자 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5588,7 +5859,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\17-fog.js ===== */
+/* ===== js\lessons\19-fog.js ===== */
 /* 17 안개와 높이 안개 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5719,7 +5990,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\18-shader.js ===== */
+/* ===== js\lessons\20-shader.js ===== */
 /* 18 셰이더로 무늬 만들기 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5828,7 +6099,7 @@ function render() {
       } },
 
       { h: "분기 대신 섞기" },
-      "두 무늬 중 하나를 고를 때 `if` 대신 ==마스크로 섞으면($lerp$)== GPU의 분기 비용(26장)이 없고 경계도 부드럽습니다. 마스크의 부드러움을 바꿔 보세요.",
+      "두 무늬 중 하나를 고를 때 `if` 대신 ==마스크로 섞으면($lerp$)== GPU의 분기 비용(34장)이 없고 경계도 부드럽습니다. 마스크의 부드러움을 바꿔 보세요.",
       { fig: {
         aspect: 0.5, view: { x0: -1, x1: 1, y0: -0.5, y1: 0.5 },
         eq: ["m = smoothstep(0.3 + s, 0.3 − s, length(p − 마우스))", "c = lerp(무늬A, 무늬B, m)"],
@@ -5867,7 +6138,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\19-derivatives.js ===== */
+/* ===== js\lessons\21-derivatives.js ===== */
 /* 19 DDX · DDY: 화면 공간 미분 */
 (() => {
   const f2 = n => num(n, 2);
@@ -5998,7 +6269,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\20-noise.js ===== */
+/* ===== js\lessons\22-noise.js ===== */
 /* 20 노이즈 */
 (() => {
   const f2 = n => num(n, 2);
@@ -6135,7 +6406,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\21-sdf.js ===== */
+/* ===== js\lessons\23-sdf.js ===== */
 /* 21 SDF와 레이마칭 */
 (() => {
   const f2 = n => num(n, 2);
@@ -6273,7 +6544,398 @@ function render() {
 })();
 
 
-/* ===== js\lessons\22-blur.js ===== */
+/* ===== js\lessons\24-skinning.js ===== */
+/* 24 스켈레탈 애니메이션과 스키닝 */
+(() => {
+  const f2 = n => num(n, 2);
+
+  lesson({
+    topic: "skinning", title: "스켈레탈 애니메이션과 스키닝", desc: "뼈를 움직이면 피부가 따라온다", stage: "움직임과 시뮬레이션",
+    sym: { w: "orange", M: "purple", v: "yellow", "θ": "blue", q: "purple" },
+    hook: "캐릭터는 수만 개의 정점을 하나하나 움직이지 않습니다. ==뼈 수십 개를 움직이고, 각 정점은 가까운 뼈 몇 개를 가중치만큼 따라가게== 합니다. 4장의 행렬 사슬과 5장의 쿼터니언이 여기서 만납니다.",
+    blocks: [
+      { h: "뼈의 사슬: FK와 IK" },
+      "뼈 셋으로 된 팔입니다. 각 뼈의 위치는 ==부모 뼈의 변환 × 자기 회전==으로 정해집니다(FK). 'IK'로 바꾸면 반대로 손끝(노란 점)을 끌어서 관절 각도를 거꾸로 구합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["M_손 = M_어깨 · M_팔꿈치 · M_손목", "각도 = ({a0}°, {a1}°, {a2}°)"],
+        setup(F, C, L) {
+          const len = [1.5, 1.2, 0.7], ang = [0.5, 0.6, 0.3], target = [1.6, 1.0];
+          let mode = "fk";
+          const sl = [0, 1, 2].map(i => C.slider({ label: ["어깨", "팔꿈치", "손목"][i], min: -3.14, max: 3.14, value: ang[i], fmt: x => num(x / DEG, 0) + "°", onInput: x => { ang[i] = x; mode = "fk"; } }));
+          C.seg({ options: [{ value: "fk", label: "FK (각도로)" }, { value: "ik", label: "IK (손끝을 끌어서)" }], value: mode, onChange: x => { mode = x; } });
+          F.vec(target, "yellow", { snap: 0.01 });
+          F.handles[0].hidden = () => mode !== "ik";
+          const chain = () => { const pts = [[-2.4, -0.6]]; let a = 0; for (let i = 0; i < 3; i++) { a += ang[i]; const p = pts[i]; pts.push([p[0] + Math.cos(a) * len[i], p[1] + Math.sin(a) * len[i]]); } return pts; };
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            if (mode === "ik") {
+              for (let it = 0; it < 12; it++) for (let j = 2; j >= 0; j--) {      // CCD: 끝에서부터 관절마다 손끝이 목표를 향하게
+                const pts = chain(), e = pts[3], p = pts[j];
+                const a1 = Math.atan2(e[1] - p[1], e[0] - p[0]), a2 = Math.atan2(target[1] - p[1], target[0] - p[0]);
+                let d = a2 - a1; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU;
+                ang[j] += d;
+              }
+              sl.forEach((s, i) => s.set(((ang[i] + Math.PI) % TAU + TAU) % TAU - Math.PI));
+            }
+            const pts = chain();
+            const cols = ["teal", "pink", "gold"];
+            for (let i = 0; i < 3; i++) {
+              const a = pts[i], b = pts[i + 1], n = V.mul(V.norm(V.perp(V.sub(b, a))), 0.16);
+              const k = V.add(a, V.mul(V.sub(b, a), 0.2));     // 뼈 모양: 마름모
+              g.poly([a, V.add(k, n), b, V.sub(k, n)], { fill: hexA(PAL[cols[i]], 0.5), stroke: cols[i], w: 2 });
+              const r = V.norm(V.sub(b, a));
+              g.arrow(a, V.add(a, V.mul(r, 0.5)), "red", { w: 2, head: 6 }); g.arrow(a, V.add(a, V.mul(V.perp(r), 0.5)), "green", { w: 2, head: 6 });
+            }
+            pts.forEach((p, i) => g.circle(p, 0.09, "white", { fill: i === 0 ? "#fff" : PAL.bg, w: 2 }));
+            if (mode === "ik") g.line(pts[3], target, "yellow", { w: 1, dash: [4, 4] });
+            L.set("a0", num(ang[0] / DEG, 0)); L.set("a1", num(ang[1] / DEG, 0)); L.set("a2", num(ang[2] / DEG, 0));
+          };
+        }
+      } },
+
+      { h: "선형 블렌드 스키닝" },
+      "팔 모양 메시의 정점마다 ==두 뼈에 대한 가중치==가 있습니다(색: [[teal:위팔]] ↔ [[pink:아래팔]]). 정점은 각 뼈를 따라 움직인 위치를 가중치로 섞은 곳에 놓입니다. 팔꿈치를 많이 굽혀 보고, 가중치가 바뀌는 구간의 폭도 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["v' = Σ w_i · M_i · v = w_1·M_1·v + w_2·M_2·v,   w_1 + w_2 = 1"],
+        setup(F, C, L) {
+          let bend = 1.6, width = 0.5, showW = true;
+          C.slider({ label: "팔꿈치 굽히기", min: 0, max: 2.6, value: bend, fmt: x => num(x / DEG, 0) + "°", onInput: x => { bend = x; } });
+          C.slider({ label: "가중치 섞이는 폭", min: 0.02, max: 1.5, value: width, onInput: x => { width = x; } });
+          C.seg({ options: [{ value: 1, label: "가중치 색 보기" }, { value: 0, label: "숨기기" }], value: 1, onChange: x => { showW = !!x; } });
+          const J = [0, 0], N = 28, rows = [-0.42, -0.21, 0, 0.21, 0.42];
+          F.draw = g => {
+            const vert = (x, y) => {
+              const w2 = clamp((x - J[0]) / width + 0.5, 0, 1), w1 = 1 - w2;
+              const p2 = V.add(J, V.rot(V.sub([x, y], J), bend));                // 아래팔 뼈: 팔꿈치 기준 회전
+              return { p: V.add(V.mul([x, y], w1), V.mul(p2, w2)), w2 };
+            };
+            const grid = rows.map(y => Array.from({ length: N + 1 }, (_, i) => vert(-3 + i * 6 / N, y)));
+            for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) {
+              const a = grid[r][i], b = grid[r][i + 1], c = grid[r + 1][i + 1], d = grid[r + 1][i];
+              const w = (a.w2 + b.w2 + c.w2 + d.w2) / 4;
+              const col = showW ? `rgba(${Math.round(lerp(92, 227, w))},${Math.round(lerp(208, 111, w))},${Math.round(lerp(179, 200, w))},0.55)` : "rgba(177,137,198,0.45)";
+              g.poly([a.p, b.p, c.p, d.p], { fill: col, stroke: "rgba(236,239,244,0.25)", w: 1 });
+            }
+            g.line([-3, 0], J, "teal", { w: 4 }); g.line(J, V.add(J, V.rot([3, 0], bend)), "pink", { w: 4 });
+            g.circle(J, 0.1, "white", { fill: PAL.bg, w: 2.5 });
+            const inner = grid[rows.length - 1][N / 2].p, outer = grid[0][N / 2].p;
+            g.text("팔꿈치 두께 " + f2(V.len(V.sub(inner, outer))) + " (원래 0.84)", [0, -1.85], V.len(V.sub(inner, outer)) < 0.5 ? "red" : "white", { size: 12, bold: true });
+          };
+        }
+      } },
+      "많이 굽히면 팔꿈치 안쪽이 ==찌그러지며 얇아집니다==. 두 위치를 직선으로 섞는(평균) 탓에 회전의 중간이 원호가 아니라 지름을 가로지르기 때문입니다.",
+
+      { h: "캔디 래퍼 현상과 듀얼 쿼터니언" },
+      "손목을 축 방향으로 비틀어 봅니다. 선형 블렌드는 180° 가까이 비틀면 ==가운데가 사탕 포장지처럼 한 점으로 쪼그라듭니다==. 회전 자체를 섞는 방식(듀얼 쿼터니언 스키닝)은 부피를 지킵니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          const cam = makeCam(F, { yaw: 0.35, pitch: 0.35, dist: 9, fov: 34, scale: 1.2 });
+          cam.orbit();
+          let tw = 2.6, mode = "lbs";
+          C.slider({ label: "비틀기", min: 0, max: 3.14, value: tw, fmt: x => num(x / DEG, 0) + "°", onInput: x => { tw = x; } });
+          C.seg({ options: [{ value: "lbs", label: "선형 블렌드" }, { value: "dqs", label: "듀얼 쿼터니언" }], value: mode, onChange: x => { mode = x; } });
+          F.draw = g => {
+            const R = 0.55, NS = 16, NX = 24;
+            const P = (x, a) => {
+              const w = clamp((x + 0.6) / 1.2, 0, 1), y = Math.cos(a) * R, z = Math.sin(a) * R;
+              if (mode === "lbs") { const y2 = Math.cos(a + tw) * R, z2 = Math.sin(a + tw) * R; return [x, lerp(y, y2, w), lerp(z, z2, w)]; }
+              const t = tw * w; return [x, Math.cos(a + t) * R, Math.sin(a + t) * R];
+            };
+            for (let i = 0; i <= NX; i++) {
+              const x = -2.4 + i * 4.8 / NX, pts = [];
+              for (let k = 0; k <= NS; k++) pts.push(P(x, k / NS * TAU));
+              for (let k = 0; k < NS; k++) cam.line(pts[k], pts[k + 1], i % 4 === 0 ? "teal" : "rgba(92,208,179,0.45)", { w: i % 4 === 0 ? 2 : 1 });
+            }
+            for (let k = 0; k < NS; k += 2) { const pts = []; for (let i = 0; i <= NX; i++) pts.push(P(-2.4 + i * 4.8 / NX, k / NS * TAU)); for (let i = 0; i < NX; i++) cam.line(pts[i], pts[i + 1], k === 0 ? "yellow" : "rgba(236,239,244,0.3)", { w: k === 0 ? 2.5 : 1 }); }
+            const mid = P(0, 0), r = Math.hypot(mid[1], mid[2]);
+            L.set("eq", mode === "lbs" ? `가운데 반지름 ${f2(r)} / ${R} — 위치를 직선으로 섞어서 쪼그라듦` : `가운데 반지름 ${f2(r)} / ${R} — 회전 각도를 섞어서 부피 유지`);
+          };
+        }
+      } },
+      { key: "게임 캐릭터는 정점마다 ==뼈 최대 4~8개와 가중치==를 저장하고, 버텍스 셰이더가 매 프레임 $Σ w_i · M_i · v$ 를 계산합니다. 노멀과 탄젠트(12장)도 같은 행렬로 돌립니다." },
+
+      { use: [
+        ["엔진", "스켈레탈 메시", "UE의 스켈레톤·스킨 웨이트·애님 블루프린트가 이 장의 구조입니다. Two Bone IK·FABRIK·Full Body IK 노드가 IK 풀이기입니다."],
+        ["아트", "웨이트 페인팅", "리거가 팔꿈치·어깨 가중치를 붓으로 칠하는 이유가 이 장의 찌그러짐입니다. 보조 뼈(twist bone)를 넣어 캔디 래퍼를 막기도 합니다."],
+        ["게임", "발 맞추기", "계단·경사에서 발이 땅에 붙는 것은 매 프레임 바닥 높이를 재서 다리에 IK를 거는 '풋 IK'입니다."],
+        ["실생활", "로봇 팔과 모션 캡처", "산업용 로봇 팔의 관절 제어가 IK이고, 모션 캡처는 배우의 마커 위치로 뼈 각도를 거꾸로 풉니다."]
+      ] },
+
+      { recap: [
+        ["M_자식 = M_부모 · M_로컬", "FK: 행렬 사슬"],
+        ["손끝 → 각도", "IK: 목표에서 거꾸로 풀기"],
+        ["v' = Σ w_i M_i v", "선형 블렌드 스키닝: 굽히면 얇아짐"],
+        ["회전을 섞기 (DQS)", "캔디 래퍼 방지, 부피 유지"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\25-vertexanim.js ===== */
+/* 25 버텍스 애니메이션 (WPO) */
+(() => {
+  const f2 = n => num(n, 2);
+
+  lesson({
+    topic: "vertexanim", title: "버텍스 애니메이션", desc: "정점을 셰이더에서 움직이기", stage: "움직임과 시뮬레이션",
+    sym: { t: "teal", h: "red", A: "gold", k: "orange", Q: "pink" },
+    hook: "뼈 없이도 정점은 움직일 수 있습니다. 버텍스 셰이더에서 ==위치에 오프셋을 더하면==(월드 포지션 오프셋) 풀·나뭇잎·물결·깃발이 CPU 비용 없이 수십만 개씩 흔들립니다.",
+    blocks: [
+      { h: "바람에 흔들리는 풀" },
+      "풀잎마다 같은 식을 적용합니다. ==뿌리는 고정하고 위로 갈수록 많이== 흔들리도록 높이의 제곱을 곱하고, 위치마다 위상을 달리해 바람이 지나가는 물결을 만듭니다.",
+      { fig: {
+        aspect: 0.45, view: { x0: 0, x1: 10, y0: -0.2, y1: 4.3 },
+        eq: ["오프셋 = A · sin(t·속도 + x·k) · h^2   (h = 정점 높이 / 풀 높이)"],
+        setup(F, C, L) {
+          let A = 0.5, k = 0.8, sp = 2, mask = true;
+          C.play(true);
+          C.slider({ label: "세기 $A$", min: 0, max: 1.2, value: A, onInput: x => { A = x; } });
+          C.slider({ label: "물결 간격 $k$", min: 0, max: 2.5, value: k, onInput: x => { k = x; } });
+          C.seg({ options: [{ value: 1, label: "h² 마스크 쓰기" }, { value: 0, label: "마스크 없이 (뿌리까지 흔들림)" }], value: 1, onChange: x => { mask = !!x; } });
+          F.loop(() => {});
+          let seed = 9; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+          const blades = Array.from({ length: 70 }, () => [rnd() * 9.6 + 0.2, 1.6 + rnd() * 2, rnd()]);
+          F.draw = g => {
+            g.poly([[0, -0.2], [10, -0.2], [10, 0], [0, 0]], { fill: "rgba(120,95,70,0.6)" });
+            blades.forEach(([x, H, r]) => {
+              const pts = [];
+              for (let s = 0; s <= 8; s++) {
+                const h = s / 8, m = mask ? h * h : 1;
+                pts.push([x + A * Math.sin(F.t * sp + x * k + r * 0.5) * m, h * H]);
+              }
+              for (let s = 0; s < 8; s++) g.line(pts[s], pts[s + 1], `rgb(${Math.round(lerp(60, 150, s / 8))},${Math.round(lerp(120, 200, s / 8))},${Math.round(lerp(50, 90, s / 8))})`, { w: lerp(4, 1.5, s / 8) });
+            });
+          };
+        }
+      } },
+      "마스크 없이 하면 풀이 ==땅에서 미끄러져 다닙니다==. 실무에서는 높이 대신 버텍스 컬러나 UV에 '얼마나 흔들릴지'를 칠해 두고 마스크로 씁니다.",
+
+      { h: "게르스트너 파도: 점이 원을 그린다" },
+      "물 표면의 점은 위아래로만 움직이지 않고 ==제자리에서 원을 그립니다==. 그래서 마루는 뾰족하고 골은 넓은 진짜 파도 모양이 됩니다. 사인파와 비교하며 가파름 $Q$를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: -1.6, y1: 1.6 },
+        eq: ["x' = x + Q·A·cos(k·x − ω·t),   y = A·sin(k·x − ω·t)"],
+        setup(F, C, L) {
+          let Q = 0.8, gerst = true;
+          C.play(true);
+          C.slider({ label: "가파름 $Q$", min: 0, max: 1.2, value: Q, onInput: x => { Q = x; } });
+          C.seg({ options: [{ value: 1, label: "게르스트너" }, { value: 0, label: "사인파" }], value: 1, onChange: x => { gerst = !!x; } });
+          F.loop(() => {});
+          F.draw = g => {
+            const A = 0.55, k = 1.6, w = 2.2, t = F.t;
+            const P = x0 => { const ph = k * x0 - w * t; return [x0 + (gerst ? Q * A * Math.cos(ph) : 0), A * Math.sin(ph)]; };   // 마루에서 점들이 모여 뾰족해짐
+            const pts = [];
+            for (let i = 0; i <= 300; i++) pts.push(P(-1 + i / 300 * 12));
+            g.poly(pts.concat([[11, -1.6], [-1, -1.6]]), { fill: "rgba(88,196,221,0.35)", stroke: "blue", w: 2.5 });
+            for (let i = 0; i < 9; i++) {
+              const x0 = 1 + i * 1.0, c = [x0, 0];
+              if (gerst) g.circle(c, Q * A * 1, "white", { w: 1, alpha: 0.3, dash: [3, 3] });
+              const p = P(x0);
+              g.line(c, p, "white", { w: 1, alpha: 0.5 });
+              g.dot(p, "yellow", 5);
+            }
+          };
+        }
+      } },
+      "$Q$가 너무 크면 파도 꼭대기에서 ==표면이 자기 자신을 뚫고 고리를 만듭니다==. 실제 바다 셰이더는 방향·파장이 다른 게르스트너 파도 여러 개를 더하고, 노멀도 같은 식의 미분으로 구합니다.",
+
+      { h: "버텍스 애니메이션 텍스처 (VAT)" },
+      "복잡한 시뮬레이션(천 찢어짐, 건물 붕괴)은 실시간으로 못 푸니 ==미리 계산한 정점 위치를 텍스처에 저장==합니다. 가로 = 정점 번호, 세로 = 프레임, 색 = 위치 오프셋. 버텍스 셰이더가 현재 프레임 줄을 읽어 정점을 옮깁니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5 },
+        eq: ["위치 = 기본 위치 + 텍스처(정점 번호, 프레임)   — 프레임 {f} / 31"],
+        setup(F, C, L) {
+          let frame = 0;
+          C.play(true);
+          const fs = C.slider({ label: "프레임", min: 0, max: 31, step: 1, value: 0, fmt: x => num(x, 0), onInput: x => { frame = x; } });
+          F.loop((dt, t) => { frame = Math.floor(t * 12) % 32; fs.set(frame); });
+          const NV = 24, NF = 32;
+          // 미리 '구운' 애니메이션: 원 → 꽃 모양으로 부풀었다 돌아옴
+          const off = (v, f) => { const a = v / NV * TAU, s = Math.sin(f / NF * TAU); return [Math.cos(a) * 0.5 * s * (1 + Math.cos(a * 5)), Math.sin(a) * 0.5 * s * (1 + Math.cos(a * 5))]; };
+          F.draw = g => {
+            const T0 = [0.4, 0.5], TW = 4.4, TH = 4.2;
+            for (let f = 0; f < NF; f++) for (let v = 0; v < NV; v++) {
+              const o = off(v, f), x = T0[0] + v / NV * TW, y = T0[1] + (NF - 1 - f) / NF * TH;
+              g.poly([[x, y], [x + TW / NV, y], [x + TW / NV, y + TH / NF], [x, y + TH / NF]], { fill: `rgb(${Math.round(128 + o[0] * 200)},${Math.round(128 + o[1] * 200)},128)` });
+            }
+            const yy = T0[1] + (NF - 1 - frame) / NF * TH;
+            g.poly([[T0[0], yy], [T0[0] + TW, yy], [T0[0] + TW, yy + TH / NF], [T0[0], yy + TH / NF]], { stroke: "yellow", w: 2 });
+            g.text("정점 번호 →", [T0[0] + TW / 2, T0[1]], "grey", { dy: 10, size: 11 }); g.text("프레임 ↓", [T0[0], T0[1] + TH], "grey", { dy: -8, size: 11, align: "left" });
+            const c = [7.5, 2.5], pts = [];
+            for (let v = 0; v < NV; v++) { const a = v / NV * TAU, o = off(v, frame); pts.push([c[0] + Math.cos(a) * 1.2 + o[0], c[1] + Math.sin(a) * 1.2 + o[1]]); }
+            g.poly(pts, { fill: "rgba(227,111,200,0.35)", stroke: "pink", w: 2 });
+            pts.forEach(p => g.dot(p, "white", 3));
+            L.set("f", frame);
+          };
+        }
+      } },
+      { key: "버텍스 셰이더 애니메이션은 ==충돌·물리 판정과 따로 놉니다==. 화면에서만 움직이므로 그림자·모션 블러·컬링 범위(바운드)를 함께 신경 써야 합니다." },
+
+      { use: [
+        ["엔진", "World Position Offset", "UE 머티리얼의 WPO 핀이 이 장의 오프셋입니다. SimpleGrassWind 함수, 폴리지의 Pivot Painter가 대표적인 예입니다."],
+        ["게임", "바다와 깃발", "오픈월드 바다는 게르스트너·FFT 파도를, 깃발·천막은 사인 합성 WPO를 씁니다. 수천 개라도 CPU 비용이 거의 없습니다."],
+        ["이펙트", "파괴와 시뮬레이션 재생", "Houdini로 구운 VAT로 건물 붕괴·액체·천 찢어짐을 게임에서 텍스처 몇 장으로 재생합니다."],
+        ["주의", "바운드와 그림자", "오프셋이 크면 물체가 원래 경계 상자 밖으로 나가 컬링에 잘리거나 그림자가 어긋납니다. 바운드 확장(Bounds Scale)이 필요한 이유입니다."]
+      ] },
+
+      { recap: [
+        ["위치 + 오프셋(t, 위치)", "버텍스 셰이더에서 움직이기 (WPO)"],
+        ["· h^2 마스크", "뿌리는 고정, 끝만 흔들기"],
+        ["x' = x + Q·A·cos(…)", "게르스트너 파도: 점이 원을 그림"],
+        ["텍스처(정점, 프레임)", "VAT: 미리 구운 움직임 재생"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\26-physics.js ===== */
+/* 26 물리 적분과 스프링 */
+(() => {
+  const f2 = n => num(n, 2);
+
+  lesson({
+    topic: "physics", title: "물리 적분과 스프링", desc: "한 프레임씩 앞으로", stage: "움직임과 시뮬레이션",
+    sym: { x: "green", v: "yellow", a: "pink", k: "orange", c: "teal", dt: "blue" },
+    hook: "게임 물리는 미분 방정식을 정확히 풀지 않습니다. ==지금의 속도와 힘으로 아주 짧은 시간($dt$) 뒤를 어림하는 일==을 매 프레임 반복할 뿐입니다. 어림하는 순서 하나에 시뮬레이션이 폭발하기도, 안정되기도 합니다.",
+    blocks: [
+      { h: "오일러 적분: 순서 하나의 차이" },
+      "가운데로 끌어당기는 힘을 받는 행성입니다. 정답은 같은 원을 영원히 도는 것입니다. ==위치를 먼저 옮기고 속도를 바꾸는 오일러==는 매 바퀴 조금씩 바깥으로 튕겨 나가고, ==속도를 먼저 바꾸고 새 속도로 옮기는 반암시적 오일러==는 궤도를 지킵니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["오일러: x += v·dt, v += a·dt   ·   반암시적: v += a·dt, x += v·dt", "dt = {dt}   에너지 변화: 오일러 {e1}%, 반암시적 {e2}%"],
+        setup(F, C, L) {
+          let dt = 0.08, A, B, trA, trB, E0;
+          const reset = () => { A = { x: [1.6, 0], v: [0, 1.2] }; B = { x: [1.6, 0], v: [0, 1.2] }; trA = []; trB = []; E0 = energy(A); };
+          const acc = x => { const r = V.len(x); return V.mul(x, -2.3 / (r * r * r)); };
+          const energy = s => 0.5 * V.dot(s.v, s.v) - 2.3 / V.len(s.x);
+          reset();
+          C.play(true);
+          C.slider({ label: "$dt$", min: 0.01, max: 0.2, value: dt, onInput: x => { dt = x; reset(); } });
+          C.button("↺ 다시", reset);
+          let accT = 0;
+          F.loop(d => {
+            accT += d;
+            while (accT > 0.03) {
+              accT -= 0.03;
+              const a1 = acc(A.x); A.x = V.add(A.x, V.mul(A.v, dt)); A.v = V.add(A.v, V.mul(a1, dt));
+              B.v = V.add(B.v, V.mul(acc(B.x), dt)); B.x = V.add(B.x, V.mul(B.v, dt));
+              trA.push(A.x); trB.push(B.x); if (trA.length > 400) { trA.shift(); trB.shift(); }
+              if (V.len(A.x) > 9) reset();
+            }
+          });
+          F.draw = g => {
+            g.circle([0, 0], 1.6, "grey", { w: 1, dash: [4, 5], alpha: 0.5 });
+            if (trA.length > 1) { g.poly(trA, { stroke: "orange", w: 1.5, close: false, alpha: 0.8 }); g.poly(trB, { stroke: "teal", w: 2, close: false }); }
+            g.circle([0, 0], 0.2, "gold", { fill: "gold", w: 0 });
+            g.dot(A.x, "orange", 6); g.dot(B.x, "teal", 6);
+            g.text("오일러", [-3.6, 1.7], "orange", { size: 12, bold: true, align: "left" }); g.text("반암시적 오일러", [-3.6, 1.4], "teal", { size: 12, bold: true, align: "left" });
+            L.set("dt", f2(dt)); L.set("e1", num((energy(A) - E0) / Math.abs(E0) * 100, 0)); L.set("e2", num((energy(B) - E0) / Math.abs(E0) * 100, 0));
+          };
+        }
+      } },
+      { key: "게임 물리는 대부분 ==반암시적(심플렉틱) 오일러나 베를레==를 씁니다. 계산량은 같은데 에너지가 쌓여 폭발하는 일이 훨씬 적습니다. 그리고 $dt$는 프레임과 무관하게 ==고정 간격==으로 돌립니다." },
+
+      { h: "스프링과 댐퍼: 부드럽게 따라가기" },
+      "목표(노란 점)를 스프링으로 따라가는 공입니다. 감쇠를 바꿔 보세요. 감쇠가 작으면 출렁이고, 크면 굼뜨고, ==딱 그 사이(임계 감쇠)==에서는 가장 빠르게, 넘치지 않고 도착합니다. 카메라·UI가 부드럽게 따라오는 것이 이것입니다.",
+      { fig: {
+        aspect: 0.45, view: { x0: 0, x1: 10, y0: -0.2, y1: 4.3, stretch: true },
+        eq: ["a = −k·(x − 목표) − c·v,   임계 감쇠 c = 2√k = {crit}"],
+        setup(F, C, L) {
+          let k = 30, c = 6, x = 2, v = 0, target = 7, hist = [];
+          C.play(true);
+          C.slider({ label: "강성 $k$", min: 5, max: 120, value: k, fmt: x => num(x, 0), onInput: q => { k = q; } });
+          const cs = C.slider({ label: "감쇠 $c$", min: 0, max: 30, value: c, fmt: x => num(x, 1), onInput: q => { c = q; } });
+          C.button("임계 감쇠로", () => { c = 2 * Math.sqrt(k); cs.set(c); });
+          F.handle({ color: "yellow", get: () => [target, 3.6], set: (px) => { target = clamp(px, 0.5, 9.5); } });
+          let flip = 0;
+          F.loop(dt => {
+            flip += dt; if (flip > 2.5) { flip = 0; target = target > 5 ? 2.2 : 7.8; }
+            const steps = 4, h = dt / steps;
+            for (let i = 0; i < steps; i++) { v += (-k * (x - target) - c * v) * h; x += v * h; }
+            hist.push([x, target]); if (hist.length > 240) hist.shift();
+          });
+          F.draw = g => {
+            g.line([0.3, 3.6], [9.7, 3.6], "grey", { w: 1, alpha: 0.5 });
+            const coils = 14, pts = [];
+            for (let i = 0; i <= coils * 2; i++) { const t = i / (coils * 2); pts.push([lerp(target, x, t), 3.6 + (i % 2 ? 0.12 : -0.12) * (i > 0 && i < coils * 2 ? 1 : 0)]); }
+            g.poly(pts, { stroke: "orange", w: 1.5, close: false });
+            g.circle([x, 3.6], 0.18, "teal", { fill: "teal", w: 0 });
+            const X = i => 0.3 + i / 240 * 9.4, Y = v2 => 0.1 + (v2 / 10) * 2.8;
+            if (hist.length > 1) { g.poly(hist.map((h, i) => [X(i), Y(h[1])]), { stroke: "yellow", w: 1.5, close: false, dash: [4, 4] }); g.poly(hist.map((h, i) => [X(i), Y(h[0])]), { stroke: "teal", w: 2.5, close: false }); }
+            g.text("시간 →", [9.7, 0.1], "grey", { size: 10, align: "right", dy: -8 });
+            L.set("crit", f2(2 * Math.sqrt(k)));
+          };
+        }
+      } },
+
+      { h: "베를레 적분과 제약: 밧줄" },
+      "점 여러 개를 거리 제약으로 이은 밧줄입니다. 끝점을 끌어 보세요. 매 프레임 ==관성으로 점을 옮긴 뒤, 이웃과의 거리를 원래 길이로 되돌리는 보정==을 여러 번 반복합니다. 반복 횟수가 적으면 고무줄처럼 늘어납니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["x_새 = x + (x − x_이전) + a·dt^2,   그리고 거리 제약을 {it}번 반복   (늘어난 비율 {stretch}%)"],
+        setup(F, C, L) {
+          const N = 18, seg = 0.22, anchor = [-1.8, 1.7];
+          let it = 8;
+          const P = Array.from({ length: N }, (_, i) => [anchor[0] + i * seg, anchor[1]]), Pp = P.map(p => p.slice());
+          let grab = false;
+          F.handle({ color: "pink", get: () => P[N - 1], set: (x, y) => { grab = true; P[N - 1][0] = x; P[N - 1][1] = y; Pp[N - 1][0] = x; Pp[N - 1][1] = y; } });
+          C.play(true);
+          C.slider({ label: "제약 반복", min: 1, max: 40, step: 1, value: it, fmt: x => num(x, 0), onInput: x => { it = x; } });
+          F.canvas.addEventListener("pointerup", () => { grab = false; });
+          F.loop(dt => {
+            const h = Math.min(dt, 1 / 30);
+            for (let i = 1; i < N; i++) {
+              if (grab && i === N - 1) continue;
+              const v = V.sub(P[i], Pp[i]);
+              Pp[i] = P[i].slice();
+              P[i] = V.add(V.add(P[i], V.mul(v, 0.99)), [0, -9.8 * h * h]);
+            }
+            for (let k = 0; k < it; k++) {
+              P[0] = anchor.slice();
+              for (let i = 0; i < N - 1; i++) {
+                const d = V.sub(P[i + 1], P[i]), l = V.len(d) || 1e-6, diff = (l - seg) / l;
+                const w0 = i === 0 ? 0 : 0.5, w1 = grab && i + 1 === N - 1 ? 0 : 0.5, s = w0 + w1 || 1;
+                P[i] = V.add(P[i], V.mul(d, diff * w0 / s)); P[i + 1] = V.sub(P[i + 1], V.mul(d, diff * w1 / s));
+              }
+            }
+          });
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            let total = 0;
+            for (let i = 0; i < N - 1; i++) { total += V.len(V.sub(P[i + 1], P[i])); g.line(P[i], P[i + 1], "yellow", { w: 3 }); }
+            P.forEach((p, i) => g.dot(p, i === 0 ? "white" : "gold", i === 0 ? 6 : 3.5));
+            g.poly([[anchor[0] - 0.3, anchor[1] + 0.08], [anchor[0] + 0.3, anchor[1] + 0.08], [anchor[0] + 0.3, anchor[1] + 0.2], [anchor[0] - 0.3, anchor[1] + 0.2]], { fill: "grey" });
+            L.set("it", it); L.set("stretch", num((total / ((N - 1) * seg) - 1) * 100, 0));
+          };
+        }
+      } },
+      "천은 이 밧줄을 그물처럼 엮은 것이고, 머리카락·덩굴·사슬도 같은 방식입니다. ==반복 횟수 = 품질과 비용의 손잡이==입니다.",
+
+      { use: [
+        ["엔진", "Chaos 물리와 고정 틱", "UE의 Chaos 물리는 고정 간격 서브스텝으로 적분합니다. 프레임이 떨어져도 시뮬레이션이 폭발하지 않게 하는 장치입니다."],
+        ["게임", "카메라·UI 따라가기", "스프링 암의 Camera Lag, UI 숫자 애니메이션, 조준 보정에 임계 감쇠 스프링(SmoothDamp)이 쓰입니다."],
+        ["엔진", "천·머리카락", "Chaos Cloth, 그룸 물리, 케이블 컴포넌트가 이 장의 베를레 + 거리 제약(PBD) 방식입니다."],
+        ["실생활", "자동차 서스펜션", "자동차 서스펜션은 스프링과 댐퍼의 조합입니다. 승차감은 감쇠비를 어디에 두느냐의 문제입니다."]
+      ] },
+
+      { recap: [
+        ["v += a·dt, x += v·dt", "반암시적 오일러: 같은 비용, 훨씬 안정"],
+        ["고정 dt", "프레임과 무관한 물리 틱"],
+        ["a = −k(x − 목표) − c·v,  c = 2√k", "임계 감쇠 스프링: 빠르고 넘치지 않음"],
+        ["x_새 = 2x − x_이전 + a·dt^2 + 제약 반복", "베를레 + 거리 제약: 밧줄·천"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\27-blur.js ===== */
 /* 22 이미지 필터와 가우시안 블러 */
 (() => {
   const f2 = n => num(n, 2);
@@ -6404,7 +7066,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\23-hdr.js ===== */
+/* ===== js\lessons\28-hdr.js ===== */
 /* 23 HDR · 톤매핑 · 블룸 */
 (() => {
   const f2 = n => num(n, 2);
@@ -6463,7 +7125,7 @@ function render() {
           };
         }
       } },
-      { key: "조명·반사·안개는 모두 ==선형 HDR 값으로 계산==하고, 톤매핑과 감마(13장)는 화면에 내보내기 직전 마지막에 딱 한 번 합니다. 순서가 바뀌면 색이 틀어집니다." },
+      { key: "조명·반사·안개는 모두 ==선형 HDR 값으로 계산==하고, 톤매핑과 감마(14장)는 화면에 내보내기 직전 마지막에 딱 한 번 합니다. 순서가 바뀌면 색이 틀어집니다." },
 
       { h: "블룸: 밝은 빛이 번지는 효과" },
       "카메라와 눈은 아주 밝은 빛 주변이 뿌옇게 번져 보입니다. 이것을 ==밝은 부분만 골라 → 크게 흐리고 → 원래 화면에 더하는== 세 단계로 흉내 냅니다. 단계를 하나씩 눌러 보세요.",
@@ -6540,7 +7202,257 @@ function render() {
 })();
 
 
-/* ===== js\lessons\24-raytrace.js ===== */
+/* ===== js\lessons\29-ssao.js ===== */
+/* 29 화면 공간 기법: SSAO와 SSR */
+(() => {
+  const f2 = n => num(n, 2);
+  // 옆에서 본 장면의 높이(깊이 버퍼처럼 쓰는 지형): 바닥 + 상자 + 벽
+  const hgt = x => { let h = 0; if (x > -1.4 && x < -0.4) h = 1.1; if (x > 0.6 && x < 1.0) h = 0.5; if (x > 2.6) h = 2.2; return h - 1.6; };
+
+  lesson({
+    topic: "ssao", title: "SSAO와 SSR", desc: "깊이 버퍼만으로 어림하기", stage: "화면 후처리",
+    sym: { r: "gold", N: "yellow", P: "white", R: "pink" },
+    hook: "디퍼드 렌더러(33장)는 화면의 모든 픽셀에 대해 ==깊이와 노멀==을 이미 들고 있습니다. 이것만으로 구석의 어두움(AO)과 바닥의 반사(SSR)를 싸게 어림하는 것이 화면 공간 기법입니다. 대신 화면에 없는 것은 모릅니다.",
+    blocks: [
+      { h: "SSAO: 주변이 얼마나 막혔나" },
+      "옆에서 본 깊이 버퍼입니다. 점 $P$ 주변 반구 안에 무작위 점을 뿌리고, ==깊이 버퍼보다 안쪽(물체 속)에 들어간 점의 비율==만큼 어둡게 합니다. $P$를 구석으로 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["AO = 1 − (가려진 샘플 수 / {n}) = {ao}"],
+        setup(F, C, L) {
+          let r = 0.7, n = 24, px = 0.2;
+          F.handle({ color: "white", get: () => [px, hgt(px)], set: x => { px = clamp(x, -3.9, 3.9); } });
+          C.slider({ label: "반경 $r$", min: 0.2, max: 1.6, value: r, onInput: x => { r = x; } });
+          C.slider({ label: "샘플 수", min: 4, max: 64, step: 1, value: n, fmt: x => num(x, 0), onInput: x => { n = x; } });
+          F.draw = g => {
+            const pts = [];
+            for (let x = -4; x <= 4.001; x += 0.02) pts.push([x, hgt(x)]);
+            g.poly(pts.concat([[4, -2], [-4, -2]]), { fill: "rgba(138,147,166,0.3)", stroke: "grey", w: 2 });
+            const P = [px, hgt(px)];
+            let seed = 3, occ = 0;
+            const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            g.arc(P, r, 0, Math.PI, "gold", { w: 1, dash: [3, 4], alpha: 0.6 });
+            for (let i = 0; i < n; i++) {
+              const a = rnd() * Math.PI, d = Math.sqrt(rnd()) * r, s = [P[0] + Math.cos(a) * d, P[1] + 0.02 + Math.sin(a) * d];
+              const hidden = s[1] < hgt(s[0]);
+              if (hidden) occ++;
+              g.dot(s, hidden ? "red" : "teal", 3.5);
+            }
+            g.circle(P, 0.08, "white", { fill: "white", w: 0 });
+            L.set("n", n); L.set("ao", f2(1 - occ / n));
+          };
+        }
+      } },
+      "샘플이 적으면 얼룩덜룩하므로, 실제로는 ==픽셀마다 샘플 방향을 살짝 돌리고(노이즈) 나중에 블러==로 펴 줍니다. 22장 노이즈, 27장 블러가 여기서 합쳐집니다.",
+
+      { h: "SSAO를 화면 전체에" },
+      "위에서 내려다본 상자들의 높이 맵을 깊이 버퍼로 보고, 픽셀마다 같은 계산을 합니다. ==상자 아래 모서리와 틈새==가 어두워지는 것을 'AO만 보기'로 확인하세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["색 = 조명 · AO"],
+        setup(F, C, L) {
+          let r = 0.5, view = 0, cache = null;
+          C.seg({ options: [{ value: 0, label: "조명 × AO" }, { value: 1, label: "AO만 보기" }, { value: 2, label: "AO 없이" }], value: 0, onChange: x => { view = x; } });
+          C.slider({ label: "반경", min: 0.1, max: 1.2, value: r, onInput: x => { r = x; cache = null; } });
+          const boxes = [[-2.6, -0.8, 1.2, 1.2, 0.8], [-0.6, 0.3, 0.9, 1.5, 1.2], [1.4, -1.2, 1.6, 0.8, 0.5], [2.4, 0.6, 0.6, 0.6, 1.4], [0.2, -1.3, 0.5, 0.5, 0.3]];
+          const H = (x, y) => { let h = 0; boxes.forEach(([bx, by, w, d, hh]) => { if (x > bx && x < bx + w && y > by && y < by + d) h = Math.max(h, hh); }); return h; };
+          F.draw = g => {
+            const Ld = V3.norm([0.4, 0.6, 0.7]);
+            if (!cache) {
+              const offs = []; let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+              for (let i = 0; i < 16; i++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * r; offs.push([Math.cos(a) * d, Math.sin(a) * d, rnd() * r * 0.8]); }
+              cache = { offs };
+            }
+            g.field(220, (x, y) => {
+              const h = H(x, y), e = 0.03;
+              const n = V3.norm([(H(x - e, y) - H(x + e, y)) / (2 * e) * 0.05, (H(x, y - e) - H(x, y + e)) / (2 * e) * 0.05, 1]);
+              let occ = 0;
+              cache.offs.forEach(([ox, oy, oz]) => { if (H(x + ox, y + oy) > h + oz) occ++; });
+              const ao = 1 - occ / cache.offs.length;
+              const lit = 0.25 + 0.75 * Math.max(0, V3.dot(n, Ld));
+              const base = h > 0 ? [0.85, 0.8, 0.72] : [0.6, 0.65, 0.72];
+              const k = view === 1 ? ao : view === 2 ? lit : lit * ao;
+              return (view === 1 ? [1, 1, 1] : base).map(c => Math.pow(clamp(c * k, 0, 1), 1 / 2.2) * 255).concat(255);
+            });
+          };
+        }
+      } },
+
+      { h: "SSR: 깊이 버퍼 위를 걸으며 반사 찾기" },
+      "매끈한 바닥의 반사를 찾기 위해 반사 광선을 ==화면(깊이 버퍼) 위에서 한 칸씩 전진==시키다가 깊이 버퍼보다 뒤로 들어가면 그 픽셀 색을 가져옵니다. 눈을 움직여 반사 광선이 ==화면 밖으로 나가는 경우==를 만들어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{res}"],
+        setup(F, C, L) {
+          const eye = [-3.4, 1.4], hitP = [-0.8, -1.6];
+          F.vec(eye, "teal", { snap: 0.01 });
+          F.vec(hitP, "white", { constrain: q => [clamp(q[0], -3.5, 2.4), -1.6], snap: 0.01 });
+          const scene = x => { if (x > 0.9 && x < 1.7) return 0.6; if (x > 2.6 && x < 3.4) return 1.6; return -1.6; };
+          F.draw = g => {
+            g.poly([[-4, -2], [4, -2], [4, -1.6], [-4, -1.6]], { fill: "rgba(88,196,221,0.25)" });
+            [[0.9, 1.7, 0.6, "pink"], [2.6, 3.4, 1.6, "gold"]].forEach(([a, b, h, c]) => g.poly([[a, -1.6], [b, -1.6], [b, h], [a, h]], { fill: hexA(PAL[c], 0.6), stroke: c, w: 2 }));
+            g.poly([[-4, -2], [3.8, -2], [3.8, 2], [-4, 2]], { stroke: "white", w: 1, dash: [6, 5], alpha: 0.5 });
+            g.text("화면 범위", [3.8, 2], "grey", { size: 11, align: "right", dy: 10 });
+            const d = V.norm(V.sub(hitP, eye)), r = [d[0], -d[1]];
+            g.line(eye, hitP, "teal", { w: 2.5 });
+            let p = hitP.slice(), found = null, steps = 0;
+            for (; steps < 40; steps++) {
+              p = V.add(p, V.mul(r, 0.18));
+              if (p[0] > 3.8 || p[1] > 2) break;
+              g.dot(p, "yellow", 3);
+              if (p[1] < scene(p[0])) { found = p; break; }
+            }
+            g.line(hitP, p, "yellow", { w: 2, alpha: 0.7 });
+            g.circle(eye, 0.12, "white", { fill: PAL.bg, w: 2.5 });
+            L.set("res", found ? `${steps + 1}걸음 만에 깊이 버퍼 뒤로 → 그 픽셀 색을 반사로 사용` : "화면 밖으로 나감 → 반사할 정보 없음 (큐브맵·레이트레이싱으로 대체)");
+          };
+        }
+      } },
+      { key: "화면 공간 기법은 ==싸고 그럴듯하지만, 화면에 보이지 않는 것은 모릅니다==. 화면 가장자리에서 반사가 끊기고, 물체 뒤쪽의 AO가 사라지는 이유입니다. 레이 트레이싱(31장)이 이 한계를 메웁니다." },
+
+      { use: [
+        ["엔진", "포스트 프로세스 설정", "UE의 Ambient Occlusion(SSAO·GTAO), Screen Space Reflections 품질 설정이 이 장의 샘플 수·반경·걸음 수입니다. Lumen 이전 세대의 표준이었습니다."],
+        ["게임", "반사가 끊기는 순간", "물웅덩이 반사가 카메라를 숙이면 사라지는 것이 SSR의 '화면 밖' 한계입니다. 보통 큐브맵 반사로 부드럽게 넘어갑니다."],
+        ["아트", "AO 맵과 SSAO", "에셋에 구운 AO 맵은 물체 내부의 작은 틈을, SSAO는 물체끼리 맞닿은 곳을 담당해 둘을 함께 씁니다."],
+        ["실생활", "구석은 왜 어두운가", "방 구석이 어두운 것은 그 점에서 하늘(빛)이 보이는 각도가 좁기 때문입니다. AO는 그 '열린 정도'를 잰 것입니다."]
+      ] },
+
+      { recap: [
+        ["AO = 1 − 가려진 샘플 / 전체", "주변 반구가 얼마나 막혔나"],
+        ["노이즈 회전 + 블러", "적은 샘플로 부드러운 AO"],
+        ["깊이 버퍼 위 레이마칭", "SSR: 화면 안에서만 반사"],
+        ["화면 밖 = 정보 없음", "큐브맵·레이트레이싱으로 보완"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\30-taa.js ===== */
+/* 30 TAA · 지터 · 디더링 */
+(() => {
+  const f2 = n => num(n, 2);
+  const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
+
+  lesson({
+    topic: "taa", title: "TAA · 지터 · 디더링", desc: "시간과 노이즈로 해상도 벌기", stage: "화면 후처리",
+    sym: { "α": "teal", t: "teal" },
+    hook: "한 프레임에 픽셀당 샘플 하나밖에 못 쏜다면, ==프레임마다 샘플 위치를 조금씩 흔들고(지터) 지난 프레임들과 섞으면== 여러 샘플을 쏜 것과 비슷해집니다. 노이즈를 일부러 넣어 계단을 숨기는 디더링도 같은 생각입니다.",
+    blocks: [
+      { h: "지터 + 누적 = 시간으로 하는 안티에일리어싱" },
+      "확대한 픽셀 격자 위의 삼각형 가장자리입니다. 매 프레임 샘플 점이 [[yellow:픽셀 안에서 다른 곳]]을 찍고, 결과를 ==이전 결과와 $α$ 비율로 섞습니다==. 재생하면 계단(왼쪽)이 점점 부드러운 가장자리(오른쪽)로 수렴합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 16, y0: 0, y1: 8 },
+        eq: ["히스토리 = lerp(히스토리, 이번 프레임, α),   α = {a}   (프레임 {f})"],
+        setup(F, C, L) {
+          let a = 0.1, frame = 0, hist = new Float32Array(16 * 8).fill(-1);
+          C.play(true);
+          C.slider({ label: "섞는 비율 $α$", min: 0.02, max: 1, value: a, onInput: x => { a = x; } });
+          C.button("↺ 다시", () => { hist.fill(-1); frame = 0; });
+          const inside = (x, y) => (y - 1.2) * 1.6 - (x - 0.5) * 0.55 < 0 && x * 0.3 + y < 9;
+          let acc = 0;
+          F.loop(dt => { acc += dt; if (acc > 0.12) { acc = 0; frame++; } });
+          let last = -1;
+          F.draw = g => {
+            const jx = halton(frame % 16 + 1, 2), jy = halton(frame % 16 + 1, 3);
+            if (frame !== last) {
+              for (let i = 0; i < 16; i++) for (let j = 0; j < 8; j++) {
+                const v = inside(i + jx, j + jy) ? 1 : 0, k = j * 16 + i;
+                hist[k] = hist[k] < 0 ? v : lerp(hist[k], v, a);
+              }
+              last = frame;
+            }
+            for (let i = 0; i < 16; i++) for (let j = 0; j < 8; j++) {
+              const cur = inside(i + jx, j + jy) ? 1 : 0, h = hist[j * 16 + i];
+              const left = i < 8, v = left ? cur : h;
+              g.poly([[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], { fill: `rgba(244,211,69,${v})`, stroke: "rgba(236,239,244,0.12)", w: 1 });
+              g.dot([i + jx, j + jy], "rgba(255,255,255,0.7)", 2.2);
+            }
+            g.line([8, 0], [8, 8], "white", { w: 2 });
+            g.text("이번 프레임만", [4, 7.6], "white", { size: 12, bold: true }); g.text("누적(TAA)", [12, 7.6], "white", { size: 12, bold: true });
+            L.set("a", f2(a)); L.set("f", frame);
+          };
+        }
+      } },
+      "샘플 위치는 무작위 대신 ==고르게 퍼지는 수열(할턴)==로 정합니다. $α$가 작을수록 부드럽지만 변화에 늦게 반응하고, 크면 빨리 반응하지만 계단이 남습니다.",
+
+      { h: "움직이면 생기는 문제: 고스팅" },
+      "물체가 움직이면 지난 프레임의 같은 픽셀에는 ==다른 것==이 있었습니다. 그대로 섞으면 잔상(고스팅)이 남습니다. 해결책은 둘입니다. 모션 벡터로 ==지난 프레임에서 그 점이 있던 자리를 찾아 읽고==(재투영), 그래도 이상한 값은 ==주변 픽셀 색 범위로 잘라 냅니다==(클램프).",
+      { fig: {
+        aspect: 0.4, view: { x0: 0, x1: 40, y0: 0, y1: 16 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 0, hist = new Float32Array(40 * 16), pos = 4, last = -1, frame = 0;
+          C.play(true);
+          C.seg({ options: [{ value: 0, label: "그냥 섞기" }, { value: 1, label: "재투영" }, { value: 2, label: "재투영 + 클램프" }], value: 0, onChange: x => { mode = x; hist.fill(0); } });
+          let acc = 0;
+          F.loop(dt => { acc += dt; if (acc > 0.05) { acc = 0; frame++; pos += 0.6; if (pos > 36) pos = 4; } });
+          const cur = (x, y) => (Math.abs(x - pos) < 2.5 && Math.abs(y - 8) < 2.5 ? 1 : 0);
+          F.draw = g => {
+            if (frame !== last) {
+              const nh = new Float32Array(hist.length);
+              for (let i = 0; i < 40; i++) for (let j = 0; j < 16; j++) {
+                const c = cur(i + 0.5, j + 0.5);
+                let h = hist[j * 40 + i];
+                if (mode >= 1) { const pi = Math.round(i - 0.6); h = pi >= 0 ? hist[j * 40 + pi] : c; }   // 지난 위치에서 읽기
+                if (mode === 2) { let mn = 1, mx = 0; for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) { const v = cur(i + di + 0.5, j + dj + 0.5); mn = Math.min(mn, v); mx = Math.max(mx, v); } h = clamp(h, mn, mx); }
+                nh[j * 40 + i] = lerp(h, c, 0.1);
+              }
+              hist = nh; last = frame;
+            }
+            for (let i = 0; i < 40; i++) for (let j = 0; j < 16; j++) {
+              const v = hist[j * 40 + i];
+              if (v > 0.01) g.poly([[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], { fill: `rgba(227,111,200,${v})` });
+            }
+            g.poly([[pos - 2.5, 5.5], [pos + 2.5, 5.5], [pos + 2.5, 10.5], [pos - 2.5, 10.5]], { stroke: "white", w: 1.5, dash: [4, 3] });
+            L.set("eq", ["지난 프레임 같은 자리를 섞음 → 뒤로 긴 잔상", "모션 벡터로 지난 위치를 읽음 → 잔상 대부분 사라짐", "주변 색 범위로 히스토리를 잘라 냄 → 남은 잔상까지 제거"][mode]);
+          };
+        }
+      } },
+
+      { h: "디더링: 노이즈로 계단 숨기기" },
+      "부드러운 그라데이션을 적은 비트로 저장하면 ==띠(밴딩)==가 생깁니다. 저장 직전에 아주 작은 노이즈를 더하면 띠가 점묘로 흩어져 눈에 띄지 않습니다. 비트 수와 노이즈 종류를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2 },
+        eq: ["저장 값 = floor(값 · 단계 + 노이즈) / 단계   ({lv}단계)"],
+        setup(F, C, L) {
+          let bits = 4, mode = "bayer";
+          C.slider({ label: "비트 수", min: 1, max: 8, step: 1, value: bits, fmt: x => x + "비트", onInput: x => { bits = x; } });
+          C.seg({ options: [{ value: "none", label: "디더 없음" }, { value: "white", label: "백색 노이즈" }, { value: "bayer", label: "베이어 행렬" }], value: mode, onChange: x => { mode = x; } });
+          F.draw = g => {
+            const lv = Math.pow(2, bits) - 1;
+            g.field(320, (x, y, i, j) => {
+              const v = clamp(x / 10, 0, 1) * (y > 2.1 ? 1 : 0.35) + (y > 2.1 ? 0 : 0.1);
+              const n = mode === "none" ? 0.5 : mode === "white" ? Math.random() : BAYER[(j % 4) * 4 + (i % 4)];
+              const q = Math.floor(v * lv + n) / lv;
+              return [q * 255 * 0.95, q * 255 * 0.9, q * 255, 255];
+            }, { smooth: false });
+            L.set("lv", lv + 1);
+          };
+        }
+      } },
+      { key: "TAA·디더링·노이즈 샘플링은 ==공간 대신 시간과 노이즈로 해상도를 버는 기술==입니다. 요즘 업스케일러(TSR·DLSS)도 같은 지터와 히스토리 위에 서 있습니다." },
+
+      { use: [
+        ["엔진", "TSR과 TAA", "UE의 기본 안티에일리어싱 TSR은 이 장의 지터 + 재투영 + 클램프에 업스케일까지 더한 것입니다. 빠른 물체 뒤 잔상이 보이면 히스토리 설정 문제입니다."],
+        ["셰이더", "디더 투명", "머티리얼의 DitherTemporalAA 노드로 반투명 대신 '구멍 뚫기 + 시간 누적'으로 머리카락·LOD 전환을 부드럽게 합니다."],
+        ["게임", "어두운 장면의 띠", "하늘·안개 그라데이션의 밴딩은 최종 출력 직전에 작은 노이즈(필름 그레인·디더)를 더해 없앱니다."],
+        ["실생활", "신문 망점과 GIF", "흑백 신문의 망점 인쇄와 256색 GIF의 점묘가 디더링입니다. 적은 색으로 많은 색을 흉내 냅니다."]
+      ] },
+
+      { recap: [
+        ["샘플 위치 = 할턴 지터", "프레임마다 픽셀 안의 다른 곳"],
+        ["lerp(히스토리, 현재, α)", "시간 누적 안티에일리어싱"],
+        ["재투영 + 주변 색 클램프", "움직임 잔상(고스팅) 제거"],
+        ["floor(값·단계 + 노이즈)", "디더링: 밴딩을 노이즈로"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\31-raytrace.js ===== */
 /* 24 레이 트레이싱 */
 (() => {
   const f2 = n => num(n, 2);
@@ -6655,7 +7567,7 @@ function render() {
           };
         }
       } },
-      { key: "레이 트레이싱의 비용은 ==광선 수 × 교차 검사 수==입니다. 장면의 삼각형 수백만 개를 하나씩 검사할 수는 없으니, 27장의 BVH 같은 공간 자료구조가 필수입니다." },
+      { key: "레이 트레이싱의 비용은 ==광선 수 × 교차 검사 수==입니다. 장면의 삼각형 수백만 개를 하나씩 검사할 수는 없으니, 35장의 BVH 같은 공간 자료구조가 필수입니다." },
 
       { use: [
         ["엔진", "하드웨어 레이 트레이싱", "UE의 RT 반사·그림자·Lumen 하드웨어 모드가 이 장의 반사·그림자 광선을 RTX GPU의 전용 회로로 쏩니다."],
@@ -6675,7 +7587,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\25-pathtrace.js ===== */
+/* ===== js\lessons\32-pathtrace.js ===== */
 /* 25 몬테카를로와 경로 추적 */
 (() => {
   const f2 = n => num(n, 2);
@@ -6859,14 +7771,135 @@ function render() {
 })();
 
 
-/* ===== js\lessons\26-gpu.js ===== */
+/* ===== js\lessons\33-deferred.js ===== */
+/* 33 포워드 vs 디퍼드 렌더링 */
+(() => {
+  const f0 = n => num(n, 0);
+  const srgb = v => Math.round(255 * Math.pow(clamp(v, 0, 1), 1 / 2.2));
+  // 작은 장면: 바닥 + 구 3개 (뷰 공간에서 광선 교차로 G버퍼 생성)
+  const BALLS = [{ c: [-0.9, -0.15, 3.4], r: 0.55, col: [0.85, 0.3, 0.25], rough: 0.3 }, { c: [0.45, -0.25, 3.0], r: 0.45, col: [0.3, 0.7, 0.85], rough: 0.7 }, { c: [1.3, -0.4, 3.9], r: 0.3, col: [0.9, 0.8, 0.3], rough: 0.15 }];
+  function gbuf(x, y) {
+    const d = V3.norm([x * 0.5, y * 0.5, 1]);
+    let best = { t: Infinity };
+    BALLS.forEach(b => { const oc = V3.mul(b.c, -1), bb = V3.dot(oc, d), c = V3.dot(oc, oc) - b.r * b.r, disc = bb * bb - c; if (disc > 0) { const t = -bb - Math.sqrt(disc); if (t > 0 && t < best.t) { const p = V3.mul(d, t); best = { t, p, n: V3.norm(V3.sub(p, b.c)), col: b.col, rough: b.rough }; } } });
+    if (d[1] < 0) { const t = -0.7 / d[1]; if (t < best.t) { const p = V3.mul(d, t); best = { t, p, n: [0, 1, 0], col: (Math.floor(p[0] * 2) + Math.floor(p[2] * 2)) % 2 ? [0.6, 0.6, 0.58] : [0.4, 0.42, 0.45], rough: 0.8 }; } }
+    return best;
+  }
+
+  lesson({
+    topic: "deferred", title: "포워드 vs 디퍼드", desc: "조명을 언제 계산하나", stage: "하드웨어와 성능",
+    sym: { N: "yellow", L: "gold" },
+    hook: "물체를 그리면서 바로 모든 빛을 계산하면(포워드) 빛이 많을수록 느려집니다. ==먼저 화면에 재질 정보만 적어 두고, 빛은 나중에 그 화면 위에서 한꺼번에 계산하면==(디퍼드) 빛 수백 개도 감당됩니다. UE의 기본 방식이 디퍼드입니다.",
+    blocks: [
+      { h: "G버퍼: 화면에 재질을 먼저 적어 둔다" },
+      "디퍼드의 첫 패스는 조명 없이 픽셀마다 ==기본색·노멀·깊이·거칠기==를 여러 장의 텍스처(G버퍼)에 씁니다. 둘째 패스가 이것만 보고 빛을 계산합니다. 버퍼를 하나씩 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let view = "final", nl = 6;
+          C.seg({ options: [{ value: "base", label: "기본색" }, { value: "normal", label: "노멀" }, { value: "depth", label: "깊이" }, { value: "rough", label: "거칠기" }, { value: "final", label: "조명 결과" }], value: view, onChange: x => { view = x; } });
+          C.slider({ label: "점광원 수", min: 1, max: 24, step: 1, value: nl, fmt: f0, onInput: x => { nl = x; } });
+          C.play(true);
+          F.loop(() => {});
+          F.draw = g => {
+            const t = F.t;
+            const lights = Array.from({ length: nl }, (_, i) => { const a = i / nl * TAU + t * 0.6; return { p: [Math.cos(a) * 1.5, -0.2 + 0.3 * Math.sin(a * 2 + t), 3.3 + Math.sin(a) * 1.2], c: [[1, 0.5, 0.3], [0.3, 0.6, 1], [0.5, 1, 0.4], [1, 0.9, 0.5]][i % 4] }; });
+            g.field(view === "final" ? 170 : 200, (x, y) => {
+              const h = gbuf(x, y);
+              if (!isFinite(h.t)) return [10, 12, 18, 255];
+              if (view === "base") return h.col.map(srgb).concat(255);
+              if (view === "normal") return h.n.map(v => (v * 0.5 + 0.5) * 255).concat(255);
+              if (view === "depth") { const v = clamp(1 - (h.t - 2) / 6, 0, 1) * 255; return [v, v, v, 255]; }
+              if (view === "rough") { const v = h.rough * 255; return [v, v, v, 255]; }
+              const out = h.col.map(c => c * 0.03);
+              lights.forEach(l => {
+                const Ld = V3.sub(l.p, h.p), d2 = V3.dot(Ld, Ld), Ln = V3.mul(Ld, 1 / Math.sqrt(d2));
+                const k = Math.max(0, V3.dot(h.n, Ln)) / (1 + d2 * 1.5) * 1.6;
+                for (let i = 0; i < 3; i++) out[i] += h.col[i] * l.c[i] * k;
+              });
+              return out.map(srgb).concat(255);
+            });
+            L.set("eq", { base: "G버퍼 1: 기본색 (RGB)", normal: "G버퍼 2: 노멀 → RGB = N·0.5 + 0.5", depth: "깊이 버퍼: 위치를 복원하는 데 씀", rough: "G버퍼 3: 거칠기·금속성 등 재질 값", final: `조명 패스: 픽셀마다 G버퍼를 읽고 빛 ${nl}개를 더함` }[view]);
+          };
+        }
+      } },
+
+      { h: "비용 비교: 빛이 많아지면" },
+      "포워드는 물체를 그릴 때마다 모든 빛을 계산하므로 ==겹쳐 그린 픽셀(오버드로)마다 빛 수만큼== 비용이 듭니다. 디퍼드는 G버퍼를 한 번 쓰고, 빛 계산은 ==최종 픽셀에 대해서만, 빛이 닿는 범위만== 합니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["포워드 ≈ 픽셀 × 오버드로 × 빛 = {fw}   ·   디퍼드 ≈ 픽셀 × (G버퍼 쓰기 + 빛 × 덮는 비율) = {df}"],
+        setup(F, C, L) {
+          let lights = 16, od = 2.5, cover = 0.15;
+          C.slider({ label: "빛 개수", min: 1, max: 256, step: 1, value: lights, fmt: f0, onInput: x => { lights = x; } });
+          C.slider({ label: "오버드로", min: 1, max: 6, value: od, fmt: x => "×" + num(x, 1), onInput: x => { od = x; } });
+          C.slider({ label: "빛 하나가 덮는 화면 비율", min: 0.01, max: 1, value: cover, onInput: x => { cover = x; } });
+          F.draw = g => {
+            const fw = od * lights, df = 3 + lights * cover * 1.2, mx = Math.max(fw, df, 10);
+            const bar = (y, v, c, name) => { g.poly([[2.2, y], [2.2 + v / mx * 7.4, y], [2.2 + v / mx * 7.4, y + 0.9], [2.2, y + 0.9]], { fill: c }); g.text(name, [2.1, y + 0.45], "white", { align: "right", size: 13, bold: true }); g.text(num(v, 0), [2.3 + v / mx * 7.4, y + 0.45], "white", { align: "left", size: 12 }); };
+            bar(2.6, fw, PAL.orange, "포워드");
+            bar(1.2, df, PAL.teal, "디퍼드");
+            g.text("픽셀당 상대 비용", [5.9, 3.9], "grey", { size: 11 });
+            L.set("fw", num(fw, 0)); L.set("df", num(df, 1));
+          };
+        }
+      } },
+      "대신 디퍼드는 ==G버퍼 메모리·대역폭==(26·34장)을 많이 쓰고, 픽셀마다 재질 정보가 한 벌뿐이라 ==반투명==과 ==MSAA==가 어렵습니다. 그래서 반투명은 따로 포워드로 그립니다.",
+
+      { h: "타일 라이트 컬링: 빛을 칸별로 나누기" },
+      "화면을 작은 칸(타일)으로 나누고 ==칸마다 그 칸에 닿는 빛만 목록으로== 만듭니다. 픽셀은 자기 칸 목록만 계산합니다. 빛을 끌어 보세요. 색이 진할수록 그 칸의 빛 개수가 많습니다(라이트 복잡도 뷰).",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 16, y0: 0, y1: 8 },
+        eq: ["가장 붐비는 칸의 빛 {mx}개 / 전체 {n}개   (칸마다 평균 {avg}개)"],
+        setup(F, C, L) {
+          let rad = 2.2;
+          const Ls = [[3, 2.5], [5, 5.5], [8.5, 4], [11, 2], [12.5, 6], [6.5, 1.5], [14, 3.5]];
+          Ls.forEach(p => F.vec(p, "gold", { snap: 0.05 }));
+          C.slider({ label: "빛 반경", min: 0.5, max: 5, value: rad, onInput: x => { rad = x; } });
+          F.draw = g => {
+            let mx = 0, sum = 0;
+            for (let i = 0; i < 16; i++) for (let j = 0; j < 8; j++) {
+              let cnt = 0;
+              Ls.forEach(p => { const dx = Math.max(i - p[0], 0, p[0] - (i + 1)), dy = Math.max(j - p[1], 0, p[1] - (j + 1)); if (dx * dx + dy * dy < rad * rad) cnt++; });
+              mx = Math.max(mx, cnt); sum += cnt;
+              const k = cnt / Ls.length;
+              g.poly([[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], { fill: `rgb(${Math.round(lerp(20, 252, k))},${Math.round(lerp(24, 98, k))},${Math.round(lerp(34, 85, k))})`, stroke: "rgba(236,239,244,0.12)", w: 1 });
+              if (cnt) g.text(String(cnt), [i + 0.5, j + 0.5], "white", { size: 11, halo: false });
+            }
+            Ls.forEach(p => g.circle(p, rad, "gold", { w: 1.5, alpha: 0.6, dash: [4, 4] }));
+            L.set("mx", mx); L.set("n", Ls.length); L.set("avg", num(sum / 128, 1));
+          };
+        }
+      } },
+      { key: "현대 엔진은 디퍼드 + ==타일·클러스터 라이트 컬링==으로 수천 개의 동적 광원을 다룹니다. 반대로 모바일은 대역폭이 귀해 포워드(+ 클러스터)를 주로 씁니다." },
+
+      { use: [
+        ["엔진", "버퍼 시각화 뷰", "UE 뷰포트의 Buffer Visualization(BaseColor·WorldNormal·Roughness·SceneDepth)이 이 장의 G버퍼입니다. 이상한 조명은 여기서 원인을 찾습니다."],
+        ["엔진", "포워드 셰이딩 옵션", "VR 프로젝트는 MSAA를 쓰려고 프로젝트 설정에서 Forward Shading을 켭니다. 모바일 렌더러도 기본이 포워드입니다."],
+        ["최적화", "라이트 복잡도", "Light Complexity 뷰모드가 이 장의 타일 히트맵입니다. 빨간 영역은 반경 줄이기·그림자 끄기가 우선입니다."],
+        ["실생활", "분업과 일괄 처리", "주문을 먼저 다 받아 적은 뒤 주방이 한꺼번에 조리하는 것과 같습니다. 같은 일을 모아서 하면 빠릅니다."]
+      ] },
+
+      { recap: [
+        ["포워드: 그리면서 모든 빛", "빛·오버드로가 늘면 비용이 곱으로 증가"],
+        ["디퍼드: G버퍼 → 조명 패스", "빛은 최종 픽셀에 대해서만"],
+        ["G버퍼 = 기본색·노멀·깊이·재질", "대역폭·반투명·MSAA가 약점"],
+        ["타일·클러스터 컬링", "칸마다 닿는 빛만 계산"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\34-gpu.js ===== */
 /* 09 GPU 파이프라인과 메모리 */
 (() => {
   const STAGES = [
     { name: "정점 데이터", color: "grey", desc: "메모리에 놓인 꼭짓점 위치·UV·노멀 숫자들" },
     { name: "버텍스 셰이더", color: "green", desc: "꼭짓점마다 한 번: 행렬을 곱해 화면 위치로 (4·8장)" },
     { name: "래스터화", color: "teal", desc: "삼각형이 덮는 픽셀 찾기 + 값 보간 (9장) — 고정 하드웨어" },
-    { name: "픽셀 셰이더", color: "yellow", desc: "픽셀마다 한 번: 텍스처를 읽고 조명 계산 (10·12장)" },
+    { name: "픽셀 셰이더", color: "yellow", desc: "픽셀마다 한 번: 텍스처를 읽고 조명 계산 (10·13장)" },
     { name: "출력 병합", color: "pink", desc: "깊이 테스트로 가려진 픽셀 버리기 + 블렌딩" }
   ];
 
@@ -7130,7 +8163,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\27-culling.js ===== */
+/* ===== js\lessons\35-culling.js ===== */
 /* 27 컬링과 공간 분할 */
 (() => {
   const f0 = n => num(n, 0);
@@ -7265,6 +8298,121 @@ function render() {
 })();
 
 
+/* ===== js\lessons\36-float.js ===== */
+/* 36 부동소수점 정밀도 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 가수 m비트 부동소수점으로 반올림
+  const roundMant = (x, m) => { if (x === 0) return 0; const e = Math.floor(Math.log2(Math.abs(x))), step = Math.pow(2, e - m); return Math.round(x / step) * step; };
+  const f16 = x => roundMant(x, 10);
+
+  lesson({
+    topic: "float", title: "부동소수점 정밀도", desc: "멀어질수록 거칠어지는 숫자", stage: "하드웨어와 성능",
+    sym: { x: "green", e: "orange", m: "teal" },
+    hook: "GPU의 숫자는 무한히 정밀하지 않습니다. 부동소수점은 ==0 근처는 촘촘하고, 멀어질수록 칸이 두 배씩 넓어지는== 눈금자입니다. 거대한 월드의 떨림, 깊이 깜빡임, 텍스처 계단이 모두 여기서 나옵니다.",
+    blocks: [
+      { h: "눈금이 두 배씩 넓어진다" },
+      "가수가 $m$비트인 부동소수점이 나타낼 수 있는 값들을 수직선에 찍었습니다. ==2의 거듭제곱을 넘을 때마다 간격이 두 배==가 됩니다. 비트 수를 줄이면 잘 보입니다.",
+      { fig: {
+        aspect: 0.36, view: { x0: 0, x1: 16.5, y0: -1, y1: 2, stretch: true },
+        eq: ["값 = (1 + 가수 / 2^m) · 2^e   →   x ≈ {x} 근처 간격 = {gap}"],
+        setup(F, C, L) {
+          let m = 3, px = 9;
+          C.slider({ label: "가수 비트 $m$", min: 1, max: 6, step: 1, value: m, fmt: x => x + "비트", onInput: x => { m = x; } });
+          F.handle({ color: "yellow", get: () => [px, 1.4], set: x => { px = clamp(x, 0.3, 16); } });
+          F.draw = g => {
+            g.line([0, 0], [16.5, 0], "grey", { w: 1.5 });
+            for (let e = -3; e <= 3; e++) {
+              const base = Math.pow(2, e);
+              for (let k = 0; k < Math.pow(2, m); k++) {
+                const v = base * (1 + k / Math.pow(2, m));
+                if (v > 16.5) break;
+                g.line([v, -0.25], [v, 0.25], k === 0 ? "yellow" : "teal", { w: k === 0 ? 2.5 : 1.5 });
+              }
+              if (base <= 16) g.text(String(base), [base, -0.25], "yellow", { dy: 12, size: 11 });
+            }
+            const e = Math.floor(Math.log2(px)), gap = Math.pow(2, e - m);
+            g.line([px, 0.3], [px, 1.3], "yellow", { w: 1, dash: [3, 3] });
+            const r = roundMant(px, m);
+            g.dot([r, 0], "pink", 6);
+            L.set("x", f2(px)); L.set("gap", num(gap, 3));
+          };
+        }
+      } },
+      { key: "32비트 float의 가수는 23비트라 ==약 7자리==가 정확합니다. 1에서는 0.0000001까지 구분하지만, 100만에서는 0.06, 1억에서는 8까지밖에 구분하지 못합니다." },
+
+      { h: "원점에서 멀어지면 떨린다" },
+      "반지름 1인 원을 이루는 점들의 월드 좌표를 32비트 float로 저장합니다. 원을 원점에서 멀리 보낼수록 ==좌표가 가장 가까운 눈금으로 끌려가며== 원이 찌그러지고, 움직이면 떨립니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["원의 중심 x = 10^{p} = {d}   →   이 근처 float32 간격 ≈ {gap}"],
+        setup(F, C, L) {
+          let p = 6, wob = 0;
+          C.slider({ label: "원점에서의 거리 (10의 몇 제곱)", min: 0, max: 8, step: 0.1, value: p, fmt: x => "10^" + num(x, 1), onInput: x => { p = x; } });
+          C.play();
+          F.loop(dt => { wob += dt; });
+          F.draw = g => {
+            const D = Math.pow(10, p), N = 48;
+            g.circle([0, 0], 0.8, "grey", { w: 1, dash: [4, 4], alpha: 0.5 });
+            const pts = [];
+            for (let i = 0; i < N; i++) {
+              const a = i / N * TAU + wob * 0.4;
+              const wx = Math.fround(D + Math.cos(a) * 0.8 + wob * 0.013), wy = Math.fround(Math.sin(a) * 0.8 + D * 0.5) - Math.fround(D * 0.5);
+              pts.push([wx - Math.fround(D + wob * 0.013), wy]);
+            }
+            g.poly(pts, { stroke: "yellow", w: 2.5, fill: "rgba(244,211,69,0.1)" });
+            pts.forEach(q => g.dot(q, "white", 2.5));
+            const e = Math.floor(Math.log2(D + 1)), gap = Math.pow(2, e - 23);
+            L.set("p", num(p, 1)); L.set("d", D >= 1e3 ? D.toExponential(1) : num(D, 1)); L.set("gap", gap < 1e-3 ? gap.toExponential(1) : num(gap, 3));
+          };
+        }
+      } },
+      "그래서 큰 월드는 ==카메라를 원점으로 두고 상대 좌표로 그리거나==, 월드 좌표를 64비트(double)로 바꿉니다. UE5의 Large World Coordinates가 후자입니다.",
+
+      { h: "16비트(half)로 저장하면" },
+      "메모리를 아끼려고 UV나 색을 16비트 부동소수점(가수 10비트)으로 저장하는 경우가 많습니다. 텍스처를 많이 반복해 ==UV 값이 커지면 half의 간격이 텍셀보다 커져== 텍스처가 계단처럼 깨집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["UV 범위 {u} 근처에서 half 간격 = {gap} 텍셀 (텍스처 256칸 기준)"],
+        setup(F, C, L) {
+          let off = 6, half = true;
+          C.slider({ label: "UV 시작값(반복 횟수)", min: 0, max: 128, step: 1, value: off, fmt: x => num(x, 0), onInput: x => { off = x; } });
+          C.seg({ options: [{ value: 1, label: "half (16비트)" }, { value: 0, label: "float (32비트)" }], value: 1, onChange: x => { half = !!x; } });
+          F.draw = g => {
+            g.field(300, (x, y) => {
+              let u = off + x * 0.06, v = off + y * 0.03;
+              if (half) { u = f16(u); v = f16(v); }
+              const tu = (u * 256) % 16, tv = (v * 256) % 16;
+              const c = (Math.floor(tu / 2) + Math.floor(tv / 2)) % 2 ? [236, 239, 244] : [88, 140, 200];
+              const ring = Math.abs(((u * 256) % 8) - 4) < 0.6 ? 0.7 : 1;
+              return [c[0] * ring, c[1] * ring, c[2] * ring, 255];
+            }, { smooth: false });
+            const e = Math.floor(Math.log2(Math.max(1, off))), gap = Math.pow(2, e - 10) * 256;
+            L.set("u", num(off, 0)); L.set("gap", half ? num(gap, 2) : "≈ 0");
+          };
+        }
+      } },
+      { ponder: "셰이더에서 시간 `Time`을 그대로 `sin(Time)`에 넣으면, 게임을 며칠 켜 두었을 때 애니메이션이 뚝뚝 끊깁니다. 왜일까요?",
+        answer: "시간이 수십만 초가 되면 float 간격이 ==0.03초 이상==으로 벌어져 프레임 사이의 시간 차를 표현하지 못합니다. 그래서 시간은 `frac(Time / 주기)`처럼 작은 범위로 감아서 쓰거나, CPU에서 double로 관리한 뒤 넘깁니다." },
+
+      { use: [
+        ["엔진", "Large World Coordinates", "UE5는 월드 좌표를 double로 바꿔 수천 km 맵에서도 떨림을 없앴습니다. 셰이더에는 카메라 기준 상대 좌표(LWC 타일)로 넘깁니다."],
+        ["셰이더", "half 정밀도 함정", "모바일 셰이더의 half(16비트)는 빠르지만, 월드 위치·큰 UV·시간은 float로 둬야 깨지지 않습니다. 머티리얼의 'Full Precision' 옵션이 이것입니다."],
+        ["게임", "멀리 가면 떨리는 캐릭터", "오픈월드 끝에서 무기가 떨리거나 그림자가 지글거리는 버그는 대부분 원점에서 먼 좌표의 float 정밀도 문제입니다(원점 재설정으로 해결)."],
+        ["실생활", "계산기와 돈 계산", "0.1 + 0.2 ≠ 0.3 같은 오차 때문에 은행·회계는 부동소수점 대신 정수(원 단위)나 십진수 형식을 씁니다."]
+      ] },
+
+      { recap: [
+        ["(1 + 가수 / 2^m) · 2^e", "부동소수점: 멀수록 간격이 두 배씩"],
+        ["float32 ≈ 7자리", "100만에서 0.06 간격"],
+        ["상대 좌표 · double 월드", "큰 월드의 떨림 해결"],
+        ["half = 가수 10비트", "큰 UV·시간·위치에 쓰면 깨짐"]
+      ] }
+    ]
+  });
+})();
+
+
 /* ===== js\app.js ===== */
 buildLab();
 // 단독 실행 시 #3 처럼 번호로 주제를 고를 수 있습니다(라이브러리에서는 라이브러리가 주소를 맡습니다).
@@ -7326,6 +8474,7 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     "3D에서 화면으로": "메시가 픽셀 격자로 옮겨지기까지",
     "빛과 색": "빛·재질·그림자·색 계산하기",
     "셰이더로 그리기": "수식 한 줄로 무늬와 형태 만들기",
+    "움직임과 시뮬레이션": "뼈·정점·물리로 움직이기",
     "화면 후처리": "다 그린 화면을 한 번 더 가공하기",
     "빛을 따라가는 렌더링": "광선을 쏘아 장면 그리기",
     "하드웨어와 성능": "수천 개를 동시에, 그리고 덜 그리기"
