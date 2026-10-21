@@ -60,13 +60,12 @@
             const n = shape.length, out = [];
             for (let i = 0; i < n; i++) {
               const a = shape[(i + n - 1) % n], p = shape[i], b = shape[(i + 1) % n];
-              const n1 = V.norm([p[1] - a[1], a[0] - p[0]]).map(v => -v), n2 = V.norm([b[1] - p[1], p[0] - b[0]]).map(v => -v);
+              const n1 = V.norm([p[1] - a[1], a[0] - p[0]]), n2 = V.norm([b[1] - p[1], p[0] - b[0]]);   // 반시계 다각형의 바깥 노멀
               if (smooth) out.push([V.add(p, V.mul(V.norm(V.add(n1, n2)), w))]);
               else out.push([V.add(p, V.mul(n1, w)), V.add(p, V.mul(n2, w))]);
             }
             if (smooth) g.poly(out.map(o => o[0]), { fill: "#05060a", stroke: "#05060a", w: 1 });
             else for (let i = 0; i < n; i++) { const p = shape[i], q = shape[(i + 1) % n]; g.poly([out[i][1], out[(i + 1) % n][0], q, p], { fill: "#05060a" }); }
-            g.poly([[-2, -1], [2, -1], [2, 1], [-2, 1]], { fill: "rgba(200,215,230,0.0)" });
             g.poly(shape, { fill: "rgba(240,200,170,1)" });
             if (!smooth && w > 0.02) shape.forEach((p, i) => g.circle(p, 0.05, "red", { w: 1.5 }));
             L.set("w", f2(w));
