@@ -85,6 +85,8 @@
   font-size: 1.08em; white-space: nowrap;
   background: var(--math-bg); border-radius: 5px; padding: 0 0.28em; margin: 0 0.05em;
 }
+/* 본문 속 긴 수식은 줄을 넘길 수 있게 (화면 밖으로 넘치는 것보다 낫다) */
+.lesson-body p .math, .keybox .math, .ponder .math, .use .math { white-space: normal; }
 .math .m-id { font-style: italic; font-weight: 600; }
 .math .m-id:not([class*="c-"]) { color: var(--ink); }
 .math .m-num { font-weight: 500; }
@@ -192,6 +194,7 @@
 }
 .use-t { font-weight: 800; font-size: 15.5px; line-height: 1.45; margin-bottom: 4px; }
 .use-d { font-size: 14px; line-height: 1.65; color: var(--muted); }
+.use, .keybox, .ponder, .recap-d, .lesson-body > p { overflow-wrap: anywhere; word-break: keep-all; }
 .use-d strong, .use-d mark { color: var(--ink); }
 
 /* ---------- 이전·다음 ---------- */
@@ -211,3 +214,32 @@
   .fig-eq-line { font-size: 16.5px; }
   .recap-eq { min-width: 0; }
 }
+/* 휴대폰: 그림은 화면 끝까지(본문 여백 --gutter 만큼 바깥으로), 조작부는 한 줄에 하나 */
+@media (max-width: 600px) {
+  .lesson h1 { font-size: 28px; }
+  .lesson-hook { font-size: 16.5px; }
+  .lesson-body h2 { font-size: 20px; margin-top: 2em; }
+  .fig { margin-left: calc(-1 * var(--gutter, 16px)); margin-right: calc(-1 * var(--gutter, 16px)); border-radius: 0; border-left: 0; border-right: 0; }
+  .fig-title { padding: 8px 12px 0; }
+  .fig-ctl { padding: 10px 12px; gap: 8px 10px; }
+  .ctl-slider { flex: 1 1 100%; min-width: 0; }
+  .ctl-seg { flex-wrap: wrap; }
+  .fig-eq { padding: 10px 12px 12px; }
+  .fig-eq-line { font-size: 15px; white-space: normal; }
+  .fig-eq .math, .lesson-body .math { white-space: normal; }
+  .fig-cap { margin-left: 0; }
+  .keybox { padding: 12px 14px; }
+  .use-grid { grid-template-columns: 1fr; }
+  .recap { padding: 14px 14px; }
+  .recap-row { flex-direction: column; gap: 2px; }
+  .lesson-foot { grid-template-columns: 1fr; }
+  .foot-btn.next { grid-column: 1; }
+}
+/* 손가락으로 쓰는 기기: 누를 곳을 크게, 두 번 탭 확대 끄기 */
+@media (pointer: coarse) {
+  .ctl-seg button, .ctl-btn { padding: 9px 14px; font-size: 14px; min-height: 40px; }
+  .ctl-slider input { height: 36px; }
+  .lab-topics button { padding: 8px 13px; }
+  .icon-btn { width: 40px; height: 40px; }
+}
+.lesson button, .lesson input, .lab-nav-row button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }

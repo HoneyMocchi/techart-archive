@@ -72,10 +72,13 @@ function makeFig(block, opts, lessonCtx) {
   F.resize = () => {
     const w = Math.max(240, F.wrap.clientWidth);
     const aspect = typeof opts.aspect === "function" ? opts.aspect(w) : (opts.aspect || 0.56);
-    const h = Math.round(Math.min(opts.maxH || 560, w * aspect));
+    // 가로로 눕힌 휴대폰처럼 화면이 낮으면 그림이 한 화면을 넘지 않게
+    const vh = (typeof window !== "undefined" && window.innerHeight) || 900;
+    const h = Math.round(Math.min(opts.maxH || 560, w * aspect, Math.max(220, vh * 0.72)));
     if (w === F.w && h === F.h) return;
     F.dpr = Math.min(2, window.devicePixelRatio || 1);
     F.w = w; F.h = h;
+    F.fs = clamp(w / 720, 0.74, 1);              // 좁은 화면에서는 그림 속 글자도 조금 작게
     F.canvas.width = Math.round(w * F.dpr);
     F.canvas.height = Math.round(h * F.dpr);
     F.canvas.style.height = h + "px";
@@ -167,6 +170,8 @@ function makeFig(block, opts, lessonCtx) {
     F.redraw();
     e.preventDefault();
   });
+  // 끄는 중에는 touchmove도 막아 페이지가 따라 스크롤되지 않게 (touchstart가 취소 불가로 온 경우의 보험)
+  F.canvas.addEventListener("touchmove", e => { if ((F.active || (opts.captureTouch && last)) && e.cancelable) e.preventDefault(); }, { passive: false });
   F.canvas.addEventListener("pointermove", e => {
     const [sx, sy] = local(e);
     if (F.active) { moveHandle(F.active, sx, sy); F.redraw(); }
@@ -356,7 +361,7 @@ const G = {
   },
   texS(str, x, y, color = "white", o = {}) {
     const c = G.c;
-    c.font = `${o.italic === false ? "" : "italic "}${o.bold ? "700 " : "500 "}${o.size || 19}px ${MATH_FONT}`;
+    c.font = `${o.italic === false ? "" : "italic "}${o.bold ? "700 " : "500 "}${(o.size || 19) * (G._F.fs || 1)}px ${MATH_FONT}`;
     c.textAlign = o.align || "center"; c.textBaseline = o.base || "middle";
     if (o.halo !== false) { c.lineWidth = 4; c.strokeStyle = PAL.bg; c.strokeText(str, x, y); }
     c.fillStyle = col(color); c.fillText(str, x, y);
@@ -369,7 +374,7 @@ const G = {
   },
   textS(str, x, y, color = "grey", o = {}) {
     const c = G.c;
-    c.font = `${o.bold ? 700 : 500} ${o.size || 13}px ${UI_FONT}`;
+    c.font = `${o.bold ? 700 : 500} ${(o.size || 13) * (G._F.fs || 1)}px ${UI_FONT}`;
     c.textAlign = o.align || "center"; c.textBaseline = o.base || "middle";
     if (o.halo !== false) { c.lineWidth = 4; c.strokeStyle = PAL.bg; c.strokeText(str, x, y); }
     c.fillStyle = col(color); c.fillText(str, x, y);
@@ -382,6 +387,8 @@ const G = {
     const r = o.rect || { x0: F.bounds().x0, x1: F.bounds().x1, y0: F.bounds().y0, y1: F.bounds().y1 };
     const p0 = F.toS([r.x0, r.y1]), p1 = F.toS([r.x1, r.y0]);
     const wpx = p1[0] - p0[0], hpx = p1[1] - p0[1];
+    // 작은 화면에서는 픽셀 계산 수를 줄입니다(행 수를 직접 준 그림은 데이터 격자이므로 그대로)
+    if (!o.rows) cols = Math.max(24, Math.round(cols * clamp(F.w / 700, 0.6, 1)));
     const rows = o.rows || Math.max(1, Math.round(cols * hpx / wpx));
     const key = cols + "x" + rows;
     if (!F._field || F._field.key !== key) {

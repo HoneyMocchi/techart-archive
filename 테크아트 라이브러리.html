@@ -1,3 +1,6 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161B">
 <title>TechArt Archive</title>
 <style>
   :root {
@@ -81,6 +84,7 @@
     html { scroll-behavior: auto; }
     * { transition: none !important; animation: none !important; }
   }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
     margin: 0;
     background: var(--bg);
@@ -325,6 +329,9 @@
   }
   .doc blockquote p { margin: 0.3em 0; }
   .doc p { margin: 0.9em 0; }
+  /* 긴 파일 경로·함수 이름이 좁은 화면 밖으로 나가지 않게 */
+  .doc p code, .doc li code, .doc blockquote code { overflow-wrap: anywhere; word-break: break-all; }
+  .doc p, .doc li { overflow-wrap: anywhere; word-break: keep-all; }
   .doc ul, .doc ol { margin: 0.9em 0; padding-left: 1.5em; }
   .doc li { margin: 0.35em 0; }
   .doc li::marker { color: var(--accent); }
@@ -436,6 +443,18 @@
     transition: transform 0.12s;
   }
   .doc .cta { color: var(--bg); }
+  /* 한국어 제목은 낱말 단위로 줄바꿈 */
+  .doc h1, .doc h2, .lesson h1, .lesson h2, .card .t, .stage-head .t { word-break: keep-all; }
+  @media (max-width: 600px) {
+    .doc .lesson-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .doc .lesson-cards .card { padding: 11px 12px 10px; }
+    .doc .lesson-cards .card .t { font-size: 14px; }
+    .doc .lesson-cards .card .d { font-size: 12px; }
+    .stage-head { flex-wrap: wrap; row-gap: 0; }
+    .stage-head .d { flex-basis: 100%; }
+    .doc h1 { font-size: 1.6rem; }
+    .cta { width: 100%; justify-content: center; }
+  }
   /* ---------- 사이드바 접기 ---------- */
   .side-toggle {
     margin-left: auto; flex: none; appearance: none; border: 1px solid var(--line); background: var(--surface);
@@ -452,29 +471,38 @@
   }
   /* ---------- 리모컨 ---------- */
   .remote {
-    position: fixed; right: 18px; bottom: 18px; z-index: 65;
+    position: fixed; right: calc(18px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 65;
     display: flex; align-items: center; gap: 2px; padding: 4px;
     background: color-mix(in srgb, var(--surface) 88%, transparent);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 6px 24px rgba(10, 12, 20, 0.22);
   }
+  .remote button, .nav button, .menu-btn, .side-toggle, .theme-btn, .cards .card, .cta { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .remote button {
     appearance: none; border: 0; background: transparent; color: var(--ink); font: inherit;
     min-width: 32px; height: 32px; border-radius: 10px; cursor: pointer; font-size: 14px; padding: 0 6px;
   }
   .remote button:hover { background: var(--accent-soft); color: var(--accent); }
   .remote button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  @media (pointer: coarse) {
+    .remote button { min-width: 40px; height: 40px; }
+    .nav button { padding: 10px 10px; }
+    .side-toggle { width: 34px; height: 34px; }
+  }
   .remote .where { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; font-size: 12.5px; font-weight: 700; padding: 0 10px; }
   .remote .where #remoteNo { color: var(--accent); font-variant-numeric: tabular-nums; }
   .remote .where #remoteTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .remote, .menu-btn { transition: transform 0.25s ease, opacity 0.25s ease; }
+  body.chrome-hidden .remote { transform: translate(var(--remote-x, 0), 160%); opacity: 0; pointer-events: none; }
+  body.chrome-hidden .menu-btn { transform: translateY(-160%); opacity: 0; pointer-events: none; }
   .remote .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
   .remote .mini { color: var(--muted); }
   .remote.folded > :not(.mini) { display: none; }
   .remote.folded .mini { min-width: 40px; height: 40px; font-size: 17px; color: var(--accent); }
   @media (max-width: 860px) {
-    .remote { right: 50%; transform: translateX(50%); bottom: 12px; }
+    .remote { right: 50%; --remote-x: 50%; transform: translateX(50%); bottom: calc(10px + env(safe-area-inset-bottom)); }
     .remote .where { max-width: 120px; }
-    .remote.folded { right: 14px; transform: none; }
+    .remote.folded { right: calc(14px + env(safe-area-inset-right)); transform: none; --remote-x: 0; }
   }
   .hero-fig { margin: 1.4em 0 1.2em; max-width: none; }
   .cta:hover { transform: translateY(-1px); }
@@ -651,6 +679,8 @@
   font-size: 1.08em; white-space: nowrap;
   background: var(--math-bg); border-radius: 5px; padding: 0 0.28em; margin: 0 0.05em;
 }
+/* 본문 속 긴 수식은 줄을 넘길 수 있게 (화면 밖으로 넘치는 것보다 낫다) */
+.lesson-body p .math, .keybox .math, .ponder .math, .use .math { white-space: normal; }
 .math .m-id { font-style: italic; font-weight: 600; }
 .math .m-id:not([class*="c-"]) { color: var(--ink); }
 .math .m-num { font-weight: 500; }
@@ -758,6 +788,7 @@
 }
 .use-t { font-weight: 800; font-size: 15.5px; line-height: 1.45; margin-bottom: 4px; }
 .use-d { font-size: 14px; line-height: 1.65; color: var(--muted); }
+.use, .keybox, .ponder, .recap-d, .lesson-body > p { overflow-wrap: anywhere; word-break: keep-all; }
 .use-d strong, .use-d mark { color: var(--ink); }
 
 /* ---------- 이전·다음 ---------- */
@@ -777,6 +808,35 @@
   .fig-eq-line { font-size: 16.5px; }
   .recap-eq { min-width: 0; }
 }
+/* 휴대폰: 그림은 화면 끝까지(본문 여백 --gutter 만큼 바깥으로), 조작부는 한 줄에 하나 */
+@media (max-width: 600px) {
+  .lesson h1 { font-size: 28px; }
+  .lesson-hook { font-size: 16.5px; }
+  .lesson-body h2 { font-size: 20px; margin-top: 2em; }
+  .fig { margin-left: calc(-1 * var(--gutter, 16px)); margin-right: calc(-1 * var(--gutter, 16px)); border-radius: 0; border-left: 0; border-right: 0; }
+  .fig-title { padding: 8px 12px 0; }
+  .fig-ctl { padding: 10px 12px; gap: 8px 10px; }
+  .ctl-slider { flex: 1 1 100%; min-width: 0; }
+  .ctl-seg { flex-wrap: wrap; }
+  .fig-eq { padding: 10px 12px 12px; }
+  .fig-eq-line { font-size: 15px; white-space: normal; }
+  .fig-eq .math, .lesson-body .math { white-space: normal; }
+  .fig-cap { margin-left: 0; }
+  .keybox { padding: 12px 14px; }
+  .use-grid { grid-template-columns: 1fr; }
+  .recap { padding: 14px 14px; }
+  .recap-row { flex-direction: column; gap: 2px; }
+  .lesson-foot { grid-template-columns: 1fr; }
+  .foot-btn.next { grid-column: 1; }
+}
+/* 손가락으로 쓰는 기기: 누를 곳을 크게, 두 번 탭 확대 끄기 */
+@media (pointer: coarse) {
+  .ctl-seg button, .ctl-btn { padding: 9px 14px; font-size: 14px; min-height: 40px; }
+  .ctl-slider input { height: 36px; }
+  .lab-topics button { padding: 8px 13px; }
+  .icon-btn { width: 40px; height: 40px; }
+}
+.lesson button, .lesson input, .lab-nav-row button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 /* LAB_STYLE_END */
 
@@ -824,7 +884,9 @@
     }
     .sidebar.open { transform: translateX(0); }
     .backdrop.show { display: block; }
-    .content { padding: 72px 22px 32px; }
+    .content { padding: calc(66px + env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); --gutter: max(18px, env(safe-area-inset-left)); }
+    .sidebar { padding-top: calc(24px + env(safe-area-inset-top)); padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+    .menu-btn { top: calc(12px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); }
     .cards { grid-template-columns: 1fr; }
   }
 </style>
@@ -2110,10 +2172,13 @@ function makeFig(block, opts, lessonCtx) {
   F.resize = () => {
     const w = Math.max(240, F.wrap.clientWidth);
     const aspect = typeof opts.aspect === "function" ? opts.aspect(w) : (opts.aspect || 0.56);
-    const h = Math.round(Math.min(opts.maxH || 560, w * aspect));
+    // 가로로 눕힌 휴대폰처럼 화면이 낮으면 그림이 한 화면을 넘지 않게
+    const vh = (typeof window !== "undefined" && window.innerHeight) || 900;
+    const h = Math.round(Math.min(opts.maxH || 560, w * aspect, Math.max(220, vh * 0.72)));
     if (w === F.w && h === F.h) return;
     F.dpr = Math.min(2, window.devicePixelRatio || 1);
     F.w = w; F.h = h;
+    F.fs = clamp(w / 720, 0.74, 1);              // 좁은 화면에서는 그림 속 글자도 조금 작게
     F.canvas.width = Math.round(w * F.dpr);
     F.canvas.height = Math.round(h * F.dpr);
     F.canvas.style.height = h + "px";
@@ -2205,6 +2270,8 @@ function makeFig(block, opts, lessonCtx) {
     F.redraw();
     e.preventDefault();
   });
+  // 끄는 중에는 touchmove도 막아 페이지가 따라 스크롤되지 않게 (touchstart가 취소 불가로 온 경우의 보험)
+  F.canvas.addEventListener("touchmove", e => { if ((F.active || (opts.captureTouch && last)) && e.cancelable) e.preventDefault(); }, { passive: false });
   F.canvas.addEventListener("pointermove", e => {
     const [sx, sy] = local(e);
     if (F.active) { moveHandle(F.active, sx, sy); F.redraw(); }
@@ -2394,7 +2461,7 @@ const G = {
   },
   texS(str, x, y, color = "white", o = {}) {
     const c = G.c;
-    c.font = `${o.italic === false ? "" : "italic "}${o.bold ? "700 " : "500 "}${o.size || 19}px ${MATH_FONT}`;
+    c.font = `${o.italic === false ? "" : "italic "}${o.bold ? "700 " : "500 "}${(o.size || 19) * (G._F.fs || 1)}px ${MATH_FONT}`;
     c.textAlign = o.align || "center"; c.textBaseline = o.base || "middle";
     if (o.halo !== false) { c.lineWidth = 4; c.strokeStyle = PAL.bg; c.strokeText(str, x, y); }
     c.fillStyle = col(color); c.fillText(str, x, y);
@@ -2407,7 +2474,7 @@ const G = {
   },
   textS(str, x, y, color = "grey", o = {}) {
     const c = G.c;
-    c.font = `${o.bold ? 700 : 500} ${o.size || 13}px ${UI_FONT}`;
+    c.font = `${o.bold ? 700 : 500} ${(o.size || 13) * (G._F.fs || 1)}px ${UI_FONT}`;
     c.textAlign = o.align || "center"; c.textBaseline = o.base || "middle";
     if (o.halo !== false) { c.lineWidth = 4; c.strokeStyle = PAL.bg; c.strokeText(str, x, y); }
     c.fillStyle = col(color); c.fillText(str, x, y);
@@ -2420,6 +2487,8 @@ const G = {
     const r = o.rect || { x0: F.bounds().x0, x1: F.bounds().x1, y0: F.bounds().y0, y1: F.bounds().y1 };
     const p0 = F.toS([r.x0, r.y1]), p1 = F.toS([r.x1, r.y0]);
     const wpx = p1[0] - p0[0], hpx = p1[1] - p0[1];
+    // 작은 화면에서는 픽셀 계산 수를 줄입니다(행 수를 직접 준 그림은 데이터 격자이므로 그대로)
+    if (!o.rows) cols = Math.max(24, Math.round(cols * clamp(F.w / 700, 0.6, 1)));
     const rows = o.rows || Math.max(1, Math.round(cols * hpx / wpx));
     const key = cols + "x" + rows;
     if (!F._field || F._field.key !== key) {
@@ -10939,15 +11008,21 @@ function render() {
 (() => {
   const f0 = n => num(n, 0);
   const MONO = '"Cascadia Code", Consolas, monospace';
+  // 코드 줄 그리기. 좁은 화면에서는 설명을 다음 줄로 내림
   function code(g, lines, x, y, lh) {
-    const c = g.c;
-    lines.forEach((ln, k) => {
-      const yy = y + k * lh;
-      c.font = `500 13px ${MONO}`; c.textAlign = "left"; c.textBaseline = "middle";
+    const c = g.c, F = G._F, narrow = F.w < 640, fsz = narrow ? 11 : 13;
+    let yy = y;
+    lines.forEach(ln => {
+      c.font = `500 ${fsz}px ${MONO}`; c.textAlign = "left"; c.textBaseline = "middle";
       const col = ln.s === "gone" ? "rgba(138,147,166,0.55)" : ln.s === "fold" ? PAL.teal : ln.s === "new" ? PAL.yellow : "#ECEFF4";
       c.fillStyle = col; c.fillText(ln.t, x, yy);
       if (ln.s === "gone") { const w = c.measureText(ln.t).width; c.strokeStyle = "rgba(252,98,85,0.8)"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, yy); c.lineTo(x + w, yy); c.stroke(); }
-      if (ln.note) { c.font = `500 12px ${UI_FONT}`; c.fillStyle = ln.s === "gone" ? PAL.red : PAL.grey; c.fillText(ln.note, x + 330, yy); }
+      if (ln.note) {
+        c.font = `500 ${narrow ? 10.5 : 12}px ${UI_FONT}`; c.fillStyle = ln.s === "gone" ? PAL.red : PAL.grey;
+        if (narrow) { yy += lh * 0.62; c.fillText(ln.note, x + 14, yy); }
+        else c.fillText(ln.note, x + 330, yy);
+      }
+      yy += narrow ? lh * 0.82 : lh;
     });
   }
 
@@ -10959,7 +11034,7 @@ function render() {
       { h: "상수 폴딩과 죽은 코드 제거" },
       "왼쪽 코드를 컴파일러가 어떻게 줄이는지 봅니다. ==파라미터가 컴파일 시점 상수인지==, 정적 스위치가 켜졌는지에 따라 남는 명령이 달라집니다. 버튼을 바꿔 보세요. [[teal:청록]]은 미리 계산된 줄, 취소선은 지워진 줄입니다.",
       { fig: {
-        aspect: 0.56, view: { x0: 0, x1: 10, y0: 0, y1: 5.6 },
+        aspect: w => (w < 640 ? 1.15 : 0.56), view: { x0: 0, x1: 10, y0: 0, y1: 5.6 },
         eq: ["명령 수: 최적화 전 {a} → 후 {b}"],
         setup(F, C, L) {
           let constAB = true, detail = false, view = 1;
@@ -10981,7 +11056,7 @@ function render() {
               { t: "float unused = sin(t) * cos(t);", s: opt ? "gone" : "", note: opt ? "결과에 안 쓰임 → 제거" : "" },
               { t: "return c * 1.0 + sin(0.0);", s: opt ? "fold" : "", note: opt ? "→ return c" : "" }
             ];
-            code(g, lines, F.toS([0.3, 0])[0], 30, 26);
+            code(g, lines, 14, 26, 26);
             const before = 2 + 1 + 3 + 1 + 3 + 1 + (detail ? 2 + 3 : 2 + 3) + 4 + 4;
             let after = 3 + 1;                                     // tex 곱, x*x
             if (!constAB) after += 1 + 3;                          // a*b, tex*k
@@ -12079,6 +12154,17 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     }
   });
   try { if (localStorage.getItem("maindev-docs-remote") === "1") remote.querySelector(".mini").click(); } catch (err) {}
+
+  /* ---------- 작은 화면: 아래로 스크롤하는 동안 리모컨·메뉴 버튼을 숨겨 본문을 가리지 않게 ---------- */
+  var compact = window.matchMedia("(max-width: 860px), (max-height: 520px)");
+  var lastY = window.scrollY;
+  window.addEventListener("scroll", function () {
+    var y = window.scrollY, dy = y - lastY;
+    if (Math.abs(dy) < 6) return;
+    var hide = compact.matches && dy > 0 && y > 160 && !sidebar.classList.contains("open");
+    document.body.classList.toggle("chrome-hidden", hide);
+    lastY = y;
+  }, { passive: true });
 
   /* ---------- 사이드바 접기(넓은 화면) · 열기(좁은 화면) ---------- */
   var narrow = window.matchMedia("(max-width: 860px)");

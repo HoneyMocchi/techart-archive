@@ -2,15 +2,21 @@
 (() => {
   const f0 = n => num(n, 0);
   const MONO = '"Cascadia Code", Consolas, monospace';
+  // 코드 줄 그리기. 좁은 화면에서는 설명을 다음 줄로 내림
   function code(g, lines, x, y, lh) {
-    const c = g.c;
-    lines.forEach((ln, k) => {
-      const yy = y + k * lh;
-      c.font = `500 13px ${MONO}`; c.textAlign = "left"; c.textBaseline = "middle";
+    const c = g.c, F = G._F, narrow = F.w < 640, fsz = narrow ? 11 : 13;
+    let yy = y;
+    lines.forEach(ln => {
+      c.font = `500 ${fsz}px ${MONO}`; c.textAlign = "left"; c.textBaseline = "middle";
       const col = ln.s === "gone" ? "rgba(138,147,166,0.55)" : ln.s === "fold" ? PAL.teal : ln.s === "new" ? PAL.yellow : "#ECEFF4";
       c.fillStyle = col; c.fillText(ln.t, x, yy);
       if (ln.s === "gone") { const w = c.measureText(ln.t).width; c.strokeStyle = "rgba(252,98,85,0.8)"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, yy); c.lineTo(x + w, yy); c.stroke(); }
-      if (ln.note) { c.font = `500 12px ${UI_FONT}`; c.fillStyle = ln.s === "gone" ? PAL.red : PAL.grey; c.fillText(ln.note, x + 330, yy); }
+      if (ln.note) {
+        c.font = `500 ${narrow ? 10.5 : 12}px ${UI_FONT}`; c.fillStyle = ln.s === "gone" ? PAL.red : PAL.grey;
+        if (narrow) { yy += lh * 0.62; c.fillText(ln.note, x + 14, yy); }
+        else c.fillText(ln.note, x + 330, yy);
+      }
+      yy += narrow ? lh * 0.82 : lh;
     });
   }
 
@@ -22,7 +28,7 @@
       { h: "상수 폴딩과 죽은 코드 제거" },
       "왼쪽 코드를 컴파일러가 어떻게 줄이는지 봅니다. ==파라미터가 컴파일 시점 상수인지==, 정적 스위치가 켜졌는지에 따라 남는 명령이 달라집니다. 버튼을 바꿔 보세요. [[teal:청록]]은 미리 계산된 줄, 취소선은 지워진 줄입니다.",
       { fig: {
-        aspect: 0.56, view: { x0: 0, x1: 10, y0: 0, y1: 5.6 },
+        aspect: w => (w < 640 ? 1.15 : 0.56), view: { x0: 0, x1: 10, y0: 0, y1: 5.6 },
         eq: ["명령 수: 최적화 전 {a} → 후 {b}"],
         setup(F, C, L) {
           let constAB = true, detail = false, view = 1;
@@ -44,7 +50,7 @@
               { t: "float unused = sin(t) * cos(t);", s: opt ? "gone" : "", note: opt ? "결과에 안 쓰임 → 제거" : "" },
               { t: "return c * 1.0 + sin(0.0);", s: opt ? "fold" : "", note: opt ? "→ return c" : "" }
             ];
-            code(g, lines, F.toS([0.3, 0])[0], 30, 26);
+            code(g, lines, 14, 26, 26);
             const before = 2 + 1 + 3 + 1 + 3 + 1 + (detail ? 2 + 3 : 2 + 3) + 4 + 4;
             let after = 3 + 1;                                     // tex 곱, x*x
             if (!constAB) after += 1 + 3;                          // a*b, tex*k
