@@ -116,7 +116,17 @@
             for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) { const on = rnd() < dens; a0.push(on ? 1 : 0); c0.push(on ? [0.5 + 0.5 * Math.sin(i * 0.15), 0.5 + 0.5 * Math.cos(j * 0.2), 0.5 + 0.5 * Math.sin((i + j) * 0.08)] : [0, 0, 0]); }
             const P = [{ c: c0, a: a0, s: S }];
             for (let k = 1; k <= lv; k++) { const p = P[k - 1], s = p.s >> 1, c = [], a = []; for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) { let w = 0, acc = [0, 0, 0]; [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([di, dj]) => { const id = (2 * j + dj) * p.s + 2 * i + di; w += p.a[id]; for (let t = 0; t < 3; t++) acc[t] += p.c[id][t] * p.a[id]; }); c.push(w ? acc.map(v => v / w) : [0, 0, 0]); a.push(Math.min(1, w)); } P.push({ c, a, s }); }
-            for (let k = lv - 1; k >= 0; k--) { const p = P[k], up = P[k + 1]; for (let j = 0; j < p.s; j++) for (let i = 0; i < p.s; i++) { const id = j * p.s + i, uid = (j >> 1) * up.s + (i >> 1); const a = p.a[id]; p.c[id] = p.c[id].map((v, t) => v * a + up.c[uid][t] * (1 - a)); p.a[id] = Math.max(a, up.a[uid]); } }
+            for (let k = lv - 1; k >= 0; k--) {
+              const p = P[k], up = P[k + 1];
+              const upAt = (x, y) => {                       // 위 단계를 바이리니어로 읽어 블록 무늬 없이 채움
+                const fx = clamp(x, 0, up.s - 1), fy = clamp(y, 0, up.s - 1), i0 = Math.min(up.s - 2, Math.floor(fx)), j0 = Math.min(up.s - 2, Math.floor(fy)), tx = fx - i0, ty = fy - j0;
+                if (up.s < 2) return up.c[0];
+                const q = (a, b) => up.c[b * up.s + a];
+                return [0, 1, 2].map(t => lerp(lerp(q(i0, j0)[t], q(i0 + 1, j0)[t], tx), lerp(q(i0, j0 + 1)[t], q(i0 + 1, j0 + 1)[t], tx), ty));
+              };
+              for (let j = 0; j < p.s; j++) for (let i = 0; i < p.s; i++) { const id = j * p.s + i, a = p.a[id], u = upAt((i + 0.5) / 2 - 0.5, (j + 0.5) / 2 - 0.5); p.c[id] = p.c[id].map((v, t) => v * a + u[t] * (1 - a)); }
+              for (let j = 0; j < p.s; j++) for (let i = 0; i < p.s; i++) p.a[j * p.s + i] = 1;
+            }
             g.field(256, (x, y) => {
               const left = x < 2, i = Math.floor((left ? x : x - 2) / 2 * S), j = Math.floor((2 - y) / 2 * S), id = j * S + i;
               if (left) return a0[id] ? c0[id].map(v => v * 255).concat(255) : [20, 22, 30, 255];
