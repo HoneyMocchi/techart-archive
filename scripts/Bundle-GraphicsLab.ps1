@@ -7,7 +7,7 @@ $srcRoot  = Join-Path $docRoot "graphics-lab"
 $htmlPath = Join-Path $docRoot "테크아트 라이브러리.html"
 
 # 로드 순서: core → lessons(파일 이름 = 번호 순) → app. 전역 스크립트라 순서가 중요합니다.
-$files = @("js\core\format.js", "js\core\fig.js", "js\core\lab.js")
+$files = @("js\core\format.js", "js\core\fig.js", "js\core\meta.js", "js\core\lab.js")
 $files += Get-ChildItem (Join-Path $srcRoot "js\lessons") -Filter *.js | Sort-Object Name | ForEach-Object { "js\lessons\" + $_.Name }
 $files += "js\app.js"
 

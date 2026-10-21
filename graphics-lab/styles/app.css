@@ -54,6 +54,18 @@
   color: var(--c-blue); border: 1.5px solid currentColor; border-radius: 6px; padding: 0 6px;
 }
 .lesson h1 { font-size: clamp(30px, 4vw, 42px); line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 12px; }
+/* 난이도(점 셋)와 태그 */
+.lesson-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -2px 0 14px; }
+.lv { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 800; color: var(--muted); margin-right: 6px; }
+.lv i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; }
+.lv i:last-of-type { margin-right: 4px; }
+.lv-1 { color: var(--c-green); } .lv-2 { color: var(--c-gold); } .lv-3 { color: var(--c-red); }
+.lv-1 i:nth-child(-n+1), .lv-2 i:nth-child(-n+2), .lv-3 i:nth-child(-n+3) { background: currentColor; }
+.lesson-meta .tag {
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--muted); background: transparent; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; touch-action: manipulation;
+}
+.lesson-meta .tag:hover { color: var(--c-blue); border-color: currentColor; }
 .lesson-hook { font-size: 18.5px; line-height: 1.7; color: var(--muted); margin: 0; max-width: 44rem; }
 .lesson-body { font-size: 17px; line-height: 1.85; }
 .lesson-body > p, .lesson-body > h2, .lesson-body > .keybox, .lesson-body > .ponder { max-width: 46rem; }

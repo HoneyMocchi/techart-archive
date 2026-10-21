@@ -50,12 +50,19 @@ function buildLab() {
     sec.dataset.title = def.title;
     sec.dataset.desc = def.desc;
     sec.dataset.stage = def.stage;
+    const meta = lessonMeta(def.topic);
+    sec.dataset.level = meta.level;
+    sec.dataset.tags = meta.tags.join(",");
     const body = def.blocks.map(b => renderBlock(b, sym, pending)).join("\n");
     const prev = LESSON_DEFS[i - 1], next = LESSON_DEFS[i + 1];
     sec.innerHTML = `
       <header class="lesson-head">
         <p class="lesson-kicker"><span>${no}</span>${def.stage}</p>
         <h1>${def.title}</h1>
+        <div class="lesson-meta">
+          <span class="lv lv-${meta.level}" title="난이도"><i></i><i></i><i></i>${LEVEL_NAMES[meta.level]}</span>
+          ${meta.tags.map(t => `<button type="button" class="tag" data-tag="${t}">#${t}</button>`).join("")}
+        </div>
         <p class="lesson-hook">${fmtText(def.hook, sym)}</p>
       </header>
       <div class="lesson-body">${body}</div>
@@ -75,6 +82,9 @@ function buildLab() {
   document.addEventListener("click", e => {
     const b = e.target.closest("[data-go]");
     if (b && (nav.contains(b) || root.contains(b))) setActive(+b.dataset.go, true);
+    // 태그를 누르면 그 태그로 검색 (검색 창은 라이브러리가 제공)
+    const t = e.target.closest(".lesson-meta .tag");
+    if (t) document.dispatchEvent(new CustomEvent("gfxlab:tag", { detail: { tag: t.dataset.tag } }));
   });
   const prevBtn = document.getElementById("prevTopic"), nextBtn = document.getElementById("nextTopic");
   if (prevBtn) prevBtn.addEventListener("click", () => setActive(Math.max(0, lab.active - 1), true));

@@ -37,4 +37,4 @@ function mountHero(host) {
   return F;
 }
 
-window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.sections, mountHero };
+window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.sections, mountHero, tagOrder: TAG_ORDER };
