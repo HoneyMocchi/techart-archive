@@ -184,7 +184,6 @@
   .nav button:hover { background: var(--surface2); }
   .nav button:focus-visible,
   .toc a:focus-visible,
-  .theme-btn:focus-visible,
   .pager a:focus-visible,
   .card:focus-visible,
   .menu-btn:focus-visible {
@@ -214,36 +213,6 @@
   }
   .nav button.active .no { color: var(--accent); }
 
-  .sidebar-foot {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border-top: 1px solid var(--line);
-    padding-top: 16px;
-  }
-  .theme-btn {
-    appearance: none;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--ink);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: background 0.12s;
-  }
-  .theme-btn:hover { background: var(--surface2); }
-  .kbd-hint {
-    font-size: 11.5px;
-    color: var(--muted);
-    text-align: center;
-  }
   kbd {
     font-family: inherit;
     font-size: 11px;
@@ -456,11 +425,37 @@
     .cta { width: 100%; justify-content: center; }
   }
   /* ---------- 사이드바 접기 ---------- */
+  .side-btns { margin-left: auto; display: flex; gap: 6px; flex: none; }
+  .brand { gap: 10px; }
+  .brand .mark { width: 28px; height: 28px; }
+  .brand > div:not(.mark) { min-width: 0; }
+  .brand .name { font-size: 14px; white-space: nowrap; }
+  .brand .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .side-toggle {
-    margin-left: auto; flex: none; appearance: none; border: 1px solid var(--line); background: var(--surface);
+    flex: none; appearance: none; border: 1px solid var(--line); background: var(--surface);
     color: var(--muted); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1;
   }
   .side-toggle:hover { color: var(--ink); border-color: var(--accent); }
+  .side-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #themeIcon { font-size: 13px; }
+  /* 사이드바: 머리(브랜드·검색)는 그대로, 목록만 스크롤. 위아래 끝은 살짝 흐리게 */
+  .sidebar { overflow: hidden; gap: 18px; }
+  .sidebar > .nav {
+    overflow-y: auto; min-height: 0; margin: 0 -12px; padding: 4px 12px 24px; overscroll-behavior: contain;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+  }
+  /* 스크롤바: 테마 색에 맞춘 얇은 막대, 사이드바에 마우스를 올렸을 때만 진하게 */
+  :root { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+  .sidebar > .nav, .search-results, .lab-topics { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .sidebar:hover > .nav, .search-results:hover { scrollbar-color: var(--line) transparent; }
+  .sidebar > .nav::-webkit-scrollbar, .search-results::-webkit-scrollbar { width: 8px; }
+  .sidebar > .nav::-webkit-scrollbar-track, .search-results::-webkit-scrollbar-track { background: transparent; }
+  .sidebar > .nav::-webkit-scrollbar-thumb, .search-results::-webkit-scrollbar-thumb { background: transparent; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+  .sidebar:hover > .nav::-webkit-scrollbar-thumb, .search-results:hover::-webkit-scrollbar-thumb { background-color: var(--line); }
+  .sidebar > .nav::-webkit-scrollbar-thumb:hover, .search-results::-webkit-scrollbar-thumb:hover { background-color: var(--muted); }
   .lab-groups { display: contents; }
   @media (min-width: 861px) {
     body.side-collapsed .app { grid-template-columns: 0 minmax(0, 1fr) 236px; }
@@ -477,7 +472,7 @@
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 6px 24px rgba(10, 12, 20, 0.22);
   }
-  .remote button, .nav button, .menu-btn, .side-toggle, .theme-btn, .cards .card, .cta { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .remote button, .nav button, .menu-btn, .side-toggle, .cards .card, .cta { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .remote button {
     appearance: none; border: 0; background: transparent; color: var(--ink); font: inherit;
     min-width: 32px; height: 32px; border-radius: 10px; cursor: pointer; font-size: 14px; padding: 0 6px;
@@ -992,9 +987,12 @@
       <div class="mark ramp"></div>
       <div>
         <div class="name">TechArt Archive</div>
-        <div class="sub">인터랙티브 그래픽스 기초</div>
+        <div class="sub">인터랙티브 그래픽스</div>
       </div>
-      <button class="side-toggle" id="sideToggle" type="button" aria-label="사이드바 접기" title="사이드바 접기">«</button>
+      <span class="side-btns">
+        <button class="side-toggle" id="themeBtn" type="button" aria-label="라이트 모드" title="라이트 모드"><span id="themeIcon">☀</span></button>
+        <button class="side-toggle" id="sideToggle" type="button" aria-label="사이드바 접기" title="사이드바 접기">«</button>
+      </span>
     </div>
     <button class="search-open" id="searchOpen" type="button"><span>⌕</span><span class="ph">검색</span><kbd>/</kbd></button>
 
@@ -1012,10 +1010,6 @@
       </div>
     </nav>
 
-    <div class="sidebar-foot">
-      <button class="theme-btn" id="themeBtn"><span id="themeIcon">◐</span><span id="themeLabel">다크 모드</span></button>
-      <div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> 로 이전·다음</div>
-    </div>
   </aside>
 
   <div class="main">
@@ -2722,7 +2716,7 @@ function makeControls(el, F, sym) {
 
 const LEVEL_NAMES = ["", "기초", "중급", "심화"];
 const TAG_ORDER = ["수학", "변환", "기하", "텍스처", "조명", "색", "머티리얼", "셰이더", "노이즈", "절차적", "SDF",
-  "애니메이션", "시뮬레이션", "이펙트", "후처리", "안티에일리어싱", "샘플링", "레이 트레이싱", "GPU", "메모리", "성능", "툴"];
+  "애니메이션", "시뮬레이션", "이펙트", "배경", "후처리", "안티에일리어싱", "샘플링", "레이 트레이싱", "GPU", "메모리", "성능", "툴"];
 
 const LESSON_META = {
   vector: [1, "수학"], trig: [1, "수학"], dotcross: [1, "수학 조명"], transform: [1, "수학 변환"],
@@ -2745,7 +2739,9 @@ const LESSON_META = {
   warp: [3, "노이즈 절차적 색"], sdfadv: [3, "SDF 절차적 레이 트레이싱"], alphacov: [3, "안티에일리어싱 텍스처"],
   pixelart: [3, "텍스처 샘플링"], normalblend: [2, "텍스처 조명 머티리얼"], jfa: [3, "후처리 SDF GPU"],
   sampling: [3, "샘플링 수학 안티에일리어싱"], bluenoise: [3, "노이즈 샘플링"], gpuhash: [3, "노이즈 GPU"],
-  quadinterp: [3, "텍스처 기하"], sss: [3, "조명 후처리"], gtao: [3, "조명 후처리"], smaa: [3, "안티에일리어싱 후처리"]
+  quadinterp: [3, "텍스처 기하"], sss: [3, "조명 후처리"], gtao: [3, "조명 후처리"], smaa: [3, "안티에일리어싱 후처리"],
+  midpoly: [2, "배경 기하 조명 툴"], edgedecal: [2, "배경 머티리얼 GPU"], tiling: [2, "배경 텍스처 머티리얼"],
+  atlas: [2, "배경 텍스처 샘플링"], texarray: [2, "배경 텍스처 메모리"]
 };
 
 // "레이 트레이싱"처럼 띄어 쓴 태그가 있어 공백으로 자르지 않고 목록과 맞춰 읽습니다
@@ -6741,26 +6737,43 @@ function render() {
           C.slider({ label: "돌리기", min: -3.14, max: 3.14, value: rot, fmt: x => num(x / DEG, 0) + "°", onInput: x => { rot = x; } });
           const Ld = V3.norm([0.6, 0.8, -0.4]);
           F.draw = g => {
-            const by = 0.15 + 0.35 * Math.sin(rot * 1.3);
-            const sc = p => {
-              const q = [p[0] * Math.cos(rot) - p[2] * Math.sin(rot), p[1], p[0] * Math.sin(rot) + p[2] * Math.cos(rot)];
-              const s = Math.hypot(q[0] - 0.35, q[1] - by, q[2]) - 0.42;
-              const dx = Math.abs(q[0] + 0.35) - 0.3, dy = Math.abs(q[1]) - 0.3, dz = Math.abs(q[2]) - 0.3;
-              const b = Math.hypot(Math.max(dx, 0), Math.max(dy, 0), Math.max(dz, 0)) + Math.min(Math.max(dx, dy, dz), 0) - 0.04;
-              return Math.min(smin(s, b, k), p[1] + 0.5);
+            const by = 0.15 + 0.35 * Math.sin(rot * 1.3), cr = Math.cos(rot), sr = Math.sin(rot);
+            // 물체만의 거리(바닥은 평면이라 따로 식으로 맞힘)
+            const so = (x, y, z) => {
+              const qx = x * cr - z * sr, qz = x * sr + z * cr;
+              const s = Math.sqrt((qx - 0.35) ** 2 + (y - by) ** 2 + qz * qz) - 0.42;
+              const dx = Math.abs(qx + 0.35) - 0.3, dy = Math.abs(y) - 0.3, dz = Math.abs(qz) - 0.3;
+              const mx = Math.max(dx, 0), my = Math.max(dy, 0), mz = Math.max(dz, 0);
+              return smin(s, Math.sqrt(mx * mx + my * my + mz * mz) + Math.min(Math.max(dx, dy, dz), 0) - 0.04, k);
             };
-            g.field(F.playing ? 110 : 150, (x, y) => {        // 재생 중엔 해상도를 낮춰 부드럽게
-              const ro = [0, 0.35, -2.6], rd = V3.norm([x * 0.55, y * 0.55 - 0.12, 1]);
-              let t = 0, hit = false, steps = 0;
-              for (; steps < 48; steps++) { const d = sc(V3.add(ro, V3.mul(rd, t))); if (d < 0.002) { hit = true; break; } t += d; if (t > 8) break; }
-              if (!hit) return [16 + y * 20, 19 + y * 25, 30 + y * 40, 255];
-              const p = V3.add(ro, V3.mul(rd, t)), e = 0.002;
-              const n = V3.norm([sc([p[0] + e, p[1], p[2]]) - sc([p[0] - e, p[1], p[2]]), sc([p[0], p[1] + e, p[2]]) - sc([p[0], p[1] - e, p[2]]), sc([p[0], p[1], p[2] + e]) - sc([p[0], p[1], p[2] - e])]);
+            const ro = [0, 0.35, -2.6], BC = [0, 0.1, 0], BR = 1.25;
+            g.field(F.playing ? 100 : 150, (x, y) => {        // 재생 중엔 해상도를 낮춰 부드럽게
+              const rd = V3.norm([x * 0.55, y * 0.55 - 0.12, 1]);
+              // 바닥(y = −0.5)까지의 거리는 식으로 바로
+              const tf = rd[1] < 0 ? (ro[1] + 0.5) / -rd[1] : 1e9;
+              // 물체를 감싼 구에 닿는 광선만 행진 (나머지 픽셀은 건너뜀)
+              const oc = V3.sub(ro, BC), bb = V3.dot(oc, rd), cc = V3.dot(oc, oc) - BR * BR, disc = bb * bb - cc;
+              let t = 1e9, steps = 0;
+              if (disc > 0) {
+                let tt = Math.max(0, -bb - Math.sqrt(disc)); const t1 = Math.min(-bb + Math.sqrt(disc), tf);
+                for (; steps < 48 && tt < t1; steps++) { const d = so(ro[0] + rd[0] * tt, ro[1] + rd[1] * tt, ro[2] + rd[2] * tt); if (d < 0.002) { t = tt; break; } tt += d; }
+              }
+              const onFloor = t > tf;
+              if (onFloor) t = tf;
+              if (t > 8) return [16 + y * 20, 19 + y * 25, 30 + y * 40, 255];
+              const p = [ro[0] + rd[0] * t, ro[1] + rd[1] * t, ro[2] + rd[2] * t], e = 0.002;
+              let n = [0, 1, 0];
+              if (!onFloor) {
+                // 사면체 네 점으로 기울기 추정 (6번 대신 4번 계산)
+                const a = so(p[0] + e, p[1] - e, p[2] - e), b = so(p[0] - e, p[1] - e, p[2] + e), c = so(p[0] - e, p[1] + e, p[2] - e), d = so(p[0] + e, p[1] + e, p[2] + e);
+                n = V3.norm([a - b - c + d, -a - b + c + d, -a + b - c + d]);
+              }
               let sh = 1, st = 0.02;
-              for (let i = 0; i < 16 && st < 3; i++) { const h = sc(V3.add(p, V3.mul(Ld, st))); if (h < 0.001) { sh = 0; break; } sh = Math.min(sh, 8 * h / st); st += h; }
-              const dif = Math.max(0, V3.dot(n, Ld)) * sh, ao = 1 - steps / 70;
-              const floor = p[1] < -0.49;
-              const base = floor ? ((Math.floor(p[0] * 2) + Math.floor(p[2] * 2)) % 2 ? [0.5, 0.52, 0.55] : [0.38, 0.4, 0.44]) : [0.95, 0.55, 0.35];
+              for (let i = 0; i < 16 && st < 3; i++) { const h = so(p[0] + Ld[0] * st, p[1] + Ld[1] * st, p[2] + Ld[2] * st); if (h < 0.001) { sh = 0; break; } sh = Math.min(sh, 8 * h / st); st += h; }
+              // 바닥은 물체와의 거리로, 물체는 걸음 수로 AO 근사
+              const ao = onFloor ? clamp(0.55 + so(p[0], p[1], p[2]) * 1.2, 0.55, 1) : 1 - steps / 70;
+              const dif = Math.max(0, V3.dot(n, Ld)) * sh;
+              const base = onFloor ? ((Math.floor(p[0] * 2) + Math.floor(p[2] * 2)) & 1 ? [0.5, 0.52, 0.55] : [0.38, 0.4, 0.44]) : [0.95, 0.55, 0.35];
               return base.map(c => Math.pow(clamp(c * (0.12 + 0.95 * dif) * ao, 0, 1), 1 / 2.2) * 255).concat(255);
             });
             L.set("k", f2(k));
@@ -13441,6 +13454,655 @@ function render() {
 })();
 
 
+/* ===== js\lessons\74-midpoly.js ===== */
+/* 74 미드폴리와 가중 노멀 */
+(() => {
+  const MB = b => (b >= 1048576 ? num(b / 1048576, 1) + " MB" : num(b / 1024, 0) + " KB");
+  // 모서리를 깎은 사각형 단면 (반폭 0.8, 깎은 폭 c, 모서리 분할 s)
+  function beveled(c, s) {
+    const h = 0.8, pts = [];
+    [[1, -1, -90], [1, 1, 0], [-1, 1, 90], [-1, -1, 180]].forEach(([sx, sy, a0]) => {
+      const cx = sx * (h - c), cy = sy * (h - c);
+      for (let k = 0; k <= s; k++) { const a = (a0 + 90 * k / s) * DEG; pts.push([cx + c * Math.cos(a), cy + c * Math.sin(a)]); }
+    });
+    return pts;
+  }
+  const nrm = v => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+
+  lesson({
+    topic: "midpoly", title: "미드폴리와 가중 노멀", desc: "노멀 맵 없이 매끈한 모서리", stage: "배경 아트 기법",
+    sym: { N: "yellow", L: "gold", w: "teal" },
+    hook: "하이폴리를 구워 로우폴리에 노멀 맵으로 입히는 방식(39장)은 에셋마다 ==고유 텍스처==가 필요합니다. 배경처럼 에셋이 수천 개라면 메모리가 버티지 못합니다. ==미드폴리==는 모서리를 실제 폴리곤으로 살짝 깎고(베벨), ==정점 노멀을 면 넓이로 가중==해 노멀 맵 없이 매끈한 하이라이트를 얻습니다. 표면은 공유 타일 텍스처와 트림 시트(76장)로 칠합니다.",
+    blocks: [
+      { h: "정점 노멀을 어떻게 정하느냐" },
+      "모서리를 깎은 상자의 단면입니다. 바깥 띠가 그 면의 밝기입니다. '부드럽게'는 이웃 면 노멀을 똑같이 평균해 ==넓은 면 전체에 그라데이션 얼룩==이 생깁니다. '하드 엣지'는 면마다 노멀을 따로 둬 깨끗하지만 베벨이 각져 보입니다. '면적 가중'은 넓은 면이 노멀을 차지하고 ==좁은 베벨만 휘어== 하이라이트가 모서리에 둥글게 맺힙니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -2, x1: 2, y0: -1.12, y1: 1.12 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 2, c = 0.12, s = 2, la = 0.9;
+          C.seg({ options: [{ value: 0, label: "부드럽게 (평균)" }, { value: 1, label: "하드 엣지" }, { value: 2, label: "면적 가중 노멀" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "베벨 폭", min: 0.02, max: 0.4, value: c, onInput: x => { c = x; } });
+          C.slider({ label: "베벨 분할", min: 1, max: 4, step: 1, value: s, fmt: x => x, onInput: x => { s = x; } });
+          C.slider({ label: "빛 방향", min: 0, max: 6.28, value: la, fmt: x => num(x / DEG, 0) + "°", onInput: x => { la = x; } });
+          F.draw = g => {
+            const P = beveled(c, s), n = P.length, Ld = [Math.cos(la), Math.sin(la)];
+            const faces = P.map((p, i) => { const q = P[(i + 1) % n], d = V.sub(q, p), len = Math.hypot(d[0], d[1]); return { p, q, len, n: len > 1e-6 ? nrm([d[1], -d[0]]) : null }; });
+            // 정점 노멀: 정점 i는 면 i−1과 면 i 사이
+            const vn = P.map((_, i) => {
+              const a = faces[(i - 1 + n) % n], b = faces[i];
+              if (!a.n) return b.n; if (!b.n) return a.n;
+              return mode === 2 ? nrm([a.n[0] * a.len + b.n[0] * b.len, a.n[1] * a.len + b.n[1] * b.len]) : nrm([a.n[0] + b.n[0], a.n[1] + b.n[1]]);
+            });
+            g.poly(P, { fill: "#232A38", stroke: "grey", w: 1.5 });
+            faces.forEach((f, i) => {
+              if (!f.n) return;
+              const n0 = mode === 1 ? f.n : vn[i], n1 = mode === 1 ? f.n : vn[(i + 1) % n], K = 24;
+              for (let k = 0; k < K; k++) {
+                const t = (k + 0.5) / K, nn = nrm([lerp(n0[0], n1[0], t), lerp(n0[1], n1[1], t)]);
+                const d = Math.max(0, V.dot(nn, Ld)), sp = Math.pow(d, 60), v = 0.1 + 0.55 * d + 0.9 * sp;
+                const a = V.lerp(f.p, f.q, k / K), b = V.lerp(f.p, f.q, (k + 1) / K), o = V.mul(f.n, 0.2);
+                const c8 = Math.round(clamp(v, 0, 1) * 255);
+                g.poly([a, b, V.add(b, o), V.add(a, o)], { fill: `rgb(${c8},${Math.round(c8 * 0.95)},${Math.round(c8 * 0.88)})` });
+              }
+            });
+            if (mode !== 1) P.forEach((p, i) => g.arrow(p, V.add(p, V.mul(vn[i], 0.32)), "yellow", { w: 1.6, head: 7 }));
+            else faces.forEach(f => { if (f.n) { const m = V.lerp(f.p, f.q, 0.5); g.arrow(m, V.add(m, V.mul(f.n, 0.32)), "yellow", { w: 1.6, head: 7 }); } });
+            g.arrow([1.75 - Ld[0] * 0.35, 0.85 - Ld[1] * 0.35], [1.75, 0.85], "gold", { w: 2.5, head: 9 });
+            g.text("빛", [1.75, 0.6], "gold", { size: 11 });
+            L.set("eq", ["$N_정점 = normalize(N_1 + N_2)$   넓은 면까지 노멀이 기울어 그라데이션 얼룩", "면마다 $N$ 을 따로 (정점 분리)   깨끗하지만 각진 모서리, 보통 노멀 맵이 필요", "$N_정점 = normalize(w_1 N_1 + w_2 N_2)$, $w$ = 면 넓이   넓은 면은 평평, 베벨만 둥글게"][mode]);
+          };
+        }
+      } },
+      { key: "가중 노멀은 ==모델링 툴에서 굽는 정점 데이터==라 실행 비용이 없습니다(3ds Max·Blender의 Weighted Normal, Maya의 Face Weighted Normals). 엔진으로 가져올 때 노멀을 다시 계산하지 않도록 '노멀 가져오기'를 켜야 합니다." },
+
+      { h: "메모리: 고유 노멀 맵 vs 정점 몇 개" },
+      "에셋 하나만 보면 고유 노멀 맵이 편합니다. 하지만 에셋 수가 늘면 ==고유 텍스처는 개수만큼 늘고, 미드폴리는 공유 텍스처 몇 장 + 정점 조금==이라 금방 역전됩니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["고유 노멀 맵: {n} × {map} = {uniq}   ·   미드폴리: 공유 {shared} + {n} × 정점 {v} × 32B = {mid}"],
+        setup(F, C, L) {
+          let n = 120, res = 2048, v = 1500;
+          C.slider({ label: "에셋 수", min: 1, max: 500, step: 1, value: n, fmt: x => x + "개", onInput: x => { n = x; } });
+          C.seg({ options: [{ value: 1024, label: "고유 맵 1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }], value: res, onChange: x => { res = +x; } });
+          C.slider({ label: "베벨로 늘어난 정점 (에셋당)", min: 200, max: 8000, step: 100, value: v, fmt: x => num(x, 0), onInput: x => { v = x; } });
+          F.draw = g => {
+            // BC5 노멀 = 1바이트/픽셀, 밉 포함 4/3배. 공유 세트: 2K 컬러(BC7)+노멀(BC5) 4벌
+            const map = res * res * 4 / 3, uniq = n * map, shared = 4 * 2 * 2048 * 2048 * 4 / 3, mid = shared + n * v * 32, mx = Math.max(uniq, mid);
+            [[uniq, "고유 노멀 맵", PAL.orange, 2.5], [mid, "미드폴리 + 공유", PAL.teal, 1.2]].forEach(([b, nm, col, y]) => {
+              const w = Math.max(0.05, b / mx * 6.2);
+              g.poly([[2.8, y], [2.8 + w, y], [2.8 + w, y + 0.8], [2.8, y + 0.8]], { fill: col });
+              g.text(nm, [2.7, y + 0.4], "white", { size: 12, bold: true, align: "right" }); g.text(MB(b), [2.9 + w, y + 0.4], "white", { size: 12, align: "left" });
+            });
+            const cross = Math.ceil(shared / Math.max(1, map - v * 32));
+            g.text(map > v * 32 ? `에셋 ${cross}개부터 미드폴리가 가벼움` : "정점이 너무 많아 역전되지 않음", [9.8, 0.45], "grey", { size: 11, align: "right" });
+            L.set("n", n); L.set("map", MB(map)); L.set("uniq", MB(uniq)); L.set("shared", MB(shared)); L.set("v", num(v, 0)); L.set("mid", MB(mid));
+          };
+        }
+      } },
+
+      { use: [
+        ["게임", "스타 시티즌·둠·AC", "Star Citizen의 우주선, id Software의 둠(2016) 배경, 어쌔신 크리드 시리즈의 건물이 미드폴리 + 트림 시트 + 공유 디테일 노멀 조합으로 유명합니다."],
+        ["툴", "모델링 설정", "Blender의 Bevel(Harden Normals) + Weighted Normal 모디파이어, 3ds Max의 Weighted Normals, Maya의 Face Weighted Normals 스크립트가 표준 도구입니다."],
+        ["엔진", "UE·Unity 가져오기", "FBX 가져오기에서 노멀 'Import Normals'(UE) / 'Import'(Unity)로 두어 엔진이 노멀을 다시 계산하지 않게 합니다. 나나이트 메시는 정점이 늘어도 부담이 적어 미드폴리와 잘 맞습니다."],
+        ["TA", "파이프라인 결정", "에셋 수·재사용률·카메라 거리로 '고유 베이크 vs 미드폴리'를 정하고, 베벨 폭 기준(예: 5mm·1cm)과 가중 노멀 규칙을 문서화해 아티스트가 같은 결과를 내게 합니다."]
+      ] },
+
+      { recap: [
+        ["normalize(N₁ + N₂)", "평균: 넓은 면에 얼룩"],
+        ["면마다 N 분리", "하드 엣지: 노멀 맵 필요"],
+        ["normalize(w₁N₁ + w₂N₂)", "면적 가중: 베벨만 둥글게"],
+        ["공유 텍스처 + 정점 조금", "에셋이 많을수록 미드폴리가 유리"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\75-edgedecal.js ===== */
+/* 75 엣지 메시 데칼 */
+(() => {
+  const HT = new Float32Array(4096); { let s = 77; for (let k = 0; k < 4096; k++) { s = (Math.imul(s, 1664525) + 1013904223) | 0; HT[k] = (s >>> 8) / 16777216; } }
+  const h2 = (x, y) => HT[(x & 63) | ((y & 63) << 6)];
+  const vn = (x, y) => {
+    const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    return lerp(lerp(h2(i, j), h2(i + 1, j), u), lerp(h2(i, j + 1), h2(i + 1, j + 1), u), v);
+  };
+  const fbm = (x, y) => vn(x, y) * 0.55 + vn(x * 2.1 + 3, y * 2.1) * 0.3 + vn(x * 4.3, y * 4.3 + 7) * 0.15;
+  // 벽 앞면: 바깥 사각형 + 문 구멍. 엣지 스트립이 붙는 모서리 목록 [시작, 끝]
+  const WALL = { x0: 0.3, x1: 3.7, y0: 0.15, y1: 1.85 }, DOOR = { x0: 1.55, x1: 2.45, y0: 0.15, y1: 1.3 };
+  const EDGES = [
+    [[0.3, 1.85], [3.7, 1.85]], [[0.3, 0.15], [0.3, 1.85]], [[3.7, 0.15], [3.7, 1.85]],
+    [[1.55, 0.15], [1.55, 1.3]], [[2.45, 0.15], [2.45, 1.3]], [[1.55, 1.3], [2.45, 1.3]]
+  ];
+  const inWall = (x, y) => x > WALL.x0 && x < WALL.x1 && y > WALL.y0 && y < WALL.y1 && !(x > DOOR.x0 && x < DOOR.x1 && y < DOOR.y1);
+  // 가장 가까운 모서리까지 거리와 모서리를 따라 잰 길이(u)
+  function edgeCoord(x, y) {
+    let best = 1e9, u = 0;
+    let acc = 0;
+    for (const [a, b] of EDGES) {
+      const d = V.sub(b, a), len = Math.hypot(d[0], d[1]), t = clamp(((x - a[0]) * d[0] + (y - a[1]) * d[1]) / (len * len), 0, 1);
+      const dist = Math.hypot(x - a[0] - d[0] * t, y - a[1] - d[1] * t);
+      if (dist < best) { best = dist; u = acc + t * len; }
+      acc += len + 1;
+    }
+    return [best, u];
+  }
+  const plaster = (x, y) => { const n = fbm(x * 9, y * 9); return [0.74 + n * 0.1, 0.7 + n * 0.1, 0.62 + n * 0.08]; };
+  const brick = (x, y) => {
+    const r = Math.floor(y / 0.09), bx = x / 0.2 + (r % 2) * 0.5, fx = bx - Math.floor(bx), fy = y / 0.09 - r;
+    const mortar = fx < 0.06 || fy < 0.12, n = h2(Math.floor(bx), r) * 0.2;
+    return mortar ? [0.55, 0.53, 0.5] : [0.55 + n, 0.25 + n * 0.5, 0.18];
+  };
+
+  lesson({
+    topic: "edgedecal", title: "엣지 메시 데칼", desc: "모서리를 따라 붙이는 얇은 띠", stage: "배경 아트 기법",
+    sym: { w: "teal", d: "orange" },
+    hook: "타일 텍스처로 칠한 벽은 깨끗하지만 너무 새것처럼 보입니다. 실제 건물은 ==모서리부터 낡고 깨집니다==. 배경 TA는 모서리를 따라 ==얇은 띠 메시(엣지 데칼)==를 붙이고, 데칼 아틀라스의 '깨진 가장자리' 줄을 입혀 고유 텍스처 없이 손상을 표현합니다. 투영 데칼(42장)과 달리 형태가 메시에 고정되어 싸고 정확합니다.",
+    blocks: [
+      { h: "모서리를 따라 띠 붙이기" },
+      "벽 앞면입니다. 띠의 $u$ 는 ==모서리를 따라 잰 길이==(그래서 길이와 상관없이 텍스처가 같은 밀도로 반복), $v$ 는 ==모서리에서 안쪽으로 잰 거리==(0 = 모서리, 1 = 띠 안쪽 끝)입니다. 마스크가 $v$ 에 가까울수록 많이 깨지도록 만들어, 띠 안쪽 경계가 보이지 않게 녹입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 1, w = 0.18, dmg = 0.55;
+          C.seg({ options: [{ value: 0, label: "데칼 없음" }, { value: 1, label: "엣지 데칼" }, { value: 2, label: "띠 메시 보기" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "띠 폭 $w$", min: 0.05, max: 0.35, value: w, onInput: x => { w = x; } });
+          C.slider({ label: "손상 정도", min: 0, max: 1, value: dmg, onInput: x => { dmg = x; } });
+          F.draw = g => {
+            g.field(240, (x, y) => {
+              if (!inWall(x, y)) return y < 0.15 ? [40, 44, 52, 255] : [16, 19, 26, 255];
+              let c = plaster(x, y);
+              if (mode) {
+                const [d, u] = edgeCoord(x, y);
+                if (d < w) {
+                  const v = d / w, n = fbm(u * 7, v * 2.2);
+                  // 모서리(v=0)에서 많이, 띠 끝(v=1)에서 0이 되도록
+                  const m = n * dmg * 1.6 - v * 0.9;
+                  if (m > 0.05) c = brick(x, y).map(k => k * (m < 0.12 ? 0.6 : 1));
+                  else if (m > -0.04) c = c.map(k => k * 0.78);
+                  if (mode === 2) c = c.map((k, i) => lerp(k, [0.36, 0.82, 0.7][i], 0.35));
+                }
+              }
+              return c.map(k => clamp(k, 0, 1) * 255).concat(255);
+            });
+            if (mode === 2) EDGES.forEach(([a, b]) => {
+              const d = V.sub(b, a), len = Math.hypot(d[0], d[1]), t = [d[0] / len, d[1] / len], nIn = [-t[1], t[0]];
+              // 벽 안쪽을 향하도록 방향 맞추기
+              const mid = V.add(V.lerp(a, b, 0.5), V.mul(nIn, 0.02)), sgn = inWall(mid[0], mid[1]) ? 1 : -1, o = V.mul(nIn, w * sgn);
+              for (let k = 0; k < Math.ceil(len / 0.3); k++) {
+                const p = V.add(a, V.mul(t, k * 0.3)), q = V.add(a, V.mul(t, Math.min(len, (k + 1) * 0.3)));
+                g.poly([p, q, V.add(q, o), V.add(p, o)], { stroke: "teal", w: 1 });
+              }
+            });
+            L.set("eq", ["타일 텍스처만: 깨끗하지만 모서리가 너무 새것", "띠 $u$ = 모서리 따라 길이, $v$ = 안쪽 거리 → 마스크 = 노이즈 · 손상 − $v$", "청록 선 = 엣지 데칼 띠 메시 (정점 몇 개짜리 쿼드 줄)"][mode]);
+          };
+        }
+      } },
+      { key: "엣지 데칼 텍스처는 보통 ==데칼 아틀라스의 한 줄==입니다(가로로 길게 반복되는 깨진 가장자리, 칠 벗겨짐, 물때). 그래서 수백 개 건물이 텍스처 한 장을 나눠 씁니다. 블렌드는 반투명 대신 ==디더 마스크나 DBuffer 데칼==로 해서 정렬 문제를 피하기도 합니다." },
+
+      { h: "얼마나 띄워야 하나: 깊이 정밀도" },
+      "띠는 벽에 딱 붙어 있어서 깊이 버퍼가 두 면을 구분하지 못하면 ==지글지글 깜빡입니다(Z-파이팅)==. 멀리 갈수록 깊이 정밀도가 떨어지므로 조금 띄웁니다. 띄우는 거리, 카메라 니어 평면, 깊이 형식을 바꿔 보세요. 주황이 데칼이 보이는 곳, 회색이 진 곳입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["{fmt}   ·   띄움 {off}   ·   니어 {near}   ·   데칼이 진 픽셀 {lost}"],
+        setup(F, C, L) {
+          let off = 0.002, near = 0.1, fmt = 24;
+          C.slider({ label: "띄우는 거리", min: -5, max: -1, value: Math.log10(off), fmt: x => num(10 ** x * 1000, 1) + " mm", onInput: x => { off = 10 ** x; } });
+          C.slider({ label: "니어 평면", min: -2, max: 0, value: Math.log10(near), fmt: x => num(10 ** x * 100, 0) + " cm", onInput: x => { near = 10 ** x; } });
+          C.seg({ options: [{ value: 16, label: "16비트" }, { value: 24, label: "24비트" }, { value: 32, label: "32F 역Z" }], value: fmt, onChange: x => { fmt = +x; } });
+          F.draw = g => {
+            const W = 160, H = 80, HOR = 8, far = 2000;
+            const depth = z => fmt === 32 ? Math.fround(near / z) : Math.round(far / (far - near) * (1 - near / z) * ((fmt === 16 ? 65536 : 16777216) - 1));
+            let tot = 0, lost = 0;
+            g.field(W, (x, y, i, j) => {
+              if (j < HOR) return [20, 24, 34, 255];
+              const z = 2 * Math.pow(400, (H - 1 - j) / (H - 1 - HOR)), wx = (i - W / 2) / W * Math.pow(z, 0.6) * 1.6;
+              const floor = (Math.floor(wx * 2) + Math.floor(Math.log2(z) * 3)) & 1 ? [92, 96, 106] : [70, 74, 84];
+              if (Math.abs(wx) > 1.1 || z > 600) return floor.concat(255);
+              // 두 면은 다른 삼각형이라 보간 오차가 조금씩 다름(±½ 최하위 단위)
+              const jit = s => (h2(i * 3 + s, j * 7 + s * 5) - 0.5);
+              const dw = depth(z), dd = depth(z - off);
+              const ww = fmt === 32 ? dw * (1 + jit(1) * 1.2e-7) : dw + jit(1), wd = fmt === 32 ? dd * (1 + jit(2) * 1.2e-7) : dd + jit(2);
+              const win = fmt === 32 ? wd > ww : wd < ww;
+              tot++; if (!win) lost++;
+              const stripe = Math.floor(Math.log2(z) * 6) & 1;
+              return win ? (stripe ? [255, 134, 47, 255] : [235, 110, 35, 255]) : floor.concat(255);
+            }, { rows: H, smooth: false });
+            [[2, 0.02], [20, 0.36], [200, 0.71], [800, 0.86]].forEach(([d, yy]) => g.text(d + " m", [1.97, yy + 0.04], "grey", { size: 10, align: "right" }));
+            L.set("fmt", { 16: "16비트 정수 깊이", 24: "24비트 정수 깊이", 32: "32비트 float 역Z" }[fmt]); L.set("off", num(off * 1000, 1) + " mm"); L.set("near", num(near * 100, 0) + " cm"); L.set("lost", num(lost / Math.max(1, tot) * 100, 0) + "%");
+          };
+        }
+      } },
+      { key: "정수 깊이는 정밀도가 ==니어 평면 근처에 몰려== 있어서, 니어를 조금만 키워도 먼 곳이 훨씬 안정됩니다. ==역Z + 32비트 float==는 먼 곳까지 정밀도가 고르게 퍼져(36장 부동소수점) UE5 등 최신 엔진의 기본입니다. 그래도 데칼 띠는 머티리얼의 깊이 오프셋이나 몇 mm 띄우기를 함께 씁니다." },
+
+      { use: [
+        ["게임", "오픈 월드 건물", "어쌔신 크리드, 위쳐 3, 사이버펑크 2077의 건물·도로 가장자리 손상과 물때가 엣지 데칼 띠와 데칼 아틀라스로 만들어집니다. 'Mesh Decal' 작업 가이드가 각 스튜디오의 GDC 발표에 자주 등장합니다."],
+        ["툴", "띠 만들기", "Blender·Max에서 모서리 선택 → 면 밀어내기(Inset/Extrude)로 띠를 만들고 UV를 한 줄로 펴서 아틀라스 행에 맞춥니다. Houdini로 자동 생성하는 경우도 많습니다(PolyExpand2D·Sweep)."],
+        ["엔진", "UE 설정", "UE에서는 Deferred Decal 머티리얼을 메시에 입히거나(DBuffer), 마스크드 머티리얼 + 디더로 띠를 칠합니다. 그림자를 끄고(Cast Shadow off) 충돌을 빼서 비용을 줄입니다."],
+        ["TA", "규칙 만들기", "띠 폭, 띄우는 거리(예: 0.5~2mm), 아틀라스 행 배치, 텍셀 밀도를 정해 두면 아티스트가 일관된 손상을 빠르게 붙일 수 있습니다."]
+      ] },
+
+      { recap: [
+        ["u = 모서리 따라 길이", "길이와 무관하게 같은 밀도로 반복"],
+        ["v = 안쪽 거리, 마스크 − v", "띠 안쪽 경계를 녹이기"],
+        ["데칼 아틀라스 한 줄", "수백 개 에셋이 공유"],
+        ["띄움 · 니어 · 역Z", "Z-파이팅 막기"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\76-tiling.js ===== */
+/* 76 타일 텍스처와 반복 깨기 · 트림 시트 */
+(() => {
+  const fract = x => x - Math.floor(x);
+  const HT = new Float32Array(4096); { let s = 31; for (let k = 0; k < 4096; k++) { s = (Math.imul(s, 1664525) + 1013904223) | 0; HT[k] = (s >>> 8) / 16777216; } }
+  const h2 = (x, y) => HT[(x & 63) | ((y & 63) << 6)];
+  const vn = (x, y) => { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(h2(i, j), h2(i + 1, j), u), lerp(h2(i, j + 1), h2(i + 1, j + 1), u), v); };
+  // 주기 1인 자갈 텍스처(보로노이 4×4 칸, 주기적으로 해시) + 눈에 띄는 얼룩 하나 → 반복이 잘 보임
+  function stones(u, v) {
+    const U = fract(u) * 4, Vv = fract(v) * 4, i = Math.floor(U), j = Math.floor(Vv);
+    let d1 = 9, d2 = 9, id = 0;
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
+      const ci = (i + a + 4) & 3, cj = (j + b + 4) & 3, px = i + a + 0.2 + 0.6 * h2(ci, cj), py = j + b + 0.2 + 0.6 * h2(ci + 9, cj + 5);
+      const d = (U - px) ** 2 + (Vv - py) ** 2;
+      if (d < d1) { d2 = d1; d1 = d; id = ci + cj * 4; } else if (d < d2) d2 = d;
+    }
+    const edge = Math.sqrt(d2) - Math.sqrt(d1), t = h2(id, 3) * 0.25;
+    let c = edge < 0.08 ? [0.22, 0.2, 0.18] : [0.52 + t, 0.48 + t * 0.9, 0.42 + t * 0.7];
+    const st = Math.hypot(fract(u) - 0.3, fract(v) - 0.62);
+    if (st < 0.11) c = c.map(k => k * 0.45);
+    return c;
+  }
+  // 육각(삼각 격자) 스토캐스틱 타일링: 정점 3개마다 무작위 오프셋, 무게중심 가중
+  function hexTile(u, v, sharp) {
+    const sx = u * 2.6, sy = v * 2.6, k = sx - 0.57735027 * sy, l = 1.15470054 * sy;
+    const bx = Math.floor(k), by = Math.floor(l), fx = k - bx, fy = l - by, fz = 1 - fx - fy;
+    let w, vs;
+    if (fz > 0) { w = [fz, fy, fx]; vs = [[bx, by], [bx, by + 1], [bx + 1, by]]; }
+    else { w = [-fz, 1 - fy, 1 - fx]; vs = [[bx + 1, by + 1], [bx + 1, by], [bx, by + 1]]; }
+    let sum = 0; const c = [0, 0, 0];
+    vs.forEach((p, i) => {
+      const wt = Math.pow(w[i], sharp), ou = h2(p[0] + 17, p[1] + 3) * 7, ov = h2(p[0] + 5, p[1] + 29) * 7;
+      const s = stones(u + ou, v + ov); for (let q = 0; q < 3; q++) c[q] += s[q] * wt; sum += wt;
+    });
+    return c.map(x => x / sum);
+  }
+  // 트림 시트: 위에서부터 줄(행)마다 다른 무늬, u 방향으로 반복
+  const ROWS = [
+    { n: "볼트 줄", v0: 0, v1: 0.12 }, { n: "금속 패널 가장자리", v0: 0.12, v1: 0.3 }, { n: "고무 띠", v0: 0.3, v1: 0.42 },
+    { n: "몰딩", v0: 0.42, v1: 0.62 }, { n: "콘크리트", v0: 0.62, v1: 1 }
+  ];
+  function trim(u, v) {
+    u = fract(u);
+    if (v < 0.12) { const t = (v - 0) / 0.12, d = Math.hypot(fract(u * 6) - 0.5, t - 0.5); return d < 0.22 ? [0.75, 0.75, 0.72] : d < 0.28 ? [0.25, 0.26, 0.28] : [0.45, 0.47, 0.5]; }
+    if (v < 0.3) { const t = (v - 0.12) / 0.18; return t < 0.12 ? [0.85, 0.86, 0.88] : t > 0.88 ? [0.22, 0.23, 0.25] : [0.5 + 0.04 * Math.sin(u * 60), 0.52, 0.56]; }
+    if (v < 0.42) { const r = fract(u * 18); return r < 0.5 ? [0.16, 0.16, 0.17] : [0.22, 0.22, 0.23]; }
+    if (v < 0.62) { const t = (v - 0.42) / 0.2, p = 0.55 + 0.35 * Math.cos(t * 9.4); return [p * 0.92, p * 0.88, p * 0.8]; }
+    const n = vn(u * 30, v * 30) * 0.12 + vn(u * 90, v * 90) * 0.06;
+    return [0.6 + n, 0.59 + n, 0.56 + n];
+  }
+
+  lesson({
+    topic: "tiling", title: "타일 텍스처와 트림 시트", desc: "적은 텍스처로 넓은 배경 칠하기", stage: "배경 아트 기법",
+    sym: { u: "pink", v: "teal" },
+    hook: "넓은 바닥과 벽을 고유 텍스처로 칠할 수는 없습니다. 그래서 배경은 ==반복되는 타일 텍스처==와 ==여러 줄 무늬를 한 장에 모은 트림 시트==로 칠합니다. 대신 두 가지 숙제가 생깁니다. 멀리서 ==반복 무늬가 눈에 띄는 것==과, 모델 UV를 시트의 ==어느 줄에 맞추느냐==입니다.",
+    blocks: [
+      { h: "반복 깨기" },
+      "자갈 텍스처 한 장을 반복했습니다. 일부러 넣은 검은 얼룩 때문에 ==격자로 반복==되는 게 바로 보입니다. 큰 노이즈로 밝기를 흔들면(매크로 변화) 조금 낫고, 칸마다 다른 위치를 읽어 섞으면(이니고 킬레즈의 방법) 반복이 사라집니다. 육각 스토캐스틱은 삼각 격자 꼭짓점마다 무작위 위치를 읽어 ==세 장을 섞습니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 0, zoom = 4, sharp = 5;
+          C.seg({ options: [{ value: 0, label: "그대로 반복" }, { value: 1, label: "매크로 변화" }, { value: 2, label: "칸마다 다른 위치 (2번 읽기)" }, { value: 3, label: "육각 스토캐스틱 (3번 읽기)" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "멀리 보기 (반복 수)", min: 1, max: 10, value: zoom, fmt: x => num(x * 2, 0) + "×" + num(x, 0), onInput: x => { zoom = x; } });
+          C.slider({ label: "육각 섞임 날카로움", min: 1, max: 12, value: sharp, onInput: x => { sharp = x; } });
+          F.draw = g => {
+            g.field(mode === 3 ? 130 : 170, (x, y) => {
+              const u = x * zoom, v = y * zoom;
+              let c;
+              if (mode === 0) c = stones(u, v);
+              else if (mode === 1) { const m = vn(u * 0.35, v * 0.35) * 0.6 + vn(u * 0.9 + 4, v * 0.9) * 0.4; c = stones(u, v).map((k, i) => k * lerp(0.65, 1.25, m) * [1, 0.97 + m * 0.06, 0.92 + m * 0.12][i]); }
+              else if (mode === 2) {
+                // 부드러운 노이즈 값으로 '가상 칸' 번호를 정하고, 인접한 두 번호의 오프셋으로 읽어 섞음
+                const k = vn(u * 0.6, v * 0.6) * 8, i = Math.floor(k), f = k - i;
+                const a = stones(u + h2(i, 1) * 7, v + h2(i, 2) * 7), b = stones(u + h2(i + 1, 1) * 7, v + h2(i + 1, 2) * 7);
+                const t = clamp((f - 0.5) * 6 + 0.5 - 0.6 * ((a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2])), 0, 1);
+                c = a.map((x2, q) => lerp(x2, b[q], t));
+              } else c = hexTile(u, v, sharp);
+              return c.map(k => clamp(k, 0, 1) * 255).concat(255);
+            });
+            L.set("eq", ["$texture(uv)$   1번 읽기, 반복 격자가 그대로 보임", "$texture(uv) × lerp(어둡게, 밝게, noise(uv · 0.35))$   밝기 얼룩으로 시선 분산", "$lerp(texture(uv + o_i), texture(uv + o_{i+1}), t)$   $i$ = 부드러운 노이즈로 정한 칸 번호", "삼각 격자 꼭짓점 3개의 무작위 오프셋으로 읽고 무게중심$^p$ 로 섞음 (Heitz-Neyret, Mikkelsen)"][mode]);
+          };
+        }
+      } },
+      { key: "반복 깨기는 ==텍스처를 더 읽는 비용==입니다(2~3배). 그래서 멀리서만 켜거나, 바닥·지형처럼 넓게 보이는 재질에만 씁니다. 육각 방식은 무늬가 섞이며 흐려질 수 있어 날카로움(지수 $p$)과 높이 기반 섞기(40장)를 함께 씁니다." },
+
+      { h: "트림 시트: 줄마다 다른 무늬 한 장" },
+      "왼쪽이 트림 시트입니다. 가로로 끝없이 반복되는 ==줄(행) 여러 개==를 한 장에 쌓았습니다. 오른쪽 건물 정면의 띠 메시를 눌러 보세요. 그 메시의 UV가 ==시트의 다른 줄로 옮겨 갑니다==. $u$ 는 길이만큼 늘어나 반복되고, $v$ 는 줄 높이 안에 갇힙니다. 모델을 새로 칠하지 않고 UV만 옮겨 모양을 바꿉니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["선택한 띠: {strip} → 시트 '{row}' 줄,  v ∈ [{v0}, {v1}]"],
+        setup(F, C, L) {
+          const SX0 = 0.15, SX1 = 1.45, SY0 = 0.2, SY1 = 1.85;
+          const FX0 = 1.75, FX1 = 3.9;
+          const strips = [
+            { n: "받침", y0: 0.1, y1: 0.32, r: 2 }, { n: "볼트 띠", y0: 0.32, y1: 0.42, r: 0 }, { n: "벽면", y0: 0.42, y1: 1.4, r: 4 },
+            { n: "처마 몰딩", y0: 1.4, y1: 1.62, r: 3 }, { n: "꼭대기 판", y0: 1.62, y1: 1.9, r: 1 }
+          ];
+          let sel = 3;
+          F.onTap = (p, sx, sy, moving) => {
+            if (moving) return;
+            if (p[0] > FX0 && p[0] < FX1) strips.forEach((s, i) => { if (p[1] > s.y0 && p[1] < s.y1) { if (sel === i) s.r = (s.r + 1) % ROWS.length; sel = i; } });
+            if (p[0] > SX0 && p[0] < SX1 && p[1] > SY0 && p[1] < SY1) { const v = (SY1 - p[1]) / (SY1 - SY0); ROWS.forEach((r, k) => { if (v >= r.v0 && v < r.v1) strips[sel].r = k; }); }
+          };
+          F.draw = g => {
+            g.field(260, (x, y) => {
+              if (x > SX0 && x < SX1 && y > SY0 && y < SY1) { const c = trim((x - SX0) / (SX1 - SX0), (SY1 - y) / (SY1 - SY0)); return c.map(k => k * 255).concat(255); }
+              if (x > FX0 && x < FX1) for (const s of strips) if (y > s.y0 && y < s.y1) {
+                const R = ROWS[s.r], rh = R.v1 - R.v0, sh = s.y1 - s.y0;
+                const v = R.v0 + (s.y1 - y) / sh * rh, u = (x - FX0) / sh * rh * 1.3;
+                return trim(u, Math.min(v, R.v1 - 1e-4)).map(k => k * 255).concat(255);
+              }
+              return null;
+            });
+            ROWS.forEach(r => g.line([SX0 - 0.03, SY1 - r.v0 * (SY1 - SY0)], [SX0, SY1 - r.v0 * (SY1 - SY0)], "grey", { w: 1 }));
+            const S = strips[sel], R = ROWS[S.r];
+            const ry0 = SY1 - R.v1 * (SY1 - SY0), ry1 = SY1 - R.v0 * (SY1 - SY0);
+            g.poly([[SX0, ry0], [SX1, ry0], [SX1, ry1], [SX0, ry1]], { stroke: "yellow", w: 2 });
+            g.poly([[FX0, S.y0], [FX1, S.y0], [FX1, S.y1], [FX0, S.y1]], { stroke: "yellow", w: 2 });
+            g.line([SX1, (ry0 + ry1) / 2], [FX0, (S.y0 + S.y1) / 2], "yellow", { w: 1.2, dash: [4, 4] });
+            strips.forEach(s => g.line([FX0, s.y0], [FX1, s.y0], "black", { w: 1, alpha: 0.4 }));
+            g.text("트림 시트", [(SX0 + SX1) / 2, 0.08], "grey", { size: 11 }); g.text("건물 정면 (띠를 눌러 줄 바꾸기)", [(FX0 + FX1) / 2, 1.96], "grey", { size: 11 });
+            L.set("strip", S.n); L.set("row", R.n); L.set("v0", num(R.v0, 2)); L.set("v1", num(R.v1, 2));
+          };
+        }
+      } },
+      { key: "트림 시트의 핵심은 ==텍셀 밀도와 줄 높이를 미리 약속==하는 것입니다(38장). 예를 들어 '512픽셀 = 1m, 몰딩 줄 높이 = 20cm'로 정해 두면, 모델러는 그 높이로 띠를 만들고 UV를 줄에 맞춰 쌓기만 합니다. 미드폴리(74장)·엣지 데칼(75장)과 짝을 이룹니다." },
+
+      { use: [
+        ["게임", "트림 시트의 대표작", "Star Citizen, 둠(2016), 헤일로·데스티니 계열의 SF 배경이 트림 시트 + 미드폴리 워크플로로 유명합니다. 자연 배경(바닥·바위)은 스토캐스틱 타일링과 매크로 변화로 반복을 감춥니다."],
+        ["엔진", "UE·Unity에서", "UE 머티리얼 함수 TextureVariation(스토캐스틱), Unity의 Procedural Stochastic Texturing 예제가 있습니다. 매크로 변화는 큰 노이즈 텍스처 한 장을 월드 좌표로 곱하는 방식이 가장 쌉니다."],
+        ["툴", "시트 만들기", "Substance Designer로 줄마다 높이 맵을 그려 굽고, 모델러는 같은 프로필로 띠를 모델링합니다. 'Trim Sheet' 템플릿(줄 높이 표)을 팀이 공유합니다."],
+        ["TA", "관리 포인트", "줄 사이 번짐을 막는 패딩(38장), 줄 높이의 2의 거듭제곱 정렬, 밉에서 줄이 섞이지 않는 최소 높이, 반복 깨기 비용 예산을 정합니다."]
+      ] },
+
+      { recap: [
+        ["texture(uv)를 반복", "넓게 칠하지만 격자가 보임"],
+        ["× 매크로 노이즈", "가장 싼 반복 깨기"],
+        ["칸·꼭짓점마다 오프셋 + 섞기", "2~3번 읽어 반복 제거"],
+        ["UV를 시트의 줄에 맞춤", "트림 시트: 한 장으로 여러 모양"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\77-atlas.js ===== */
+/* 77 텍스처 아틀라스: 아틀라스 안에서 반복하기 · 채우기 */
+(() => {
+  const fract = x => x - Math.floor(x);
+  const N = 64;   // 아틀라스 64×64, 칸 4개(각 32×32)
+  const TILE_COL = [[0.75, 0.3, 0.22], [0.3, 0.6, 0.3], [0.25, 0.45, 0.8], [0.9, 0.78, 0.3]];
+  const atlas0 = (() => {
+    const a = new Float32Array(N * N * 3);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const t = (x >= 32 ? 1 : 0) + (y >= 32 ? 2 : 0), lx = x % 32, ly = y % 32;
+      let c = TILE_COL[t];
+      if (t === 0) { const r = Math.floor(ly / 8), bx = (lx + (r % 2) * 8) % 16; if (ly % 8 === 0 || bx === 0) c = [0.85, 0.82, 0.76]; }
+      else if ((lx + ly) % 8 < 2) c = c.map(k => k * 0.8);
+      for (let k = 0; k < 3; k++) a[(y * N + x) * 3 + k] = c[k];
+    }
+    return a;
+  })();
+  const MIPS = [{ n: N, a: atlas0 }];
+  while (MIPS[MIPS.length - 1].n > 1) {
+    const p = MIPS[MIPS.length - 1], n = p.n / 2, a = new Float32Array(n * n * 3);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) for (let k = 0; k < 3; k++)
+      a[(y * n + x) * 3 + k] = (p.a[((2 * y) * p.n + 2 * x) * 3 + k] + p.a[((2 * y) * p.n + 2 * x + 1) * 3 + k] + p.a[((2 * y + 1) * p.n + 2 * x) * 3 + k] + p.a[((2 * y + 1) * p.n + 2 * x + 1) * 3 + k]) / 4;
+    MIPS.push({ n, a });
+  }
+  // 반복(wrap) 쌍선형 + 트라이리니어
+  const bil = (m, u, v) => {
+    const x = u * m.n - 0.5, y = v * m.n - 0.5, i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, n = m.n;
+    const at = (a, b, k) => m.a[((((b % n) + n) % n) * n + (((a % n) + n) % n)) * 3 + k];
+    return [0, 1, 2].map(k => lerp(lerp(at(i, j, k), at(i + 1, j, k), fx), lerp(at(i, j + 1, k), at(i + 1, j + 1, k), fx), fy));
+  };
+  const sample = (u, v, lod) => {
+    lod = clamp(lod, 0, MIPS.length - 1); const l0 = Math.floor(lod), l1 = Math.min(MIPS.length - 1, l0 + 1), f = lod - l0;
+    const a = bil(MIPS[l0], u, v), b = bil(MIPS[l1], u, v);
+    return a.map((x, k) => lerp(x, b[k], f));
+  };
+
+  lesson({
+    topic: "atlas", title: "텍스처 아틀라스", desc: "여러 장을 한 장에 모을 때 생기는 일", stage: "배경 아트 기법",
+    sym: { u: "pink", v: "teal" },
+    hook: "작은 텍스처 여러 장을 ==한 장(아틀라스)에 모으면== 머티리얼과 드로우 콜을 합칠 수 있습니다. 소품, 풀잎, UI, 데칼이 모두 아틀라스를 씁니다. 대신 칸 하나를 ==반복(타일링)하려면 셰이더가 직접 좌표를 접어야== 하고, 밉맵에서 이웃 칸이 섞여 들어옵니다. 그리고 칸들을 빈틈없이 채우는 일도 숙제입니다.",
+    blocks: [
+      { h: "아틀라스 안에서 반복하기: 이음새 선" },
+      "멀어지는 바닥에 아틀라스의 빨간 벽돌 칸만 반복해 깔았습니다. 하드웨어 반복(wrap)은 아틀라스 전체에 걸리므로, 셰이더에서 $uv' = 칸 시작 + fract(uv) · 칸 크기$ 로 접습니다. 그런데 GPU는 ==옆 픽셀과의 uv 차이==로 밉을 고릅니다(21장). $fract$ 가 0으로 돌아가는 곳에서 차이가 갑자기 커져 ==가장 흐린 밉이 골라지고, 칸마다 선이 생깁니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = 0, rep = 1;
+          C.seg({ options: [{ value: 0, label: "접은 뒤 미분 (기본)" }, { value: 1, label: "접기 전 미분 (SampleGrad)" }, { value: 2, label: "+ 반 텍셀 안쪽으로" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "반복 밀도", min: 0.5, max: 3, value: rep, onInput: x => { rep = x; } });
+          F.draw = g => {
+            const W = 160, H = 80, HOR = 6;
+            const base = (i, j) => { const z = 60 / (j - HOR + 0.5), x = (i - W / 2) / W * z * 1.4; return [x * rep * 0.25, z * rep * 0.25]; };
+            const fold = (uv, inset) => [inset + fract(uv[0]) * (0.5 - 2 * inset), inset + fract(uv[1]) * (0.5 - 2 * inset)];
+            g.field(W, (x, y, i, j) => {
+              if (j < HOR) return [20, 24, 34, 255];
+              const b = base(i, j), bx = base(i + 1, j), by = base(i, j + 1);
+              let du, dv;
+              if (mode === 0) { const a = fold(b, 0), ax = fold(bx, 0), ay = fold(by, 0); du = Math.hypot(ax[0] - a[0], ax[1] - a[1]); dv = Math.hypot(ay[0] - a[0], ay[1] - a[1]); }
+              else { du = Math.hypot(bx[0] - b[0], bx[1] - b[1]) * 0.5; dv = Math.hypot(by[0] - b[0], by[1] - b[1]) * 0.5; }
+              const lod = Math.log2(Math.max(du, dv) * N + 1e-9);
+              const inset = mode === 2 ? 0.5 * Math.pow(2, Math.max(0, lod)) / N : 0;
+              const uv = fold(b, Math.min(inset, 0.24));
+              return sample(uv[0], uv[1], lod).map(k => Math.pow(clamp(k, 0, 1), 1 / 1.6) * 255).concat(255);
+            }, { rows: H, smooth: false });
+            // 아틀라스 미리보기
+            g.field(N, (x, y, i, j) => [atlas0[(j * N + i) * 3] * 255, atlas0[(j * N + i) * 3 + 1] * 255, atlas0[(j * N + i) * 3 + 2] * 255, 255], { rect: { x0: 1.76, x1: 1.98, y0: 0.76, y1: 0.98 }, rows: N, smooth: false });
+            g.poly([[1.76, 0.87], [1.87, 0.87], [1.87, 0.98], [1.76, 0.98]], { stroke: "yellow", w: 1.5 });
+            L.set("eq", ["$lod = log_2(|∂uv'/∂x|)$ — $fract$ 이 끊기는 곳에서 미분이 튀어 흐린 밉 → 칸마다 선", "미분은 접기 전 $uv$ 로 계산해 넘김 ($SampleGrad$, $ddx(uv) · 칸 크기$) → 선이 사라짐", "밉 텍셀 반 개만큼 안쪽에서 읽기 → 이웃 칸(초록·파랑) 번짐 감소. 그래도 칸보다 큰 밉에서는 못 막음"][mode]);
+          };
+        }
+      } },
+      { key: "아틀라스 반복의 정석은 ==접기 전 좌표로 미분을 구해 SampleGrad로 넘기기 + 밉 단계 수 제한 + 칸 둘레 패딩==(38장, 52장)입니다. 그래도 먼 거리 번짐은 남기 때문에, 반복이 많은 재질은 다음 장의 ==텍스처 배열==로 옮기는 것이 깔끔합니다." },
+
+      { h: "칸 채우기: 선반 패킹" },
+      "크기가 제각각인 그림을 아틀라스에 넣는 가장 흔한 방법은 ==높이순으로 정렬해 선반(줄)을 쌓는 것==입니다. 패딩(밉 번짐 방지 여백)을 늘리면 낭비가 늘고, 아틀라스는 보통 2의 거듭제곱 크기라 조금만 넘쳐도 ==두 배로 커집니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["아틀라스 {S}×{S}   ·   그림이 차지한 비율 {fill}   ·   패딩 {pad}px"],
+        setup(F, C, L) {
+          let cnt = 40, pad = 4, sort = 1, seed = 3;
+          C.slider({ label: "그림 수", min: 5, max: 120, step: 1, value: cnt, fmt: x => x + "장", onInput: x => { cnt = x; } });
+          C.slider({ label: "패딩", min: 0, max: 16, step: 1, value: pad, fmt: x => x + "px", onInput: x => { pad = x; } });
+          C.seg({ options: [{ value: 1, label: "높이순 정렬" }, { value: 0, label: "들어온 순서" }], value: sort, onChange: x => { sort = +x; } });
+          C.button("다른 그림 세트", () => { seed++; });
+          F.draw = g => {
+            let s = seed * 7919; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+            const items = []; for (let k = 0; k < cnt; k++) items.push({ w: Math.round(16 + rnd() * 112), h: Math.round(16 + rnd() * 112 * (rnd() < 0.3 ? 0.35 : 1)), k });
+            const order = sort ? items.slice().sort((a, b) => b.h - a.h) : items;
+            let S = 64, placed;
+            for (; S <= 8192; S *= 2) {
+              placed = []; let x = 0, y = 0, sh = 0, ok = true;
+              for (const it of order) {
+                const w = it.w + pad * 2, h = it.h + pad * 2;
+                if (w > S) { ok = false; break; }
+                if (x + w > S) { y += sh; x = 0; sh = 0; }
+                if (y + h > S) { ok = false; break; }
+                placed.push({ ...it, x: x + pad, y: y + pad }); x += w; sh = Math.max(sh, h);
+              }
+              if (ok) break;
+            }
+            const X0 = 1.05, Y0 = 0.08, SZ = 1.84, k = SZ / S;
+            g.poly([[X0, Y0], [X0 + SZ, Y0], [X0 + SZ, Y0 + SZ], [X0, Y0 + SZ]], { fill: "rgba(255,255,255,0.04)", stroke: "grey", w: 1 });
+            let area = 0;
+            placed.forEach(p => {
+              area += p.w * p.h;
+              const x0 = X0 + p.x * k, y1 = Y0 + SZ - p.y * k;
+              if (pad) g.poly([[x0 - pad * k, y1 + pad * k], [x0 + (p.w + pad) * k, y1 + pad * k], [x0 + (p.w + pad) * k, y1 - (p.h + pad) * k], [x0 - pad * k, y1 - (p.h + pad) * k]], { fill: "rgba(252,98,85,0.25)" });
+              g.poly([[x0, y1], [x0 + p.w * k, y1], [x0 + p.w * k, y1 - p.h * k], [x0, y1 - p.h * k]], { fill: `hsl(${(p.k * 47) % 360},45%,52%)` });
+            });
+            g.text("빨강 = 패딩", [X0 + SZ + 0.08, Y0 + 0.1], "red", { size: 10, align: "left" });
+            L.set("S", S); L.set("fill", num(area / (S * S) * 100, 0) + "%"); L.set("pad", pad);
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "UE·Unity 아틀라스", "UE의 Paper2D·UMG 스프라이트, 나이아가라 서브UV 플립북, Unity의 Sprite Atlas가 같은 패킹을 합니다. 머티리얼에서 칸 반복은 UE의 Custom 노드 또는 'TextureSampleGrad' 계열 입력(DDX/DDY 핀)으로 처리합니다."],
+        ["게임", "소품·풀·데칼", "오픈 월드의 풀잎·나뭇잎 카드, 작은 소품 수십 개, 데칼 모음이 아틀라스 한 장을 나눠 써서 머티리얼 하나로 그려집니다(인스턴싱과 궁합이 좋음)."],
+        ["툴", "패킹 도구", "TexturePacker, Unity Sprite Packer, Houdini Labs Texture Sheets, Substance의 Atlas Maker가 선반·MaxRects 패킹과 패딩·회전 옵션을 제공합니다."],
+        ["TA", "결정 기준", "칸을 반복할 일이 없으면 아틀라스, 반복·먼 거리 노출이 많으면 텍스처 배열(78장), 수가 아주 많고 화면별로 다르면 가상 텍스처를 고릅니다."]
+      ] },
+
+      { recap: [
+        ["칸 시작 + fract(uv) · 칸 크기", "아틀라스 안에서 반복"],
+        ["접기 전 uv로 미분 → SampleGrad", "이음새 선 제거"],
+        ["반 텍셀 안쪽 + 패딩", "이웃 칸 번짐 줄이기"],
+        ["높이순 선반 패킹", "2의 거듭제곱 크기 안에 빈틈 적게"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\78-texarray.js ===== */
+/* 78 텍스처 배열(Texture2DArray) */
+(() => {
+  const fract = x => x - Math.floor(x);
+  const MB = b => (b >= 1073741824 ? num(b / 1073741824, 2) + " GB" : num(b / 1048576, 0) + " MB");
+  const R = 32, NAMES = ["흙", "풀", "자갈", "모래"];
+  const LAYER_COL = [[0.45, 0.3, 0.2], [0.3, 0.62, 0.28], [0.55, 0.56, 0.6], [0.88, 0.78, 0.5]];
+  const layerPix = (l, x, y) => {
+    const c = LAYER_COL[l];
+    const n = ((x * 7 + y * 13) ^ (x * y)) % 5 / 5;
+    if (l === 1) return (x + y * 3) % 6 < 2 ? c.map(k => k * 0.75) : c;
+    if (l === 2) return ((x >> 2) + (y >> 2)) % 2 ? c.map(k => k * 0.8) : c;
+    return c.map(k => k * (0.85 + 0.25 * n));
+  };
+  const pyramid = (n, get) => {
+    const L0 = new Float32Array(n * n * 3);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const c = get(x, y); for (let k = 0; k < 3; k++) L0[(y * n + x) * 3 + k] = c[k]; }
+    const M = [{ n, a: L0 }];
+    while (M[M.length - 1].n > 1) {
+      const p = M[M.length - 1], m = p.n / 2, a = new Float32Array(m * m * 3);
+      for (let y = 0; y < m; y++) for (let x = 0; x < m; x++) for (let k = 0; k < 3; k++)
+        a[(y * m + x) * 3 + k] = (p.a[(2 * y * p.n + 2 * x) * 3 + k] + p.a[(2 * y * p.n + 2 * x + 1) * 3 + k] + p.a[((2 * y + 1) * p.n + 2 * x) * 3 + k] + p.a[((2 * y + 1) * p.n + 2 * x + 1) * 3 + k]) / 4;
+      M.push({ n: m, a });
+    }
+    return M;
+  };
+  const ARR = [0, 1, 2, 3].map(l => pyramid(R, (x, y) => layerPix(l, x, y)));
+  const ATL = pyramid(R * 2, (x, y) => layerPix((x >= R ? 1 : 0) + (y >= R ? 2 : 0), x % R, y % R));
+  const bil = (m, u, v, out) => {
+    const n = m.n, x = u * n - 0.5, y = v * n - 0.5, i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
+    const i0 = ((i % n) + n) % n, i1 = (i0 + 1) % n, j0 = ((j % n) + n) % n, j1 = (j0 + 1) % n;
+    for (let k = 0; k < 3; k++) out[k] = lerp(lerp(m.a[(j0 * n + i0) * 3 + k], m.a[(j0 * n + i1) * 3 + k], fx), lerp(m.a[(j1 * n + i0) * 3 + k], m.a[(j1 * n + i1) * 3 + k], fx), fy);
+    return out;
+  };
+  const tmp = [0, 0, 0], tmp2 = [0, 0, 0];
+  const tri = (M, u, v, lod) => {
+    lod = clamp(lod, 0, M.length - 1); const l0 = Math.floor(lod), l1 = Math.min(M.length - 1, l0 + 1), f = lod - l0;
+    bil(M[l0], u, v, tmp); bil(M[l1], u, v, tmp2);
+    return [lerp(tmp[0], tmp2[0], f), lerp(tmp[1], tmp2[1], f), lerp(tmp[2], tmp2[2], f)];
+  };
+
+  lesson({
+    topic: "texarray", title: "텍스처 배열", desc: "같은 크기 텍스처를 층으로 쌓기", stage: "배경 아트 기법",
+    sym: { u: "pink", v: "teal", w: "orange" },
+    hook: "지형 레이어, 벽돌·타일 변형, 데칼 모음처럼 ==크기와 형식이 같은 텍스처 여러 장==은 아틀라스 대신 ==텍스처 배열(Texture2DArray)==로 묶을 수 있습니다. 셰이더는 $(u, v, 층 번호)$ 로 읽습니다. 층마다 밉맵과 반복(wrap)이 따로라서, 아틀라스(77장)의 이음새와 번짐이 원리적으로 생기지 않습니다.",
+    blocks: [
+      { h: "아틀라스 vs 배열: 멀어질 때" },
+      "칸마다 흙·풀·자갈·모래 중 하나를 깐 바닥을 위에서 봅니다. 칸을 누르면 재질이 바뀝니다. '멀리 보기'를 올리면 밉이 내려갑니다. 아틀라스는 밉에서 ==네 재질이 섞여 모두 같은 갈색으로== 수렴하지만, 배열은 층마다 밉을 따로 만들어 ==재질 색이 끝까지 유지==됩니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 8, y0: 0, y1: 4 },
+        eq: ["{eq}   ·   밉 {lod}"],
+        setup(F, C, L) {
+          let mode = 1, far = 2;
+          const cells = []; for (let j = 0; j < 4; j++) for (let i = 0; i < 8; i++) cells.push((i * 3 + j * 5 + (i * j) % 3) % 4);
+          C.seg({ options: [{ value: 0, label: "아틀라스 (2×2 칸)" }, { value: 1, label: "텍스처 배열 (4층)" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "멀리 보기", min: 0, max: 5, value: far, fmt: x => "밉 " + num(x, 1), onInput: x => { far = x; } });
+          F.onTap = (p, sx, sy, moving) => {
+            const i = Math.floor(p[0]), j = Math.floor(4 - p[1]);
+            if (!moving && i >= 0 && i < 8 && j >= 0 && j < 4) cells[j * 8 + i] = (cells[j * 8 + i] + 1) % 4;
+          };
+          F.draw = g => {
+            const rep = Math.pow(2, far) * 0.6;
+            g.field(176, (x, y) => {
+              const ci = Math.min(7, Math.floor(x)), cj = Math.min(3, Math.floor(4 - y)), l = cells[cj * 8 + ci];
+              const u = x * rep, v = (4 - y) * rep;
+              const c = mode ? tri(ARR[l], u, v, far) : tri(ATL, (l & 1) * 0.5 + fract(u) * 0.5, (l >> 1) * 0.5 + fract(v) * 0.5, far);
+              return c.map(k => Math.pow(clamp(k, 0, 1), 1 / 1.4) * 255).concat(255);
+            });
+            for (let i = 1; i < 8; i++) g.line([i, 0], [i, 4], "black", { w: 1, alpha: 0.35 });
+            for (let j = 1; j < 4; j++) g.line([0, j], [8, j], "black", { w: 1, alpha: 0.35 });
+            L.set("eq", mode ? "$texture(배열, float3(u, v, 층))$   층마다 밉·반복이 따로 → 섞이지 않음" : "$texture(아틀라스, 칸 시작 + fract(uv) · ½)$   밉이 내려가면 이웃 칸과 평균됨");
+            L.set("lod", num(far, 1));
+          };
+        }
+      } },
+      { key: "배열의 층 번호는 ==정수로 고르는 것==이라 층 사이는 보간되지 않습니다. 지형처럼 두 재질이 섞여야 하면 층 두 개를 읽어 셰이더에서 섞습니다(가중치는 높이 블렌딩, 40장). 대신 텍스처 바인딩은 하나라서, 재질이 수십 종이어도 머티리얼 하나·드로우 하나로 그립니다." },
+
+      { h: "언제 무엇을 쓰나" },
+      "재질 수와 해상도를 바꿔 보며 세 방식을 비교합니다. 개별 텍스처는 ==셰이더 하나에 묶을 수 있는 샘플러 수(보통 16)==에 걸리고, 아틀라스는 ==최대 텍스처 크기==와 패딩 낭비에, 배열은 ==모든 층이 같은 크기·형식이어야 한다==는 제약에 걸립니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5 },
+        eq: ["재질 {n}종 × {res}²  ·  층 하나 {one}"],
+        setup(F, C, L) {
+          let n = 12, res = 1024;
+          C.slider({ label: "재질 수", min: 2, max: 64, step: 1, value: n, fmt: x => x + "종", onInput: x => { n = x; } });
+          C.seg({ options: [{ value: 512, label: "512" }, { value: 1024, label: "1K" }, { value: 2048, label: "2K" }, { value: 4096, label: "4K" }], value: res, onChange: x => { res = +x; } });
+          F.draw = g => {
+            const one = res * res * 4 / 3;   // BC7 1바이트/픽셀 + 밉
+            const side = Math.ceil(Math.sqrt(n)), atlasPx = Math.pow(2, Math.ceil(Math.log2(side * res))), atlasMem = atlasPx * atlasPx * 4 / 3;
+            const rows = [
+              ["개별 텍스처", [[`바인딩 ${n}개`, n <= 16], ["반복 그대로", true], [MB(n * one), true], [n <= 16 ? "샘플러 한계 안" : "샘플러 16개 초과", n <= 16]]],
+              ["아틀라스", [["바인딩 1개", true], ["반복은 셰이더로 접기", false], [MB(atlasMem) + ` (${atlasPx}²)`, atlasMem < n * one * 1.3], [atlasPx <= 16384 ? "밉에서 칸끼리 번짐" : "최대 크기 16384 초과", false]]],
+              ["텍스처 배열", [["바인딩 1개", true], ["반복 그대로", true], [MB(n * one), true], ["모든 층 같은 크기·형식", true]]]
+            ];
+            ["", "셰이더 바인딩", "타일 반복", "메모리", "주의할 점"].forEach((h, k) => g.text(h, [k === 0 ? 0.2 : 0.4 + k * 1.95, 4.55], "grey", { size: 11, bold: true, align: k === 0 ? "left" : "center" }));
+            rows.forEach(([name, cells], r) => {
+              const y = 3.6 - r * 1.3;
+              g.text(name, [0.2, y], "white", { size: 13, bold: true, align: "left" });
+              cells.forEach(([t, ok], k) => {
+                const cx = 0.4 + (k + 1) * 1.95;
+                g.poly([[cx - 0.92, y - 0.42], [cx + 0.92, y - 0.42], [cx + 0.92, y + 0.42], [cx - 0.92, y + 0.42]], { fill: ok ? "rgba(92,208,179,0.14)" : "rgba(252,98,85,0.16)", stroke: ok ? "teal" : "red", w: 1 });
+                g.text(t, [cx, y], ok ? "teal" : "red", { size: 11, bold: true });
+              });
+            });
+            L.set("n", n); L.set("res", res); L.set("one", MB(one));
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "UE·Unity 지원", "UE의 Texture2DArray 에셋(여러 텍스처를 드래그해 생성)과 머티리얼의 TextureSampleParameter2DArray, Unity의 Texture2DArray와 SAMPLE_TEXTURE2D_ARRAY 매크로가 있습니다. 랜드스케이프는 레이어별 텍스처 대신 배열을 쓰도록 커스텀하기도 합니다."],
+        ["게임", "지형과 블록 게임", "마인크래프트 계열 블록 렌더러(블록 텍스처 수백 장), 대형 지형의 재질 수십 종, 데칼·플립북 모음이 배열을 씁니다. 층 번호를 정점 색이나 스플랫 맵에 저장합니다."],
+        ["주의", "스트리밍과 크기", "배열은 보통 통째로 스트리밍·로드됩니다. 한 층만 고해상도로 둘 수 없고, 층 하나를 바꾸면 배열 전체를 다시 굽습니다. 그래서 자주 바뀌는 텍스처는 넣지 않습니다."],
+        ["TA", "구성 팁", "같은 형식(BC7·BC5)끼리 배열을 나눕니다(컬러 배열, 노멀 배열, 마스크 배열). 층 순서를 문서화해 두고, 층 번호는 머티리얼 파라미터 대신 데이터(정점 색·텍스처)로 넘기면 머티리얼 인스턴스가 줄어듭니다."]
+      ] },
+
+      { recap: [
+        ["texture(배열, (u, v, 층))", "층 번호는 정수, 층 사이 보간 없음"],
+        ["층마다 밉·반복 따로", "아틀라스의 이음새·번짐이 없음"],
+        ["같은 크기·형식", "배열의 유일한 큰 제약"],
+        ["바인딩 1개", "재질이 많아도 머티리얼·드로우 하나"]
+      ] }
+    ]
+  });
+})();
+
+
 /* ===== js\app.js ===== */
 buildLab();
 // 단독 실행 시 #3 처럼 번호로 주제를 고를 수 있습니다(라이브러리에서는 라이브러리가 주소를 맡습니다).
@@ -13510,7 +14172,8 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     "GPU 심화": "밉·비트·메모리 배치·컴파일러가 하는 일",
     "고급 효과 제작": "VAT·바다·코스틱·볼륨",
     "TA 도구 상자": "실무에 바로 꺼내 쓰는 수학과 기법",
-    "그래픽스 연구 노트": "킬레즈·골루스·리드·히메네스가 파고든 주제들"
+    "그래픽스 연구 노트": "킬레즈·골루스·리드·히메네스가 파고든 주제들",
+    "배경 아트 기법": "미드폴리·엣지 데칼·트림 시트·아틀라스·텍스처 배열"
   };
   var LEVEL_LABEL = ["", "기초", "중급", "심화"];
   var lab = window.GFXLab;
@@ -13736,7 +14399,6 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
   /* ---------- Theme ---------- */
   var themeBtn = document.getElementById("themeBtn");
   var themeIcon = document.getElementById("themeIcon");
-  var themeLabel = document.getElementById("themeLabel");
   var root = document.documentElement;
 
   function effectiveTheme() {
@@ -13747,7 +14409,8 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
   function paintThemeBtn() {
     var dark = effectiveTheme() === "dark";
     themeIcon.textContent = dark ? "☀" : "◐";
-    themeLabel.textContent = dark ? "라이트 모드" : "다크 모드";
+    themeBtn.title = dark ? "라이트 모드" : "다크 모드";
+    themeBtn.setAttribute("aria-label", themeBtn.title);
   }
   try {
     var saved = localStorage.getItem("maindev-docs-theme");
@@ -13843,6 +14506,10 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
       var on = b.getAttribute("data-doc") === current;
       if (on && b.hasAttribute("data-lesson")) on = +b.getAttribute("data-lesson") === li;
       b.classList.toggle("active", on);
+      if (on && b.hasAttribute("data-lesson")) {
+        var r = b.getBoundingClientRect(), nr = nav.getBoundingClientRect();
+        if (r.top < nr.top + 20 || r.bottom > nr.bottom - 30) nav.scrollTop += r.top - nr.top - nr.height / 3;
+      }
     });
     if (location.hash !== hashFor(current)) history.replaceState(null, "", hashFor(current));
     var title = current === "graphics-lab" && lessons.length ? lessons[li].dataset.title : docTitle(current);
