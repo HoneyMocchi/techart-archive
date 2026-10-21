@@ -76,7 +76,18 @@ function fmtMathInner(src, sym) {
       else emit(`<span class="m-id${symClass(id, sym)}">${escHtml(id)}</span>`);
     } else if (hangul) emit(`<span class="m-txt">${hangul}</span>`);
     else if (ws) out += " ";
-    else if (script) pendingScript = script === "^" ? "sup" : "sub";
+    else if (script) {
+      const tag = script === "^" ? "sup" : "sub";
+      if (src[MATH_TOKEN.lastIndex] === "(") {
+        // x_(i+1), e^(−kx): 괄호 묶음을 통째로 첨자로 (괄호 자체는 감춤)
+        let depth = 0, j = MATH_TOKEN.lastIndex;
+        for (; j < src.length; j++) { if (src[j] === "(") depth++; else if (src[j] === ")" && --depth === 0) break; }
+        const inner = src.slice(MATH_TOKEN.lastIndex + 1, j);
+        const html = fmtMathInner(inner, sym);          // 같은 정규식을 쓰므로 다음 위치를 다시 지정
+        MATH_TOKEN.lastIndex = Math.min(src.length, j + 1);
+        out += `<${tag}>${html}</${tag}>`;
+      } else pendingScript = tag;
+    }
     else if (pendingScript && (ch === "−" || ch === "-")) {
       // x^−1 처럼 부호가 붙은 첨자는 부호와 숫자를 함께 올립니다
       const nx = MATH_TOKEN.exec(src);

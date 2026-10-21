@@ -41,6 +41,7 @@ function col(c) { return PAL[c] || c; }
 function rgb(hex) { const n = parseInt((PAL[hex] || hex).slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 
 let figSerial = 0;
+const COARSE = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 
 function makeFig(block, opts, lessonCtx) {
   const F = {
@@ -103,11 +104,11 @@ function makeFig(block, opts, lessonCtx) {
       const p = hd.screen ? hd.get() : F.toS(hd.get());
       const hot = hd === F.hover || hd === F.active;
       c.beginPath();
-      c.arc(p[0], p[1], hot ? 15 : 12, 0, TAU);
+      c.arc(p[0], p[1], (hot ? 15 : 12) * (COARSE ? 1.35 : 1), 0, TAU);
       c.fillStyle = hexA(col(hd.color || "white"), hot ? 0.28 : 0.14);
       c.fill();
       c.beginPath();
-      c.arc(p[0], p[1], hot ? 7 : 6, 0, TAU);
+      c.arc(p[0], p[1], (hot ? 7 : 6) * (COARSE ? 1.3 : 1), 0, TAU);
       c.fillStyle = col(hd.color || "white");
       c.fill();
       c.lineWidth = 2;
@@ -118,13 +119,14 @@ function makeFig(block, opts, lessonCtx) {
       c.font = `500 12px ${UI_FONT}`;
       c.fillStyle = "rgba(236,239,244,0.45)";
       c.textAlign = "right"; c.textBaseline = "bottom";
-      c.fillText("● 점을 끌어 보세요", F.w - 10, F.h - 8);
+      c.fillText(COARSE ? "● 점을 손가락으로 끌어 보세요" : "● 점을 끌어 보세요", F.w - 10, F.h - 8);
     }
   };
 
   /* ---------- 입력 ---------- */
-  function pick(sx, sy) {
-    let best = null, bd = 22;
+  // 손가락은 마우스보다 굵으니 터치 화면에서는 판정 반경을 넓힙니다
+  function pick(sx, sy, radius) {
+    let best = null, bd = radius || (COARSE ? 40 : 22);
     F.handles.forEach(hd => {
       if (hd.hidden && hd.hidden()) return;
       const p = hd.screen ? hd.get() : F.toS(hd.get());
@@ -139,11 +141,23 @@ function makeFig(block, opts, lessonCtx) {
     else { const p = F.toW(sx, sy); hd.set(p[0], p[1]); }
   }
   let last = null;
+  // 터치: 핸들 근처에서 시작하면 가로채고, 아니면 세로 스크롤은 페이지에 양보합니다.
+  // 3D 회전 그림은 가로로 끌면 돌고(touch-action: pan-y), 세로로 끌면 페이지가 스크롤됩니다.
+  const wantsTouch = (sx, sy) => !!(pick(sx, sy, 56) || (singleGrab() && pick(sx, sy, 110)));
+  const singleGrab = () => (opts.grabNearest ?? F.handles.length === 1) && F.handles.length && !F.onPan && !F.onTap;
+  F.canvas.addEventListener("touchstart", e => {
+    const r = F.canvas.getBoundingClientRect(), t = e.touches[0];
+    syncSize();
+    if (wantsTouch(t.clientX - r.left, t.clientY - r.top)) e.preventDefault();
+  }, { passive: false });
   F.canvas.addEventListener("pointerdown", e => {
+    syncSize();
     const [sx, sy] = local(e);
+    const touch = e.pointerType === "touch";
+    if (touch && !wantsTouch(sx, sy) && !F.onPan && !F.onTap) return;
     F.touched = true;
-    let hd = pick(sx, sy);
-    if (!hd && (opts.grabNearest ?? F.handles.length === 1) && F.handles.length && !F.onPan && !F.onTap) {
+    let hd = pick(sx, sy, touch ? 56 : undefined);
+    if (!hd && singleGrab() && (!touch || pick(sx, sy, 110))) {
       hd = F.handles.find(h => !(h.hidden && h.hidden()) && !h.fixed);   // 빈 곳을 눌러도 첫 핸들이 따라옵니다
     }
     if (hd) { F.active = hd; moveHandle(hd, sx, sy); }
@@ -169,6 +183,9 @@ function makeFig(block, opts, lessonCtx) {
   F.canvas.addEventListener("pointerup", end);
   F.canvas.addEventListener("pointercancel", end);
   F.canvas.addEventListener("pointerleave", () => { if (!last && F.hover) { F.hover = null; F.redraw(); } });
+  // 레이아웃이 바뀌면(늦게 보임, 사이드바 접기, 화면 회전) 캔버스 크기와 좌표계를 즉시 다시 맞춥니다
+  function syncSize() { const w = Math.max(240, F.wrap.clientWidth); if (F.wrap.clientWidth && w !== F.w) { F.resize(); F.paint(); } }
+  if (window.ResizeObserver) new ResizeObserver(syncSize).observe(F.wrap);
 
   F.handle = h => { F.handles.push(h); return h; };
   // 배열 p(=[x, y])를 직접 고치는 벡터 핸들. base가 있으면 그 점을 기준으로 한 상대 벡터입니다.

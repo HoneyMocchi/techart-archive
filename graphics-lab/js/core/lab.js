@@ -14,6 +14,11 @@ function renderBlock(b, sym, pending) {
   if (b.ponder) {
     return `<details class="ponder"><summary><span class="ponder-tag">잠깐</span>${fmtText(b.ponder, sym)}</summary><div class="ponder-a">${fmtText(b.answer, sym)}</div></details>`;
   }
+  // 실전 활용: [분류, 제목, 설명] 목록
+  if (b.use) {
+    return `<section class="uses"><h2>실전에서는</h2><div class="use-grid">${b.use.map(u =>
+      `<div class="use"><span class="use-tag">${u[0]}</span><div class="use-t">${fmtText(u[1], sym)}</div><div class="use-d">${fmtText(u[2], sym)}</div></div>`).join("")}</div></section>`;
+  }
   if (b.recap) {
     return `<div class="recap"><div class="recap-tag">한 장 요약</div>${b.recap.map(r =>
       `<div class="recap-row"><span class="recap-eq">${fmtMath(r[0], sym)}</span><span class="recap-d">${fmtText(r[1] || "", sym)}</span></div>`).join("")}</div>`;
@@ -44,6 +49,7 @@ function buildLab() {
     sec.dataset.topic = def.topic;
     sec.dataset.title = def.title;
     sec.dataset.desc = def.desc;
+    sec.dataset.stage = def.stage;
     const body = def.blocks.map(b => renderBlock(b, sym, pending)).join("\n");
     const prev = LESSON_DEFS[i - 1], next = LESSON_DEFS[i + 1];
     sec.innerHTML = `

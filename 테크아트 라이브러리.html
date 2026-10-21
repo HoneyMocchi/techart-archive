@@ -436,6 +436,46 @@
     transition: transform 0.12s;
   }
   .doc .cta { color: var(--bg); }
+  /* ---------- 사이드바 접기 ---------- */
+  .side-toggle {
+    margin-left: auto; flex: none; appearance: none; border: 1px solid var(--line); background: var(--surface);
+    color: var(--muted); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  .side-toggle:hover { color: var(--ink); border-color: var(--accent); }
+  .lab-groups { display: contents; }
+  @media (min-width: 861px) {
+    body.side-collapsed .app { grid-template-columns: 0 minmax(0, 1fr) 236px; }
+    body.side-collapsed .sidebar { visibility: hidden; overflow: hidden; padding: 0; border: 0; }
+  }
+  @media (min-width: 861px) and (max-width: 1240px) {
+    body.side-collapsed .app { grid-template-columns: 0 minmax(0, 1fr); }
+  }
+  /* ---------- 리모컨 ---------- */
+  .remote {
+    position: fixed; right: 18px; bottom: 18px; z-index: 65;
+    display: flex; align-items: center; gap: 2px; padding: 4px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 6px 24px rgba(10, 12, 20, 0.22);
+  }
+  .remote button {
+    appearance: none; border: 0; background: transparent; color: var(--ink); font: inherit;
+    min-width: 32px; height: 32px; border-radius: 10px; cursor: pointer; font-size: 14px; padding: 0 6px;
+  }
+  .remote button:hover { background: var(--accent-soft); color: var(--accent); }
+  .remote button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .remote .where { display: inline-flex; align-items: center; gap: 6px; max-width: 190px; font-size: 12.5px; font-weight: 700; padding: 0 10px; }
+  .remote .where #remoteNo { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .remote .where #remoteTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .remote .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
+  .remote .mini { color: var(--muted); }
+  .remote.folded > :not(.mini) { display: none; }
+  .remote.folded .mini { min-width: 40px; height: 40px; font-size: 17px; color: var(--accent); }
+  @media (max-width: 860px) {
+    .remote { right: 50%; transform: translateX(50%); bottom: 12px; }
+    .remote .where { max-width: 120px; }
+    .remote.folded { right: 14px; transform: none; }
+  }
   .hero-fig { margin: 1.4em 0 1.2em; max-width: none; }
   .cta:hover { transform: translateY(-1px); }
   .cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -652,7 +692,8 @@
 }
 .fig-title { padding: 10px 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #8A93A6; }
 .fig-stage { position: relative; }
-.fig-canvas { display: block; width: 100%; touch-action: none; }
+/* 세로 스크롤은 브라우저에 맡기고, 핸들을 잡은 터치만 스크립트가 가로챕니다(fig.js의 touchstart) */
+.fig-canvas { display: block; width: 100%; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .fig-ctl {
   display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
   padding: 12px 16px; background: var(--fig-panel); border-top: 1px solid var(--fig-line);
@@ -660,7 +701,7 @@
 }
 .ctl-slider { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 200px; }
 .ctl-label { white-space: nowrap; color: #C9CFDA; }
-.ctl-slider input { flex: 1; accent-color: #58C4DD; min-width: 80px; }
+.ctl-slider input { flex: 1; accent-color: #58C4DD; min-width: 80px; height: 28px; }
 .ctl-slider output { min-width: 3.6em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: #ECEFF4; }
 .ctl-seg { display: inline-flex; border: 1px solid #333A4B; border-radius: 9px; overflow: hidden; }
 .ctl-seg button, .ctl-btn {
@@ -706,6 +747,18 @@
 .recap-eq { flex: 0 0 auto; min-width: 15rem; }
 .recap-eq .math { font-size: 1.12em; }
 .recap-d { color: var(--muted); font-size: 15px; flex: 1 1 14rem; }
+
+/* ---------- 실전 활용 ---------- */
+.uses { max-width: 60rem; }
+.use-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-top: 0.6em; }
+.use { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; }
+.use-tag {
+  display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; padding: 1px 8px; border-radius: 999px;
+  color: var(--c-teal); border: 1px solid currentColor; margin-bottom: 6px;
+}
+.use-t { font-weight: 800; font-size: 15.5px; line-height: 1.45; margin-bottom: 4px; }
+.use-d { font-size: 14px; line-height: 1.65; color: var(--muted); }
+.use-d strong, .use-d mark { color: var(--ink); }
 
 /* ---------- 이전·다음 ---------- */
 .lesson-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 40px 0 8px; max-width: 46rem; }
@@ -779,6 +832,16 @@
 <div class="progress"><div class="fill ramp" id="progressFill"></div></div>
 <button class="menu-btn" id="menuBtn" aria-label="문서 목록 열기">☰</button>
 <div class="backdrop" id="backdrop"></div>
+<div class="remote" id="remote" role="toolbar" aria-label="리모컨">
+  <button type="button" data-r="side" title="사이드바 열기·닫기">☰</button>
+  <button type="button" data-r="prev" title="이전 주제">◀</button>
+  <button type="button" data-r="where" class="where" title="맨 위로"><span id="remoteNo"></span><span id="remoteTitle"></span></button>
+  <button type="button" data-r="next" title="다음 주제">▶</button>
+  <span class="sep"></span>
+  <button type="button" data-r="up" title="이전 그림·소제목">⇡</button>
+  <button type="button" data-r="down" title="다음 그림·소제목">⇣</button>
+  <button type="button" data-r="mini" class="mini" title="리모컨 접기">–</button>
+</div>
 
 <div class="app">
   <aside class="sidebar" id="sidebar">
@@ -788,15 +851,14 @@
         <div class="name">TechArt Archive</div>
         <div class="sub">인터랙티브 그래픽스 기초</div>
       </div>
+      <button class="side-toggle" id="sideToggle" type="button" aria-label="사이드바 접기" title="사이드바 접기">«</button>
     </div>
 
     <nav class="nav" id="nav">
       <div class="group">
         <button data-doc="home"><span class="tick"></span>소개</button>
       </div>
-      <div class="group" id="labNav">
-        <div class="group-label">그래픽스 기초</div>
-      </div>
+      <div id="labNav" class="lab-groups"></div>
       <div class="group">
         <div class="group-label">심화 · UE5 엔진 스터디</div>
         <button data-doc="mesh-pipeline"><span class="tick"></span>메시 렌더링 파이프라인</button>
@@ -819,7 +881,7 @@
       <article class="doc" id="doc-home" data-title="소개">
         <p class="doc-eyebrow">Interactive Graphics</p>
         <h1>만지면서 배우는 컴퓨터 그래픽스</h1>
-        <p class="lead">벡터 하나에서 시작해 화면의 픽셀이 칠해지기까지를 직접 움직여 보며 따라갑니다. 값을 바꾸면 그림이 바로 바뀌고, 그 이유를 수식으로 확인합니다.</p>
+        <p class="lead">벡터 하나에서 출발해 조명·재질·셰이더·후처리·레이 트레이싱까지, 그래픽스 프로그래밍의 핵심 개념을 직접 움직여 보며 익힙니다. 값을 바꾸면 그림이 바로 바뀌고, 그 이유를 수식으로 확인하고, 실무에서 어디에 쓰이는지까지 봅니다.</p>
         <div id="heroFig"></div>
         <a class="cta" href="#graphics-lab" data-doc="graphics-lab" data-lesson="0">01 벡터와 좌표부터 시작 →</a>
 
@@ -1929,7 +1991,18 @@ function fmtMathInner(src, sym) {
       else emit(`<span class="m-id${symClass(id, sym)}">${escHtml(id)}</span>`);
     } else if (hangul) emit(`<span class="m-txt">${hangul}</span>`);
     else if (ws) out += " ";
-    else if (script) pendingScript = script === "^" ? "sup" : "sub";
+    else if (script) {
+      const tag = script === "^" ? "sup" : "sub";
+      if (src[MATH_TOKEN.lastIndex] === "(") {
+        // x_(i+1), e^(−kx): 괄호 묶음을 통째로 첨자로 (괄호 자체는 감춤)
+        let depth = 0, j = MATH_TOKEN.lastIndex;
+        for (; j < src.length; j++) { if (src[j] === "(") depth++; else if (src[j] === ")" && --depth === 0) break; }
+        const inner = src.slice(MATH_TOKEN.lastIndex + 1, j);
+        const html = fmtMathInner(inner, sym);          // 같은 정규식을 쓰므로 다음 위치를 다시 지정
+        MATH_TOKEN.lastIndex = Math.min(src.length, j + 1);
+        out += `<${tag}>${html}</${tag}>`;
+      } else pendingScript = tag;
+    }
     else if (pendingScript && (ch === "−" || ch === "-")) {
       // x^−1 처럼 부호가 붙은 첨자는 부호와 숫자를 함께 올립니다
       const nx = MATH_TOKEN.exec(src);
@@ -2006,6 +2079,7 @@ function col(c) { return PAL[c] || c; }
 function rgb(hex) { const n = parseInt((PAL[hex] || hex).slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 
 let figSerial = 0;
+const COARSE = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 
 function makeFig(block, opts, lessonCtx) {
   const F = {
@@ -2068,11 +2142,11 @@ function makeFig(block, opts, lessonCtx) {
       const p = hd.screen ? hd.get() : F.toS(hd.get());
       const hot = hd === F.hover || hd === F.active;
       c.beginPath();
-      c.arc(p[0], p[1], hot ? 15 : 12, 0, TAU);
+      c.arc(p[0], p[1], (hot ? 15 : 12) * (COARSE ? 1.35 : 1), 0, TAU);
       c.fillStyle = hexA(col(hd.color || "white"), hot ? 0.28 : 0.14);
       c.fill();
       c.beginPath();
-      c.arc(p[0], p[1], hot ? 7 : 6, 0, TAU);
+      c.arc(p[0], p[1], (hot ? 7 : 6) * (COARSE ? 1.3 : 1), 0, TAU);
       c.fillStyle = col(hd.color || "white");
       c.fill();
       c.lineWidth = 2;
@@ -2083,13 +2157,14 @@ function makeFig(block, opts, lessonCtx) {
       c.font = `500 12px ${UI_FONT}`;
       c.fillStyle = "rgba(236,239,244,0.45)";
       c.textAlign = "right"; c.textBaseline = "bottom";
-      c.fillText("● 점을 끌어 보세요", F.w - 10, F.h - 8);
+      c.fillText(COARSE ? "● 점을 손가락으로 끌어 보세요" : "● 점을 끌어 보세요", F.w - 10, F.h - 8);
     }
   };
 
   /* ---------- 입력 ---------- */
-  function pick(sx, sy) {
-    let best = null, bd = 22;
+  // 손가락은 마우스보다 굵으니 터치 화면에서는 판정 반경을 넓힙니다
+  function pick(sx, sy, radius) {
+    let best = null, bd = radius || (COARSE ? 40 : 22);
     F.handles.forEach(hd => {
       if (hd.hidden && hd.hidden()) return;
       const p = hd.screen ? hd.get() : F.toS(hd.get());
@@ -2104,11 +2179,23 @@ function makeFig(block, opts, lessonCtx) {
     else { const p = F.toW(sx, sy); hd.set(p[0], p[1]); }
   }
   let last = null;
+  // 터치: 핸들 근처에서 시작하면 가로채고, 아니면 세로 스크롤은 페이지에 양보합니다.
+  // 3D 회전 그림은 가로로 끌면 돌고(touch-action: pan-y), 세로로 끌면 페이지가 스크롤됩니다.
+  const wantsTouch = (sx, sy) => !!(pick(sx, sy, 56) || (singleGrab() && pick(sx, sy, 110)));
+  const singleGrab = () => (opts.grabNearest ?? F.handles.length === 1) && F.handles.length && !F.onPan && !F.onTap;
+  F.canvas.addEventListener("touchstart", e => {
+    const r = F.canvas.getBoundingClientRect(), t = e.touches[0];
+    syncSize();
+    if (wantsTouch(t.clientX - r.left, t.clientY - r.top)) e.preventDefault();
+  }, { passive: false });
   F.canvas.addEventListener("pointerdown", e => {
+    syncSize();
     const [sx, sy] = local(e);
+    const touch = e.pointerType === "touch";
+    if (touch && !wantsTouch(sx, sy) && !F.onPan && !F.onTap) return;
     F.touched = true;
-    let hd = pick(sx, sy);
-    if (!hd && (opts.grabNearest ?? F.handles.length === 1) && F.handles.length && !F.onPan && !F.onTap) {
+    let hd = pick(sx, sy, touch ? 56 : undefined);
+    if (!hd && singleGrab() && (!touch || pick(sx, sy, 110))) {
       hd = F.handles.find(h => !(h.hidden && h.hidden()) && !h.fixed);   // 빈 곳을 눌러도 첫 핸들이 따라옵니다
     }
     if (hd) { F.active = hd; moveHandle(hd, sx, sy); }
@@ -2134,6 +2221,9 @@ function makeFig(block, opts, lessonCtx) {
   F.canvas.addEventListener("pointerup", end);
   F.canvas.addEventListener("pointercancel", end);
   F.canvas.addEventListener("pointerleave", () => { if (!last && F.hover) { F.hover = null; F.redraw(); } });
+  // 레이아웃이 바뀌면(늦게 보임, 사이드바 접기, 화면 회전) 캔버스 크기와 좌표계를 즉시 다시 맞춥니다
+  function syncSize() { const w = Math.max(240, F.wrap.clientWidth); if (F.wrap.clientWidth && w !== F.w) { F.resize(); F.paint(); } }
+  if (window.ResizeObserver) new ResizeObserver(syncSize).observe(F.wrap);
 
   F.handle = h => { F.handles.push(h); return h; };
   // 배열 p(=[x, y])를 직접 고치는 벡터 핸들. base가 있으면 그 점을 기준으로 한 상대 벡터입니다.
@@ -2491,6 +2581,11 @@ function renderBlock(b, sym, pending) {
   if (b.ponder) {
     return `<details class="ponder"><summary><span class="ponder-tag">잠깐</span>${fmtText(b.ponder, sym)}</summary><div class="ponder-a">${fmtText(b.answer, sym)}</div></details>`;
   }
+  // 실전 활용: [분류, 제목, 설명] 목록
+  if (b.use) {
+    return `<section class="uses"><h2>실전에서는</h2><div class="use-grid">${b.use.map(u =>
+      `<div class="use"><span class="use-tag">${u[0]}</span><div class="use-t">${fmtText(u[1], sym)}</div><div class="use-d">${fmtText(u[2], sym)}</div></div>`).join("")}</div></section>`;
+  }
   if (b.recap) {
     return `<div class="recap"><div class="recap-tag">한 장 요약</div>${b.recap.map(r =>
       `<div class="recap-row"><span class="recap-eq">${fmtMath(r[0], sym)}</span><span class="recap-d">${fmtText(r[1] || "", sym)}</span></div>`).join("")}</div>`;
@@ -2521,6 +2616,7 @@ function buildLab() {
     sec.dataset.topic = def.topic;
     sec.dataset.title = def.title;
     sec.dataset.desc = def.desc;
+    sec.dataset.stage = def.stage;
     const body = def.blocks.map(b => renderBlock(b, sym, pending)).join("\n");
     const prev = LESSON_DEFS[i - 1], next = LESSON_DEFS[i + 1];
     sec.innerHTML = `
@@ -2779,6 +2875,13 @@ function render() {
       } },
       "$(3, 2)$라는 표기는 사실 '[[green:$î$]]를 3번, [[red:$ĵ$]]를 2번 가라'는 ==지시서==입니다. 그렇다면 $î$와 $ĵ$ 자체를 바꾸면 어떻게 될까요? 같은 숫자 $(3, 2)$가 전혀 다른 화살표를 가리키게 됩니다 — 이것이 4장 **행렬 변환**의 핵심 아이디어입니다.",
 
+      { use: [
+        ["게임", "캐릭터 이동과 조준", "입력 방향을 ==정규화한 뒤 속도를 곱하면== 대각선으로 더 빨라지는 버그가 사라집니다. 총구 → 목표 방향은 `Target − Muzzle` 뺄셈 한 번입니다."],
+        ["엔진", "UE의 FVector", "`GetSafeNormal()`, `Size()`, `Dist()`가 이 장의 정규화·길이·뺄셈입니다. 머티리얼의 Normalize·Distance 노드도 같습니다."],
+        ["셰이더", "라이트·뷰 방향", "픽셀 위치에서 카메라 쪽으로 뺀 벡터를 정규화한 것이 $V$, 라이트 쪽으로 뺀 것이 $L$ 입니다. 조명 계산의 재료입니다."],
+        ["실생활", "지도와 내비게이션", "현재 위치 → 목적지의 '방향과 거리'가 벡터 하나입니다. 바람·해류 지도의 화살표 하나하나도 벡터입니다."]
+      ] },
+
       { recap: [
         ["v = (x, y)", "숫자 두 개 = 화살표 하나"],
         ["Q − P", "P에서 Q로 가는 벡터"],
@@ -2971,6 +3074,13 @@ function render() {
       } },
       "$φ = 0$이면 모두 함께 오르내리고, $φ$를 키울수록 ==물결의 간격이 촘촘해집니다==. $A$는 높이, $ω$는 빠르기입니다.",
 
+      { use: [
+        ["셰이더", "흔들림과 깜빡임", "`sin(Time)` 하나로 풀·깃발·물결을 흔들고, 경고등을 깜빡이고, UI를 숨 쉬듯 키웠다 줄입니다."],
+        ["게임", "원형 배치와 궤도", "적을 원 위에 고르게 세우거나 위성을 돌릴 때 $(r·cos θ, r·sin θ)$ 를 씁니다. 탄막 게임의 방사형 총알도 같습니다."],
+        ["엔진", "방향 → 각도", "미니맵 화살표·포탑 회전 각도는 `atan2`로 구합니다. UE의 `FMath::Atan2`, 머티리얼의 Atan2 노드."],
+        ["실생활", "교류 전기와 소리", "콘센트 전압과 소리가 사인파입니다. 이퀄라이저는 소리를 여러 사인파의 합으로 나눠 보여 주는 장치입니다."]
+      ] },
+
       { recap: [
         ["(cos θ, sin θ)", "단위원 위의 점 — 가로·세로 그림자"],
         ["θ = 호의 길이 / r", "라디안: 반지름 단위로 잰 각, 360° = 2π"],
@@ -3136,6 +3246,13 @@ function render() {
       } },
       { ponder: "같은 삼각형을 반대편에서 보면 왜 뒷면이 될까요?",
         answer: "반대편에서 보면 화면에 비친 모양이 ==거울처럼 뒤집혀== A → B → C 순서가 시계 방향으로 보이기 때문입니다. 그래서 '앞면'은 꼭짓점을 저장한 순서(감김 순서)로 정해집니다." },
+
+      { use: [
+        ["게임", "시야·등 뒤 판정", "AI가 플레이어를 보는지, 백어택인지를 ==내적 한 번==으로 판정합니다. 스포트라이트 원뿔도 같은 식입니다."],
+        ["셰이더", "조명과 림 라이트", "$N·L$ 이 확산광, $1 − N·V$ 가 가장자리 빛(림·프레넬)입니다. 툰 셰이딩의 경계도 내적 값에 문턱을 둔 것입니다."],
+        ["엔진", "면 노멀과 컬링", "삼각형 노멀은 두 변의 외적, 백페이스 컬링은 외적의 부호입니다. 탄젠트 공간의 바이노멀도 외적으로 만듭니다."],
+        ["실생활", "일과 토크", "물리에서 일 = 힘·이동(내적), 렌치를 돌리는 토크 = 거리 × 힘(외적)입니다."]
+      ] },
 
       { recap: [
         ["a·b = a_x b_x + a_y b_y", "같은 쪽(+) · 수직(0) · 반대쪽(−)"],
@@ -3329,7 +3446,14 @@ function render() {
       } },
       "T·R·S에서는 F가 [[teal:$t$]] 자리에서 ==제자리로 돕니다==. 순서를 R·T·S로 바꾸면 먼저 옮긴 뒤 원점 기준으로 돌리므로 F가 원을 그리며 ==공전==합니다. 자식 오브젝트가 부모를 따라 도는 원리가 이것입니다.",
       { ponder: "3D 트랜스폼 행렬은 왜 4×4일까요?",
-        answer: "같은 이유입니다. 3D 선형 변환(회전·크기)은 3×3이면 충분하지만, ==이동을 넣으려고 1을 하나 더 붙여== $(x, y, z, 1)$ 을 쓰기 때문입니다. 다음 장의 투영에서는 이 넷째 칸이 한 번 더 활약합니다." },
+        answer: "같은 이유입니다. 3D 선형 변환(회전·크기)은 3×3이면 충분하지만, ==이동을 넣으려고 1을 하나 더 붙여== $(x, y, z, 1)$ 을 쓰기 때문입니다. 8장의 투영에서는 이 넷째 칸이 한 번 더 활약합니다." },
+
+      { use: [
+        ["엔진", "트랜스폼과 계층", "UE의 `FTransform`이 크기·회전·이동이고, 부모-자식 계층은 ==행렬 곱의 사슬==입니다. 무기가 손을 따라다니는 원리입니다."],
+        ["셰이더", "좌표계 오가기", "로컬 → 월드 → 뷰 → 클립 공간 이동이 전부 행렬 곱입니다. 머티리얼의 TransformVector·TransformPosition 노드가 이 일을 합니다."],
+        ["게임", "2D 스프라이트와 UI", "회전·확대된 스프라이트, UI 위젯의 렌더 트랜스폼도 3×3 행렬입니다."],
+        ["실생활", "사진 보정", "사진 회전·기울이기·원근 보정(키스톤 보정)은 이미지 전체에 행렬을 적용한 것입니다."]
+      ] },
 
       { recap: [
         ["M = [[a, b; c, d]]", "첫째 열 = î, 둘째 열 = ĵ가 도착한 곳"],
@@ -3343,7 +3467,473 @@ function render() {
 })();
 
 
-/* ===== js\lessons\05-projection.js ===== */
+/* ===== js\lessons\05-rotation3d.js ===== */
+/* 05 3D 회전과 쿼터니언 */
+(() => {
+  const f2 = n => num(n, 2);
+  const rotX = (v, a) => [v[0], v[1] * Math.cos(a) - v[2] * Math.sin(a), v[1] * Math.sin(a) + v[2] * Math.cos(a)];
+  const rotY = (v, a) => [v[0] * Math.cos(a) + v[2] * Math.sin(a), v[1], -v[0] * Math.sin(a) + v[2] * Math.cos(a)];
+  const rotZ = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a), v[2]];
+  const euler = (v, y, p, r) => rotY(rotX(rotZ(v, r), p), y);      // R = Ry · Rx · Rz
+  // 쿼터니언 [w, x, y, z]
+  const qAxis = (n, a) => [Math.cos(a / 2), n[0] * Math.sin(a / 2), n[1] * Math.sin(a / 2), n[2] * Math.sin(a / 2)];
+  const qMul = (a, b) => [
+    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0]];
+  const qEuler = (y, p, r) => qMul(qMul(qAxis([0, 1, 0], y), qAxis([1, 0, 0], p)), qAxis([0, 0, 1], r));
+  const qRot = (q, v) => { const r = qMul(qMul(q, [0, v[0], v[1], v[2]]), [q[0], -q[1], -q[2], -q[3]]); return [r[1], r[2], r[3]]; };
+  function slerp(a, b, t) {
+    let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    if (d < 0) { b = b.map(x => -x); d = -d; }               // 짧은 쪽으로
+    if (d > 0.9995) { const r = a.map((x, i) => lerp(x, b[i], t)); const l = Math.hypot(...r); return r.map(x => x / l); }
+    const th = Math.acos(d), s = Math.sin(th);
+    return a.map((x, i) => (Math.sin((1 - t) * th) * x + Math.sin(t * th) * b[i]) / s);
+  }
+  const ring = (cam, R, color, w, alpha) => {
+    const pts = [];
+    for (let i = 0; i <= 64; i++) { const a = i / 64 * TAU; pts.push(R([Math.cos(a) * 1, Math.sin(a) * 1])); }
+    for (let i = 0; i < 64; i++) cam.line(pts[i], pts[i + 1], color, { w, alpha });
+  };
+  // 작은 비행기: 코(+z) 노랑, 날개(x), 꼬리 날개(y)
+  function plane(cam, R) {
+    const P = p => R(p);
+    cam.poly([[0, 0, 1.2], [0.9, 0, -0.4], [0, 0, -0.1], [-0.9, 0, -0.4]].map(P), { fill: hexA(PAL.yellow, 0.55), stroke: "yellow" });
+    cam.poly([[0, 0, -0.1], [0, 0.45, -0.5], [0, 0, -0.5]].map(P), { fill: hexA(PAL.red, 0.6), stroke: "red" });
+  }
+
+  lesson({
+    topic: "rotation3d", title: "3D 회전과 쿼터니언", desc: "짐벌락과 slerp", stage: "공간의 언어",
+    sym: { yaw: "red", pitch: "green", roll: "blue", q: "purple", n: "teal", v: "yellow", "θ": "blue", t: "teal", w: "grey" },
+    hook: "2D 회전은 각도 하나면 됐습니다. 3D는 축이 셋이라 ==각도 셋을 어떤 순서로 돌리느냐==가 문제가 되고, 그 틈에서 짐벌락이 생깁니다.",
+    blocks: [
+      { h: "오일러 각과 짐벌락" },
+      "비행기를 [[red:요(yaw)]] → [[green:피치(pitch)]] → [[blue:롤(roll)]] 순서로 돌리는 짐벌입니다. ==피치를 90°로 올려 보세요==. 파란 고리가 빨간 고리와 겹치면서, 요와 롤이 같은 방향으로만 돌게 됩니다. 한 축을 잃은 것입니다.",
+      { fig: {
+        aspect: 0.6, view: { x0: -4, x1: 4, y0: -2.4, y1: 2.4 },
+        eq: ["R = R_y(yaw)·R_x(pitch)·R_z(roll)", "{msg}"],
+        setup(F, C, L) {
+          const cam = makeCam(F, { yaw: 0.7, pitch: 0.35, dist: 8, fov: 38, scale: 1.25 });
+          cam.orbit();
+          let y = 30, p = 20, r = 0;
+          C.slider({ label: "$yaw$", min: -180, max: 180, step: 1, value: y, fmt: x => x + "°", onInput: x => { y = x; } });
+          C.slider({ label: "$pitch$", min: -90, max: 90, step: 1, value: p, fmt: x => x + "°", onInput: x => { p = x; } });
+          C.slider({ label: "$roll$", min: -180, max: 180, step: 1, value: r, fmt: x => x + "°", onInput: x => { r = x; } });
+          F.draw = g => {
+            const Y = y * DEG, P = p * DEG, Rr = r * DEG;
+            cam.floor(3);
+            const lock = Math.abs(Math.abs(p) - 90) < 4;
+            ring(cam, q => rotY([q[0] * 1.9, 0, q[1] * 1.9], Y), "red", 4, 0.9);                         // 요: 수평 고리
+            ring(cam, q => rotY(rotX([0, q[0] * 1.6, q[1] * 1.6], P), Y), "green", 4, 0.9);              // 피치
+            ring(cam, q => euler([q[0] * 1.35, q[1] * 1.35, 0], Y, P, Rr), lock ? "orange" : "blue", 4, 0.9); // 롤
+            plane(cam, v => euler(v, Y, P, Rr));
+            cam.arrow([0, 0, 0], [0, 2.4, 0], "red", { w: 2, alpha: 0.6 });
+            cam.arrow([0, 0, 0], euler([0, 0, 2.2], Y, P, 0), "blue", { w: 2, alpha: 0.6 });
+            g.textS("빈 곳을 끌어 시점 돌리기", F.w - 10, F.h - 10, "rgba(236,239,244,0.45)", { align: "right", base: "bottom", size: 12, halo: false });
+            L.set("msg", lock ? "짐벌락: 롤 축이 요 축과 겹쳐 자유도가 하나 사라졌습니다" : "세 고리가 서로 다른 축을 돕니다");
+          };
+        }
+      } },
+      { key: "오일러 각은 직관적이지만 ==두 축이 겹치는 자세(짐벌락)==가 반드시 생기고, 각도끼리 보간하면 이상한 길로 돕니다. 그래서 엔진 내부는 회전을 **쿼터니언**으로 저장합니다." },
+
+      { h: "축 하나와 각도 하나" },
+      "사실 어떤 3D 회전이든 ==축 $n$ 하나를 중심으로 각도 $θ$만큼 도는 것==으로 표현할 수 있습니다. 쿼터니언은 이 축과 각을 숫자 네 개에 담은 것입니다. 축을 바꾸고 재생해 보세요. 노란 $v$가 축을 중심으로 원뿔을 그립니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4, x1: 4, y0: -2.24, y1: 2.24 },
+        eq: ["q = (cos(θ/2), sin(θ/2)·n) = ({w}, {qx}, {qy}, {qz})"],
+        setup(F, C, L) {
+          const cam = makeCam(F, { yaw: 0.6, pitch: 0.3, dist: 8, fov: 38, scale: 1.2 });
+          cam.orbit();
+          let az = 40, el = 55, th = 1.2;
+          const v = [1.5, 0.2, 0.4];
+          C.slider({ label: "축 방위", min: -180, max: 180, step: 1, value: az, fmt: x => x + "°", onInput: x => { az = x; } });
+          C.slider({ label: "축 높이", min: -90, max: 90, step: 1, value: el, fmt: x => x + "°", onInput: x => { el = x; } });
+          const ts = C.slider({ label: "$θ$", min: 0, max: 6.28, value: th, fmt: x => num(x / DEG, 0) + "°", onInput: x => { th = x; } });
+          C.play();
+          F.loop(dt => { th = (th + dt) % TAU; ts.set(th); });
+          F.draw = g => {
+            cam.floor(3);
+            const n = [Math.cos(el * DEG) * Math.cos(az * DEG), Math.sin(el * DEG), Math.cos(el * DEG) * Math.sin(az * DEG)];
+            const q = qAxis(n, th);
+            const along = V3.mul(n, V3.dot(n, v));
+            const pts = [];
+            for (let i = 0; i <= 48; i++) pts.push(qRot(qAxis(n, i / 48 * TAU), v));
+            for (let i = 0; i < 48; i++) cam.line(pts[i], pts[i + 1], "yellow", { w: 1.5, alpha: 0.35, dash: [3, 4] });
+            const arc = [];
+            for (let i = 0; i <= 24; i++) arc.push(qRot(qAxis(n, th * i / 24), v));
+            for (let i = 0; i < 24; i++) cam.line(arc[i], arc[i + 1], "blue", { w: 3 });
+            cam.line(V3.mul(n, -2.6), V3.mul(n, 2.6), "teal", { w: 1.5, dash: [6, 5], alpha: 0.7 });
+            cam.arrow([0, 0, 0], V3.mul(n, 2.2), "teal", { w: 3.5, label: "n" });
+            cam.line(along, qRot(q, v), "grey", { w: 1, alpha: 0.6 });
+            cam.arrow([0, 0, 0], v, "yellow", { w: 2.5, alpha: 0.45, label: "v" });
+            cam.arrow([0, 0, 0], qRot(q, v), "orange", { w: 3.5, label: "v'" });
+            L.set("w", f2(q[0])); L.set("qx", f2(q[1])); L.set("qy", f2(q[2])); L.set("qz", f2(q[3]));
+          };
+        }
+      } },
+      "식에 ==각도의 절반 $θ/2$==가 들어가는 것이 특이한 점입니다. 덕분에 $q$와 $−q$는 같은 회전을 나타내고, 회전을 곱셈 한 번($q_2·q_1$)으로 합칠 수 있습니다.",
+
+      { h: "보간: 오일러 각 vs slerp" },
+      "두 자세 사이를 부드럽게 돌리고 싶습니다. 주황 점은 ==오일러 각 숫자를 그냥 섞은 경로==, 청록 점은 쿼터니언을 **slerp**한 경로입니다. 구 위에서 청록은 언제나 가장 짧은 대원(大圓)을 따라갑니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4, x1: 4, y0: -2.24, y1: 2.24 },
+        eq: ["slerp(q_A, q_B, t) — 일정한 속도로 가장 짧은 길", "t = {t}"],
+        setup(F, C, L) {
+          const cam = makeCam(F, { yaw: 0.9, pitch: 0.45, dist: 7, fov: 38, scale: 1.25 });
+          cam.orbit();
+          let t = 0.4, by = 160, bp = 60;
+          const A = [10, -20, 0];
+          const ts = C.slider({ label: "$t$", min: 0, max: 1, value: t, onInput: x => { t = x; } });
+          C.slider({ label: "B의 요", min: -180, max: 180, step: 1, value: by, fmt: x => x + "°", onInput: x => { by = x; } });
+          C.slider({ label: "B의 피치", min: -85, max: 85, step: 1, value: bp, fmt: x => x + "°", onInput: x => { bp = x; } });
+          C.play(true);
+          F.loop((dt, tt) => { t = 0.5 - 0.5 * Math.cos(tt * 1.2); ts.set(t); });
+          F.draw = g => {
+            const R = 1.6;
+            for (let i = -2; i <= 2; i++) {
+              const pts = [], pts2 = [];
+              for (let k = 0; k <= 40; k++) { const a = k / 40 * TAU, e = i * 0.5; pts.push([R * Math.cos(e) * Math.cos(a), R * Math.sin(e), R * Math.cos(e) * Math.sin(a)]); pts2.push(rotY([R * Math.cos(a), R * Math.sin(a), 0], i * Math.PI / 5)); }
+              for (let k = 0; k < 40; k++) { cam.line(pts[k], pts[k + 1], "grey", { w: 1, alpha: 0.18 }); cam.line(pts2[k], pts2[k + 1], "grey", { w: 1, alpha: 0.18 }); }
+            }
+            const B = [by, bp, 0];
+            const nose = [0, 0, R];
+            const eu = s => euler(nose, lerp(A[0], B[0], s) * DEG, lerp(A[1], B[1], s) * DEG, 0);
+            const qa = qEuler(A[0] * DEG, A[1] * DEG, 0), qb = qEuler(B[0] * DEG, B[1] * DEG, 0);
+            const sl = s => qRot(slerp(qa, qb, s), nose);
+            for (let k = 0; k < 40; k++) {
+              cam.line(eu(k / 40), eu((k + 1) / 40), "orange", { w: 2.5, alpha: 0.75 });
+              cam.line(sl(k / 40), sl((k + 1) / 40), "teal", { w: 2.5, alpha: 0.9 });
+            }
+            cam.dot(eu(0), "white", 6); cam.dot(eu(1), "white", 6);
+            cam.tex("A", eu(0), "white", { dx: -12, dy: -12 }); cam.tex("B", eu(1), "white", { dx: 12, dy: -12 });
+            cam.dot(eu(t), "orange", 7); cam.dot(sl(t), "teal", 7);
+            cam.arrow([0, 0, 0], sl(t), "teal", { w: 2, alpha: 0.6 });
+            L.set("t", f2(t));
+          };
+        }
+      } },
+      "주황 점은 길을 돌아가고 속도도 들쭉날쭉합니다. ==캐릭터 회전 블렌딩, 카메라 보간, 애니메이션 키 사이==는 거의 모두 slerp(또는 정규화한 lerp)로 처리합니다.",
+      { ponder: "쿼터니언 $q$와 $−q$가 같은 회전이라면, slerp할 때 무엇을 조심해야 할까요?",
+        answer: "두 쿼터니언의 내적이 음수면 ==먼 길(360°에 가까운 쪽)로 돕니다==. 그래서 slerp 전에 내적을 보고 음수면 한쪽 부호를 뒤집어 짧은 길을 고릅니다. 위 코드도 그렇게 합니다." },
+
+      { use: [
+        ["엔진", "FRotator와 FQuat", "에디터에는 읽기 쉬운 오일러 각(FRotator)을 보여 주고, 내부 계산과 보간은 ==쿼터니언(FQuat)==으로 합니다."],
+        ["게임", "카메라·조준 보간", "카메라가 부드럽게 따라오는 것, 조준 보간, 비행·우주 게임의 자유 회전이 모두 쿼터니언과 slerp입니다."],
+        ["애니메이션", "본 회전 저장", "스켈레탈 애니메이션 키는 본마다 쿼터니언을 저장하고 프레임 사이를 slerp합니다."],
+        ["실생활", "스마트폰과 드론", "휴대폰 자이로 센서와 드론 비행 제어기도 자세를 쿼터니언으로 계산해 짐벌락을 피합니다."]
+      ] },
+
+      { recap: [
+        ["R = R_y·R_x·R_z", "오일러 각: 순서가 있고, 두 축이 겹치면 짐벌락"],
+        ["q = (cos(θ/2), sin(θ/2)·n)", "쿼터니언: 축과 각을 숫자 넷에"],
+        ["q_2·q_1", "회전 합치기 = 곱셈 (오른쪽부터)"],
+        ["slerp(q_A, q_B, t)", "가장 짧은 길, 일정한 속도"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\06-curves.js ===== */
+/* 06 곡선과 보간 */
+(() => {
+  const f2 = n => num(n, 2);
+  const EASE = {
+    linear: [t => t, "$f(t) = t$   일정한 속도"],
+    in: [t => t * t, "$f(t) = t^2$   천천히 출발해 점점 빠르게"],
+    out: [t => 1 - (1 - t) * (1 - t), "$f(t) = 1 − (1 − t)^2$   빠르게 출발해 부드럽게 멈춤"],
+    smooth: [t => t * t * (3 - 2 * t), "$f(t) = 3t^2 − 2t^3$   smoothstep: 양 끝이 모두 부드러움"],
+    back: [t => { const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }, "$f(t) = 1 + 2.7(t − 1)^3 + 1.7(t − 1)^2$   살짝 지나쳤다 돌아옴"]
+  };
+
+  lesson({
+    topic: "curves", title: "곡선과 보간", desc: "lerp를 겹치면 곡선", stage: "공간의 언어",
+    sym: { t: "teal", P: "white", f: "yellow", B: "yellow" },
+    hook: "두 점 사이를 섞는 $lerp$ 하나로 시작해, 그것을 겹겹이 쌓으면 ==모든 부드러운 곡선==이 나옵니다. 애니메이션의 움직임도 같은 이야기입니다.",
+    blocks: [
+      { h: "lerp를 세 번 겹치면 베지어 곡선" },
+      "네 점을 끌고 $t$를 움직여 보세요. ==이웃한 점끼리 $t$만큼 섞고(청록), 그 결과끼리 또 섞고(분홍), 한 번 더 섞은 점(노랑)== 이 그리는 자취가 3차 베지어 곡선입니다. 이 작도법을 드 카스텔조 알고리즘이라 부릅니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4, x1: 4, y0: -2.24, y1: 2.24 },
+        eq: ["lerp(A, B, t) = A + (B − A)·t", "B(t) = (1−t)^3 P_0 + 3(1−t)^2 t P_1 + 3(1−t) t^2 P_2 + t^3 P_3 = ({bx}, {by})"],
+        setup(F, C, L) {
+          const P = [[-3.2, -1.6], [-2, 1.7], [1.6, 1.8], [3.1, -1.4]];
+          let t = 0.4, even = false;
+          P.forEach(p => F.vec(p, "white", { snap: 0.02 }));
+          const ts = C.slider({ label: "$t$", min: 0, max: 1, value: t, onInput: x => { t = x; } });
+          C.play();
+          C.seg({ options: [{ value: 0, label: "작도 보기" }, { value: 1, label: "같은 t 간격 점 보기" }], value: 0, onChange: x => { even = !!x; } });
+          F.loop((dt, tt) => { t = 0.5 - 0.5 * Math.cos(tt * 0.9); ts.set(t); });
+          const bez = s => { let q = P.map(p => p.slice()); while (q.length > 1) { const n = []; for (let i = 0; i < q.length - 1; i++) n.push(V.lerp(q[i], q[i + 1], s)); q = n; } return q[0]; };
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            g.poly(P, { stroke: "rgba(236,239,244,0.35)", w: 1.5, close: false, dash: [5, 5] });
+            const pts = [];
+            for (let i = 0; i <= 80; i++) pts.push(bez(i / 80));
+            g.poly(pts, { stroke: hexA(PAL.yellow, 0.3), w: 3, close: false });
+            g.poly(pts.slice(0, Math.round(t * 80) + 1).concat([bez(t)]), { stroke: "yellow", w: 4, close: false });
+            if (even) {
+              for (let i = 0; i <= 20; i++) g.dot(bez(i / 20), "teal", 4.5);
+            } else {
+              const l1 = [0, 1, 2].map(i => V.lerp(P[i], P[i + 1], t));
+              const l2 = [0, 1].map(i => V.lerp(l1[i], l1[i + 1], t));
+              g.poly(l1, { stroke: "teal", w: 2, close: false }); l1.forEach(p => g.dot(p, "teal", 5));
+              g.line(l2[0], l2[1], "pink", { w: 2.5 }); l2.forEach(p => g.dot(p, "pink", 5.5));
+            }
+            const b = bez(t);
+            g.circle(b, 0.1, "yellow", { fill: "yellow", w: 0 });
+            P.forEach((p, i) => g.tex("P" + "₀₁₂₃"[i], p, "white", { dx: 16, dy: -14, size: 16 }));
+            L.set("bx", f2(b[0])); L.set("by", f2(b[1]));
+          };
+        }
+      } },
+      "'같은 t 간격 점 보기'를 켜면 ==점 간격이 고르지 않습니다==. $t$는 곡선 위의 거리가 아니기 때문입니다. 일정한 속도로 곡선을 따라가려면 길이를 미리 재 두고 거리로 $t$를 찾아야 합니다(호 길이 매개변수화).",
+      { key: "베지어 곡선은 ==처음과 끝 점은 지나고, 가운데 두 점은 끌어당기기만== 합니다. 폰트 외곽선, 벡터 그래픽, UE의 커브 에디터가 모두 이 곡선입니다." },
+
+      { h: "시간을 휘게 하면 움직임이 달라진다: 이징" },
+      "같은 거리를 같은 시간에 가도 ==시간 $t$를 어떻게 휘느냐==에 따라 느낌이 완전히 다릅니다. 왼쪽은 $f(t)$의 그래프, 오른쪽은 그 함수로 움직이는 공(흐린 공은 일정한 속도)입니다.",
+      { fig: {
+        aspect: 0.46, view: { x0: -0.3, x1: 9.3, y0: -0.6, y1: 3.8 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = "smooth", t = 0;
+          C.seg({ options: [{ value: "linear", label: "일정" }, { value: "in", label: "가속" }, { value: "out", label: "감속" }, { value: "smooth", label: "부드럽게" }, { value: "back", label: "튕김" }], value: mode, onChange: x => { mode = x; } });
+          C.play(true);
+          F.loop((dt, tt) => { const c = tt % 2.6; t = clamp(c / 2, 0, 1); });
+          F.draw = g => {
+            const fn = EASE[mode][0];
+            const G0 = [0.2, 0], S = 3;
+            g.poly([G0, [G0[0] + S, G0[1]], [G0[0] + S, G0[1] + S], [G0[0], G0[1] + S]], { stroke: "rgba(236,239,244,0.25)", w: 1 });
+            const pts = [];
+            for (let i = 0; i <= 60; i++) { const s = i / 60; pts.push([G0[0] + s * S, G0[1] + fn(s) * S]); }
+            g.poly(pts, { stroke: "yellow", w: 3, close: false });
+            g.line(G0, [G0[0] + S, G0[1] + S], "grey", { w: 1, dash: [4, 4], alpha: 0.6 });
+            g.dot([G0[0] + t * S, G0[1] + fn(t) * S], "yellow", 6);
+            g.tex("t", [G0[0] + S, G0[1]], "teal", { dy: 14, size: 15 }); g.tex("f(t)", [G0[0], G0[1] + S], "yellow", { dx: -6, dy: -14, size: 15 });
+            const x0 = 4.4, x1 = 8.8;
+            g.line([x0, 1.0], [x1, 1.0], "grey", { w: 2, alpha: 0.5 });
+            g.line([x0, 2.4], [x1, 2.4], "grey", { w: 2, alpha: 0.5 });
+            g.circle([lerp(x0, x1, t), 1.0], 0.22, "grey", { fill: "rgba(138,147,166,0.5)", w: 0 });
+            g.circle([lerp(x0, x1, fn(t)), 2.4], 0.26, "yellow", { fill: "yellow", w: 0 });
+            g.text("일정한 속도", [x0, 1.0], "grey", { dy: -20, size: 11, align: "left" });
+            g.text("이징 적용", [x0, 2.4], "yellow", { dy: -24, size: 11, align: "left" });
+            L.set("eq", EASE[mode][1]);
+          };
+        }
+      } },
+      "UI가 튀어나오고, 카메라가 멈추고, 캐릭터가 착지할 때의 '손맛'이 대부분 이 곡선 선택입니다. ==4장의 3b1b식 전환 애니메이션도 전부 smoothstep==으로 움직였습니다.",
+
+      { h: "점을 모두 지나는 곡선: 스플라인" },
+      "경로의 점을 찍어 두고 그 사이를 부드럽게 잇고 싶을 때가 많습니다(카메라 레일, 도로, 애니메이션 키). **캐트멀-롬** 스플라인은 ==각 점의 기울기를 양옆 이웃으로 정해== 모든 점을 지나갑니다. 점을 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          const P = [[-3.4, -1.2], [-2.1, 0.9], [-0.6, -0.6], [0.8, 1.3], [2.2, -0.4], [3.4, 1.0]];
+          let mode = "cr", tan = true;
+          P.forEach(p => F.vec(p, "white", { snap: 0.02 }));
+          C.seg({ options: [{ value: "cr", label: "캐트멀-롬 (점을 지남)" }, { value: "bs", label: "B-스플라인 (점 근처를 지남)" }], value: mode, onChange: x => { mode = x; } });
+          C.seg({ options: [{ value: 1, label: "기울기 보기" }, { value: 0, label: "숨기기" }], value: 1, onChange: x => { tan = !!x; } });
+          const cr = (p0, p1, p2, p3, t) => [0, 1].map(k => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t * t + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t * t * t));
+          const bs = (p0, p1, p2, p3, t) => [0, 1].map(k => ((1 - t) ** 3 * p0[k] + (3 * t ** 3 - 6 * t * t + 4) * p1[k] + (-3 * t ** 3 + 3 * t * t + 3 * t + 1) * p2[k] + t ** 3 * p3[k]) / 6);
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            g.poly(P, { stroke: "rgba(236,239,244,0.25)", w: 1, close: false, dash: [4, 5] });
+            const ext = [V.sub(V.mul(P[0], 2), P[1])].concat(P, [V.sub(V.mul(P[P.length - 1], 2), P[P.length - 2])]);
+            const pts = [];
+            for (let i = 1; i < ext.length - 2; i++) for (let s = 0; s <= 20; s++) pts.push((mode === "cr" ? cr : bs)(ext[i - 1], ext[i], ext[i + 1], ext[i + 2], s / 20));
+            g.poly(pts, { stroke: "yellow", w: 3.5, close: false });
+            if (tan && mode === "cr") for (let i = 1; i < ext.length - 1; i++) {
+              const d = V.mul(V.sub(ext[i + 1], ext[i - 1]), 0.25);
+              g.arrow(V.sub(ext[i], d), V.add(ext[i], d), "teal", { w: 2, head: 8, alpha: 0.85 });
+            }
+            L.set("eq", mode === "cr" ? "점 $P_i$의 기울기 = $(P_(i+1) − P_(i−1)) / 2$   → 모든 점을 지나감" : "점을 지나지는 않지만 더 매끄러움 (곡률까지 연속)");
+          };
+        }
+      } },
+      { ponder: "캐트멀-롬은 점을 지나는데 B-스플라인은 왜 점을 비켜 갈까요?",
+        answer: "B-스플라인은 각 위치를 ==주변 네 점의 가중 평균==으로 만들어 가중치가 늘 양수이고 합이 1입니다. 평균이라 점 바로 위로는 가지 않지만, 대신 곡률까지 연속이라 더 매끄럽습니다. 지나는 것과 매끄러운 것 사이의 선택입니다." },
+
+      { use: [
+        ["엔진", "커브 에셋과 시퀀서", "UE 커브 에셋, 시퀀서 키프레임 사이 보간이 베지어(에르미트) 곡선입니다. 탄젠트 핸들이 가운데 제어점입니다."],
+        ["게임", "스플라인 컴포넌트", "레일 카메라, 도로, 케이블, 순찰 경로를 점 몇 개로 찍고 스플라인으로 잇습니다."],
+        ["UI", "모션 디자인", "버튼 반응과 화면 전환의 이징이 체감 품질을 좌우합니다. CSS의 `cubic-bezier()`도 같은 곡선입니다."],
+        ["실생활", "폰트와 벡터 그림", "글꼴 외곽선과 일러스트 프로그램의 펜 도구가 베지어 곡선입니다. 확대해도 깨지지 않는 이유입니다."]
+      ] },
+
+      { recap: [
+        ["lerp(A, B, t) = A + (B − A)·t", "모든 보간의 시작"],
+        ["B(t) = lerp를 3번 겹침", "베지어: 양 끝은 지나고 가운데 점은 끌어당김"],
+        ["f(t) = 3t^2 − 2t^3", "이징: 시간을 휘어 움직임의 느낌을 바꿈"],
+        ["기울기 = (P_(i+1) − P_(i−1)) / 2", "캐트멀-롬: 모든 점을 지나는 스플라인"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\07-mesh.js ===== */
+/* 07 메시와 정점 데이터 */
+(() => {
+  const f0 = n => num(n, 0);
+  const edge = (a, b, p) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+
+  lesson({
+    topic: "mesh", title: "메시와 정점 데이터", desc: "점 목록 + 번호 목록", stage: "3D에서 화면으로",
+    sym: { N: "yellow", L: "gold", n: "teal" },
+    hook: "GPU가 받는 3D 모델은 ==정점 목록과, 정점 번호 셋씩 묶은 삼각형 목록==이 전부입니다. 노멀 하나를 어떻게 저장하느냐에 따라 같은 모양이 각지게도 매끈하게도 보입니다.",
+    blocks: [
+      { h: "정점 버퍼와 인덱스 버퍼" },
+      "격자 메시입니다. 삼각형을 눌러 보세요. ==삼각형은 좌표를 직접 갖지 않고 정점 번호 세 개만== 갖습니다. 이웃한 삼각형이 정점을 함께 쓰므로 메모리가 크게 줄어듭니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4, x1: 4, y0: -2.24, y1: 2.24 },
+        eq: ["인덱스 사용: 정점 {v}개 × 32 B + 번호 {i}개 × 2 B = {a} B", "중복 저장: 삼각형 {t}개 × 3 × 32 B = {b} B   ({ratio}배)", "{sel}"],
+        setup(F, C, L) {
+          let n = 3, sel = 4;
+          C.slider({ label: "격자 칸 수", min: 1, max: 10, step: 1, value: n, fmt: x => x + " × " + x, onInput: x => { n = x; sel = Math.min(sel, 2 * n * n - 1); } });
+          const size = 3.6, x0 = -3.6, y0 = -1.8;
+          const vid = (i, j) => j * (n + 1) + i;
+          const pos = (i, j) => [x0 + i * size / n, y0 + j * size / n];
+          const tris = () => {
+            const T = [];
+            for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+              T.push([vid(i, j), vid(i + 1, j), vid(i + 1, j + 1)], [vid(i, j), vid(i + 1, j + 1), vid(i, j + 1)]);
+            }
+            return T;
+          };
+          const P = k => pos(k % (n + 1), Math.floor(k / (n + 1)));
+          F.onTap = (p, sx, sy, moving) => {
+            if (moving) return;
+            tris().forEach((t, k) => { const a = P(t[0]), b = P(t[1]), c = P(t[2]); if (edge(a, b, p) >= 0 && edge(b, c, p) >= 0 && edge(c, a, p) >= 0) sel = k; });
+          };
+          F.draw = g => {
+            const T = tris();
+            T.forEach((t, k) => g.poly(t.map(P), { fill: k === sel ? hexA(PAL.yellow, 0.35) : "rgba(88,196,221,0.07)", stroke: "rgba(88,196,221,0.55)", w: 1.2 }));
+            const st = T[sel];
+            for (let k = 0; k < (n + 1) * (n + 1); k++) {
+              const on = st && st.includes(k);
+              g.dot(P(k), on ? "yellow" : "white", on ? 5.5 : 3.5);
+              if (n <= 5) g.text(String(k), P(k), on ? "yellow" : "grey", { dx: 9, dy: -9, size: 11, bold: on });
+            }
+            // 오른쪽: 실제 버퍼 모습
+            const bx = 0.9;
+            g.text("정점 버퍼", [bx, 1.95], "white", { align: "left", size: 12, bold: true });
+            const nv = (n + 1) * (n + 1);
+            for (let k = 0; k < Math.min(nv, 12); k++) {
+              const on = st && st.includes(k), p = P(k);
+              g.text(`${k}: (${num(p[0], 1)}, ${num(p[1], 1)}, 0)`, [bx, 1.6 - k * 0.27], on ? "yellow" : "grey", { align: "left", size: 11, bold: on });
+            }
+            if (nv > 12) g.text(`… ${nv}개`, [bx, 1.6 - 12 * 0.27], "grey", { align: "left", size: 11 });
+            g.text("인덱스 버퍼", [2.75, 1.95], "white", { align: "left", size: 12, bold: true });
+            for (let k = 0; k < Math.min(T.length, 12); k++) g.text(T[k].join(", "), [2.75, 1.6 - k * 0.27], k === sel ? "yellow" : "grey", { align: "left", size: 11, bold: k === sel });
+            if (T.length > 12) g.text(`… ${T.length}개`, [2.75, 1.6 - 12 * 0.27], "grey", { align: "left", size: 11 });
+            const a = nv * 32 + T.length * 3 * 2, b = T.length * 3 * 32;
+            L.set("v", nv); L.set("i", T.length * 3); L.set("a", a.toLocaleString()); L.set("t", T.length); L.set("b", b.toLocaleString()); L.set("ratio", num(b / a, 1));
+            L.set("sel", st ? `선택한 삼각형 = 정점 ${st.join(", ")} 번 (반시계 순서)` : "");
+          };
+        }
+      } },
+      { key: "정점 하나에는 위치만이 아니라 ==노멀·UV·탄젠트·색==이 함께 들어갑니다(보통 32~64바이트). 인덱스는 번호 하나에 2~4바이트라, 정점을 함께 쓸수록 이득입니다. 3장의 감김 순서도 이 번호 순서로 정해집니다." },
+
+      { h: "플랫 노멀 vs 스무스 노멀" },
+      "원을 다각형으로 근사한 단면입니다. ==면마다 노멀 하나==(플랫)를 쓰면 각이 보이고, ==정점마다 이웃 면 노멀의 평균==(스무스)을 쓰고 그 사이를 보간하면, 같은 다각형이 둥글게 보입니다. 해를 끌고 변 개수를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let sides = 8, smooth = false;
+          const sun = [-2.6, 1.5];
+          F.vec(sun, "gold", { snap: 0.01 });
+          C.slider({ label: "변 개수", min: 3, max: 32, step: 1, value: sides, fmt: f0, onInput: x => { sides = x; } });
+          C.seg({ options: [{ value: 0, label: "플랫 (면마다 하나)" }, { value: 1, label: "스무스 (정점마다 평균)" }], value: 0, onChange: x => { smooth = !!x; } });
+          F.draw = g => {
+            const R = 1.55, ctr = [0.4, 0];
+            const Ld = V.norm(V.sub(sun, ctr));
+            const vert = k => { const a = k / sides * TAU + 0.2; return V.add(ctr, [Math.cos(a) * R, Math.sin(a) * R]); };
+            const vn = k => { const a = k / sides * TAU + 0.2; return [Math.cos(a), Math.sin(a)]; };
+            g.circle(ctr, R, "grey", { w: 1, alpha: 0.25, dash: [4, 5] });
+            for (let k = 0; k < sides; k++) {
+              const a = vert(k), b = vert(k + 1);
+              const fn = V.norm(V.perp(V.sub(b, a))).map(x => -x);
+              const steps = 18;
+              for (let s = 0; s < steps; s++) {
+                const t0 = s / steps, t1 = (s + 1) / steps;
+                const N = smooth ? V.norm(V.lerp(vn(k), vn(k + 1), (t0 + t1) / 2)) : fn;
+                const lum = Math.max(0, V.dot(N, Ld));
+                const c = Math.round(30 + 225 * lum);
+                g.line(V.lerp(a, b, t0), V.lerp(a, b, t1), `rgb(${c},${Math.round(c * 0.85)},${Math.round(c * 0.55)})`, { w: 14 });
+              }
+              if (!smooth) g.arrow(V.lerp(a, b, 0.5), V.add(V.lerp(a, b, 0.5), V.mul(fn, 0.55)), "yellow", { w: 2, head: 8 });
+            }
+            if (smooth) for (let k = 0; k < sides; k++) g.arrow(vert(k), V.add(vert(k), V.mul(vn(k), 0.55)), "teal", { w: 2, head: 8 });
+            for (let k = 0; k < sides; k++) g.dot(vert(k), "white", 3);
+            g.circle(sun, 0.16, "gold", { fill: "gold", w: 0 });
+            L.set("eq", smooth ? "정점 노멀 = 이웃 면 노멀의 평균 → 면 위에서 보간 → 둥글게 보임" : "면 노멀 하나로 면 전체를 칠함 → 면마다 밝기가 뚝뚝 끊김");
+          };
+        }
+      } },
+      "변이 8개뿐이어도 스무스로 바꾸면 거의 원처럼 보입니다. ==모양(실루엣)은 그대로인데 음영만 둥글어지는 것==이 핵심입니다. 그래서 저폴리 모델도 노멀만 잘 주면 매끈하게 보입니다(노멀 맵은 이것을 픽셀 단위로 한 것입니다).",
+
+      { h: "각진 모서리 = 정점 나누기" },
+      "그런데 상자처럼 ==모서리가 날카로워야 하는 곳==은 어떻게 할까요? 한 위치에 노멀이 여러 개 필요하므로 정점을 복사해 나눕니다. 시점을 돌리며 모서리 한 곳의 노멀을 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["정점 수 = {nv}개   (위치는 8개)", "{why}"],
+        setup(F, C, L) {
+          const cam = makeCam(F, { yaw: 0.65, pitch: 0.45, dist: 8, fov: 36, scale: 1.2 });
+          cam.orbit();
+          let hard = true;
+          C.seg({ options: [{ value: 1, label: "하드 엣지 (면마다 정점)" }, { value: 0, label: "스무스 (위치마다 정점)" }], value: 1, onChange: x => { hard = !!x; } });
+          const Lv = V3.norm([0.5, 0.8, 0.35]);
+          const faces = [
+            { n: [1, 0, 0], v: [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]] }, { n: [-1, 0, 0], v: [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1]] },
+            { n: [0, 1, 0], v: [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1]] }, { n: [0, -1, 0], v: [[-1, -1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1]] },
+            { n: [0, 0, 1], v: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]] }, { n: [0, 0, -1], v: [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1]] }
+          ];
+          F.draw = g => {
+            const b = cam.basis();
+            const vis = faces.map(f => ({ f, d: V3.dot(V3.sub(V3.mul(f.n, 1), b.pos), f.n) })).filter(o => o.d < 0);
+            vis.forEach(({ f }) => {
+              const k = hard ? Math.max(0, V3.dot(f.n, Lv)) : 0.55 + 0.25 * V3.dot(f.n, Lv);
+              const c = Math.round(40 + 190 * k);
+              cam.poly(f.v, { fill: `rgb(${Math.round(c * 0.55)},${Math.round(c * 0.8)},${c})`, stroke: "rgba(236,239,244,0.5)", w: 1.2 });
+            });
+            const corner = [1, 1, 1];
+            if (hard) {
+              [[1, 0, 0], [0, 1, 0], [0, 0, 1]].forEach((n, i) => cam.arrow(corner, V3.add(corner, V3.mul(n, 1.1)), ["green", "red", "blue"][i], { w: 3 }));
+              cam.tex("정점 3개", corner, "white", { dx: 20, dy: 18, italic: false, size: 13 });
+            } else {
+              cam.arrow(corner, V3.add(corner, V3.mul(V3.norm([1, 1, 1]), 1.2)), "teal", { w: 3.5 });
+              cam.tex("정점 1개", corner, "white", { dx: 20, dy: 18, italic: false, size: 13 });
+            }
+            cam.dot(corner, "yellow", 6);
+            L.set("nv", hard ? 24 : 8);
+            L.set("why", hard ? "모서리마다 면 3개 → 같은 위치에 노멀 3개 → 정점 3개로 나눔 (6면 × 4)" : "위치마다 평균 노멀 하나 → 모서리가 뭉개져 둥글게 칠해짐");
+          };
+        }
+      } },
+      "같은 이유로 ==UV 이음매(텍스처가 끊기는 곳)에서도 정점이 나뉩니다==. 모델링 툴의 정점 수와 엔진이 보고하는 정점 수가 다른 것은 대부분 이 하드 엣지와 UV 이음매 때문입니다.",
+
+      { use: [
+        ["엔진", "정점 수가 늘어나는 이유", "엔진 통계의 정점 수가 모델링 툴보다 많다면 ==하드 엣지·UV 이음매·머티리얼 경계==에서 정점이 나뉜 것입니다."],
+        ["아트", "스무딩 그룹", "3ds Max·Maya·Blender의 스무딩 그룹/하드 엣지 설정이 곧 정점 노멀을 평균할지 나눌지의 선택입니다."],
+        ["게임", "저폴리 + 노멀 맵", "하이폴리의 굴곡을 노멀 맵으로 구워(베이킹) 저폴리에 입히는 것이 게임 에셋의 표준 흐름입니다."],
+        ["엔진", "나나이트", "UE5 나나이트는 수백만 삼각형을 클러스터로 묶어 압축 저장하고, 화면에 필요한 만큼만 골라 그립니다."]
+      ] },
+
+      { recap: [
+        ["정점 버퍼 + 인덱스 버퍼", "위치·노멀·UV 목록 + 번호 셋씩 묶은 삼각형"],
+        ["면 노멀 = normalize((B − A) × (C − A))", "플랫: 각진 음영"],
+        ["정점 노멀 = 이웃 면 노멀 평균", "스무스: 실루엣은 그대로, 음영만 둥글게"],
+        ["하드 엣지 · UV 이음매", "같은 위치라도 정점을 나눠야 함"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\08-projection.js ===== */
 /* 05 카메라와 투영 */
 (() => {
   const f2 = n => num(n, 2);
@@ -3529,6 +4119,13 @@ function render() {
       } },
       { key: "깊이 버퍼의 절반이 ==$near$의 약 두 배 거리 안에서== 다 쓰입니다. 그래서 $near$를 너무 작게 잡으면 먼 곳에서 면이 깜빡이는(Z-파이팅) 문제가 생깁니다. 요즘 엔진은 0과 1을 뒤집은 **Reversed-Z**로 이를 완화합니다." },
 
+      { use: [
+        ["게임", "FOV와 화면비", "FPS의 시야각 옵션, 울트라와이드 대응, 저격 스코프 줌이 모두 투영 행렬 조정입니다."],
+        ["영상", "렌즈 느낌", "망원·광각 렌즈 느낌과 돌리 줌을 FOV와 카메라 거리로 재현합니다. 시네마틱 카메라의 초점 거리 설정이 이것입니다."],
+        ["엔진", "깊이 정밀도", "UE는 Reversed-Z와 무한 원거리 투영으로 Z-파이팅을 줄입니다. 깊이 버퍼 값을 실제 거리로 되돌리는 계산도 자주 씁니다."],
+        ["실생활", "원근법과 AR", "원근법 회화, 휴대폰 AR이 가상 물체를 실제 카메라 화면에 맞추는 것이 같은 투영 계산입니다."]
+      ] },
+
       { recap: [
         ["View = (카메라 트랜스폼)^−1", "카메라 대신 세상을 옮김"],
         ["y' = d · y / z", "원근 = 깊이로 나누기 (w 나눗셈)"],
@@ -3540,7 +4137,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\06-raster.js ===== */
+/* ===== js\lessons\09-raster.js ===== */
 /* 06 래스터화와 보간 */
 (() => {
   const f2 = n => num(n, 2);
@@ -3750,6 +4347,13 @@ function render() {
       } },
       "MSAA는 ==커버리지(얼마나 덮였나)만 여러 번 재고 셰이더는 한 번만 돌리기== 때문에 비교적 싸게 가장자리를 다듬습니다. TAA나 FXAA는 같은 문제를 시간·후처리로 푸는 다른 방법입니다.",
 
+      { use: [
+        ["엔진", "작은 삼각형의 낭비", "GPU는 픽셀을 2×2 묶음으로 칠해서 아주 작은 삼각형이 많으면 낭비가 큽니다. 나나이트가 작은 삼각형을 따로(소프트웨어 래스터) 그리는 이유입니다."],
+        ["셰이더", "보간된 값", "픽셀 셰이더가 받는 UV·노멀·버텍스 컬러는 모두 무게중심 좌표로 섞인 값입니다. 보간을 끄는 `nointerpolation`도 있습니다."],
+        ["게임", "안티에일리어싱 옵션", "MSAA, FXAA, TAA, DLSS/TSR이 모두 이 장의 계단 현상을 다루는 서로 다른 방법입니다."],
+        ["실생활", "글꼴과 프린터", "화면 글꼴 렌더링(서브픽셀 AA)과 프린터의 점찍기도 래스터화입니다."]
+      ] },
+
       { recap: [
         ["E_AB(P) = (B − A) × (P − A)", "변의 왼쪽(+) / 오른쪽(−)"],
         ["E_AB, E_BC, E_CA ≥ 0", "셋 다 양수면 삼각형 안"],
@@ -3762,7 +4366,7 @@ function render() {
 })();
 
 
-/* ===== js\lessons\07-texture.js ===== */
+/* ===== js\lessons\10-texture.js ===== */
 /* 07 UV와 텍스처 샘플링 */
 (() => {
   const f2 = n => num(n, 2);
@@ -3837,7 +4441,7 @@ function render() {
           };
         }
       } },
-      "UV가 ==삼각형마다 꼭짓점에만 저장==되고, 그 사이는 6장의 무게중심 좌표로 보간된다는 점을 기억하세요. UV 사각형을 작게 줄이면 그림의 일부가 면 전체로 확대됩니다.",
+      "UV가 ==삼각형마다 꼭짓점에만 저장==되고, 그 사이는 9장의 무게중심 좌표로 보간된다는 점을 기억하세요. UV 사각형을 작게 줄이면 그림의 일부가 면 전체로 확대됩니다.",
 
       { h: "0~1 밖으로 나가면: 래핑" },
       "UV가 1을 넘거나 0보다 작아지면 어떻게 할지 정해야 합니다. 반복 횟수를 늘리고 모드를 바꿔 보세요. 점선이 원래의 0~1 영역입니다.",
@@ -3969,6 +4573,13 @@ function render() {
         }
       } },
 
+      { use: [
+        ["엔진", "텍스처 설정 창", "UE 텍스처의 sRGB, 필터(Nearest·Bilinear·Trilinear·Anisotropic), 래핑, 밉 생성 옵션이 이 장 내용 그대로입니다."],
+        ["게임", "도트 그래픽", "픽셀 아트 게임은 ==Nearest 필터와 밉맵 끄기==로 또렷한 도트를 지킵니다."],
+        ["셰이더", "UV 애니메이션", "흐르는 용암·물·홀로그램·진행 바가 UV 스크롤·회전·왜곡입니다. 머티리얼의 Panner·Rotator 노드."],
+        ["실생활", "온라인 지도", "지도 앱은 줌 단계마다 줄여 둔 타일(밉맵과 같은 원리)을 내려받아 보여 줍니다."]
+      ] },
+
       { recap: [
         ["(u, v) ∈ [0, 1]", "그림 위의 주소, 꼭짓점에 저장 → 보간"],
         ["frac(uv) · clamp(uv, 0, 1)", "래핑: 반복 / 가장자리 늘이기 / 거울"],
@@ -3980,7 +4591,148 @@ function render() {
 })();
 
 
-/* ===== js\lessons\08-lighting.js ===== */
+/* ===== js\lessons\11-triplanar.js ===== */
+/* 11 트라이플래너 매핑 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 16×16 벽돌 텍스처(줄눈 + 벽돌마다 다른 색)
+  const N = 16, TEX = [];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const row = Math.floor(j / 4), off = (row % 2) * 2;
+    const mortar = j % 4 === 3 || (i + off) % 4 === 3;
+    const id = row * 7 + Math.floor((i + off) / 4) * 13;
+    const h = ((id * 9301 + 49297) % 233280) / 233280;
+    TEX.push(mortar ? [205, 200, 190] : [150 + h * 70, 70 + h * 40, 55 + h * 25]);
+  }
+  const texel = (i, j) => TEX[(((j % N) + N) % N) * N + (((i % N) + N) % N)];
+  function sample(u, v, bil) {
+    const x = u * N - (bil ? 0.5 : 0), y = v * N - (bil ? 0.5 : 0);
+    const i = Math.floor(x), j = Math.floor(y);
+    if (!bil) return texel(i, j);
+    const fx = x - i, fy = y - j, a = texel(i, j), b = texel(i + 1, j), c = texel(i, j + 1), d = texel(i + 1, j + 1);
+    return a.map((_, k) => lerp(lerp(a[k], b[k], fx), lerp(c[k], d[k], fx), fy));
+  }
+  const rotY = (v, a) => [v[0] * Math.cos(a) + v[2] * Math.sin(a), v[1], -v[0] * Math.sin(a) + v[2] * Math.cos(a)];
+  const rotX = (v, a) => [v[0], v[1] * Math.cos(a) - v[2] * Math.sin(a), v[1] * Math.sin(a) + v[2] * Math.cos(a)];
+  const LIGHT = V3.norm([0.4, 0.7, 0.6]);
+  // 화면 원 안의 픽셀 → 구 표면의 월드 위치·노멀
+  function sphereSurf(x, y, c, R, yaw, pitch) {
+    const nx = (x - c[0]) / R, ny = (y - c[1]) / R, r2 = nx * nx + ny * ny;
+    if (r2 > 1) return null;
+    const nv = [nx, ny, Math.sqrt(1 - r2)];
+    const n = rotY(rotX(nv, pitch), yaw);
+    return { n, nv, edge: clamp((1 - r2) * 40, 0, 1) };
+  }
+
+  lesson({
+    topic: "triplanar", title: "트라이플래너 매핑", desc: "UV 없이 세 방향에서 투영", stage: "3D에서 화면으로",
+    sym: { w: "purple", N: "yellow", k: "orange", x: "green", y: "red", z: "blue" },
+    hook: "바위·지형·절벽처럼 UV를 펴기 어려운 모델에는 ==UV 대신 월드 좌표로 텍스처를 찍습니다==. 한 방향에서 찍으면 옆면이 늘어나니, 세 방향에서 찍어 노멀로 섞습니다.",
+    blocks: [
+      { h: "한 방향 투영: 옆면이 늘어난다" },
+      "구에 월드 좌표 $(x, z)$로 벽돌을 위에서 찍어 봅니다. ==위아래는 멀쩡한데 옆면은 줄무늬로 늘어납니다==. 위에서 본 텍스처 한 점이 옆면에서는 긴 선으로 펼쳐지기 때문입니다. 투영 방향을 바꾸고 구를 돌려 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let axis = "y", yaw = 0.5, pitch = 0.35;
+          C.seg({ options: [{ value: "y", label: "위에서 (uv = xz)" }, { value: "z", label: "앞에서 (uv = xy)" }, { value: "x", label: "옆에서 (uv = zy)" }], value: axis, onChange: x => { axis = x; } });
+          C.slider({ label: "돌리기", min: -3.14, max: 3.14, value: yaw, fmt: x => num(x / DEG, 0) + "°", onInput: x => { yaw = x; } });
+          C.slider({ label: "기울이기", min: -1.5, max: 1.5, value: pitch, fmt: x => num(x / DEG, 0) + "°", onInput: x => { pitch = x; } });
+          F.draw = g => {
+            const c = [0, 0], R = 1.85, sc = 0.55;
+            g.field(220, (x, y) => {
+              const s = sphereSurf(x, y, c, R, yaw, pitch);
+              if (!s) return null;
+              const p = s.n;   // 반지름 1인 구라 위치 = 노멀
+              const uv = axis === "y" ? [p[0], p[2]] : axis === "z" ? [p[0], p[1]] : [p[2], p[1]];
+              const t = sample(uv[0] * sc + 5, uv[1] * sc + 5, true);
+              const l = 0.25 + 0.75 * Math.max(0, V3.dot(rotY(rotX(s.nv, 0), 0), LIGHT));
+              return [t[0] * l, t[1] * l, t[2] * l, 255 * s.edge];
+            });
+            L.set("eq", axis === "y" ? "$uv = (x, z)$   위·아래 면은 정확, 옆면은 세로로 늘어남" : axis === "z" ? "$uv = (x, y)$   앞·뒤 면은 정확, 위아래와 옆이 늘어남" : "$uv = (z, y)$   좌우 면은 정확, 나머지가 늘어남");
+          };
+        }
+      } },
+
+      { h: "세 방향에서 찍어 노멀로 섞기" },
+      "그래서 ==$x$, $y$, $z$ 세 방향에서 모두 찍고==, 면이 어느 쪽을 보는지($N$)에 따라 섞습니다. 위를 보는 면은 위에서 찍은 것을, 옆을 보는 면은 옆에서 찍은 것을 주로 씁니다. '가중치 보기'로 섞는 비율을 색으로 확인하세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["w = |N|^k / (|N_x|^k + |N_y|^k + |N_z|^k)", "{eq}"],
+        setup(F, C, L) {
+          let k = 4, view = 0, bil = true, sc = 0.55, yaw = 0.5;
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "가중치 보기 (x 초록·y 빨강·z 파랑)" }], value: 0, onChange: x => { view = x; } });
+          C.slider({ label: "경계 날카로움 $k$", min: 1, max: 24, step: 1, value: k, fmt: x => num(x, 0), onInput: x => { k = x; } });
+          C.slider({ label: "텍스처 확대", min: 0.15, max: 1.5, value: sc, onInput: x => { sc = x; } });
+          C.seg({ options: [{ value: 1, label: "Bilinear" }, { value: 0, label: "Nearest" }], value: 1, onChange: x => { bil = !!x; } });
+          C.play();
+          F.loop(dt => { yaw += dt * 0.5; });
+          F.draw = g => {
+            const c = [0, 0], R = 1.85;
+            g.field(220, (x, y) => {
+              const s = sphereSurf(x, y, c, R, yaw, 0.35);
+              if (!s) return null;
+              const n = s.n;
+              let w = n.map(v => Math.pow(Math.abs(v), k));
+              const sum = w[0] + w[1] + w[2];
+              w = w.map(v => v / sum);
+              if (view === 1) return [w[1] * 252 + w[0] * 131 + w[2] * 88, w[0] * 193 + w[1] * 98 + w[2] * 196, w[2] * 221 + w[0] * 103 + w[1] * 85, 255 * s.edge];
+              const tx = sample(n[2] * sc + 5, n[1] * sc + 5, bil), ty = sample(n[0] * sc + 5, n[2] * sc + 5, bil), tz = sample(n[0] * sc + 5, n[1] * sc + 5, bil);
+              const l = 0.25 + 0.75 * Math.max(0, V3.dot(s.nv, LIGHT));
+              return [0, 1, 2].map(i => (tx[i] * w[0] + ty[i] * w[1] + tz[i] * w[2]) * l).concat(255 * s.edge);
+            });
+            L.set("eq", `$k = ${k}$ : ${k <= 2 ? "넓게 섞여 경계가 흐릿함 (이중으로 겹쳐 보임)" : k >= 12 ? "거의 한 방향만 골라 경계가 또렷함" : "적당히 섞임"}`);
+          };
+        }
+      } },
+      { key: "트라이플래너는 ==텍스처를 세 번 읽고 노멀로 섞습니다==. UV가 필요 없고 이음매도 없지만, 읽기가 3배라 비용이 큽니다. 그래서 바위·지형처럼 꼭 필요한 곳에만 씁니다." },
+
+      { h: "섞는 비율을 단면으로 보기" },
+      "원 둘레를 돌며 $N$ 이 바뀔 때 [[green:$x$ 방향 가중치]]와 [[red:$y$ 방향 가중치]]가 어떻게 바뀌는지 그래프로 봅니다. $k$를 키우면 ==가운데 섞이는 구간이 좁아져== 두 투영이 겹쳐 보이는 영역이 줄어듭니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: -0.4, x1: 10.4, y0: -0.3, y1: 1.3, stretch: true },
+        eq: ["θ = {deg}°   →   w_x = {wx},   w_y = {wy}"],
+        setup(F, C, L) {
+          let k = 4, th = 0.6;
+          C.slider({ label: "$k$", min: 1, max: 24, step: 1, value: k, fmt: x => num(x, 0), onInput: x => { k = x; } });
+          F.handle({ color: "yellow", get: () => [th / (Math.PI / 2) * 10, 1.15], set: x => { th = clamp(x / 10, 0, 1) * Math.PI / 2; } });
+          F.draw = g => {
+            const W = t => { const a = Math.pow(Math.abs(Math.cos(t)), k), b = Math.pow(Math.abs(Math.sin(t)), k); return [a / (a + b), b / (a + b)]; };
+            const px = [], py = [];
+            for (let i = 0; i <= 100; i++) { const t = i / 100 * Math.PI / 2, w = W(t); px.push([i / 10, w[0]]); py.push([i / 10, w[1]]); }
+            g.line([0, 0], [10, 0], "grey", { w: 1 }); g.line([0, 1], [10, 1], "grey", { w: 1, dash: [3, 4], alpha: 0.5 });
+            g.poly(px, { stroke: "green", w: 3, close: false });
+            g.poly(py, { stroke: "red", w: 3, close: false });
+            const w = W(th);
+            g.line([th / (Math.PI / 2) * 10, 0], [th / (Math.PI / 2) * 10, 1.15], "yellow", { w: 1.5, dash: [4, 4] });
+            g.dot([th / (Math.PI / 2) * 10, w[0]], "green", 5); g.dot([th / (Math.PI / 2) * 10, w[1]], "red", 5);
+            g.text("N = 옆(+x)", [0, 0], "grey", { dy: 14, size: 11, align: "left" }); g.text("N = 위(+y)", [10, 0], "grey", { dy: 14, size: 11, align: "right" });
+            L.set("deg", num(th / DEG, 0)); L.set("wx", f2(w[0])); L.set("wy", f2(w[1]));
+          };
+        }
+      } },
+      "실무에서는 노멀 맵도 트라이플래너로 찍는데, 이때는 ==각 투영의 노멀을 해당 축 기준으로 돌려서== 섞어야 조명이 맞습니다(화이트아웃 블렌드 등). 그리고 텍스처 읽기가 3배이므로 바이리니어·밉맵 비용도 3배가 됩니다.",
+
+      { use: [
+        ["엔진", "머티리얼 함수", "UE의 `WorldAlignedTexture`·`WorldAlignedNormal` 머티리얼 함수가 트라이플래너입니다. 크기 파라미터가 이 장의 '텍스처 확대'입니다."],
+        ["게임", "지형과 절벽", "지형의 가파른 절벽은 높이맵 UV로 찍으면 늘어나므로, 경사가 큰 곳만 트라이플래너로 바꿉니다."],
+        ["아트", "바위·스캔 에셋", "포토스캔 바위나 프로시저럴 메시처럼 UV가 엉망인 모델에 이음매 없는 디테일 텍스처를 입힙니다."],
+        ["최적화", "비용 줄이기", "가중치가 거의 0인 투영은 건너뛰거나(동적 분기), 가장 큰 축 하나만 읽는 '바이플래너'로 비용을 줄입니다."]
+      ] },
+
+      { recap: [
+        ["uv = (x, z)", "한 방향 투영: 그 방향을 보는 면만 정확"],
+        ["w = |N|^k / Σ|N|^k", "노멀로 세 투영을 섞는 비율"],
+        ["색 = w_x·T(zy) + w_y·T(xz) + w_z·T(xy)", "트라이플래너: 텍스처 3번 읽기"],
+        ["k ↑", "경계가 날카로워지고 겹쳐 보임이 줄어듦"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\12-lighting.js ===== */
 /* 08 노멀과 조명 */
 (() => {
   const f2 = n => num(n, 2);
@@ -4003,7 +4755,7 @@ function render() {
   const tint = (k, col = BASE) => col.map(v => clamp(v * k, 0, 255));
 
   lesson({
-    topic: "lighting", title: "노멀과 조명", desc: "N·L 하나로 시작하는 빛", stage: "빛과 하드웨어",
+    topic: "lighting", title: "노멀과 조명", desc: "N·L 하나로 시작하는 빛", stage: "빛과 색",
     sym: { N: "yellow", L: "gold", V: "teal", H: "purple", R: "pink", p: "orange", w: "blue", "θ": "blue" },
     hook: "면이 빛을 얼마나 받는지는 ==면이 향한 방향($N$)과 빛이 오는 방향($L$)의 내적== 하나로 정해집니다. 3장에서 배운 그 내적입니다.",
     blocks: [
@@ -4182,6 +4934,13 @@ function render() {
       { ponder: "노멀 맵 텍스처는 왜 대부분 보랏빛 파란색일까요?",
         answer: "대부분의 픽셀이 '거의 정면' 노멀 $(0, 0, 1)$ 이고, 이것을 $N · 0.5 + 0.5$ 로 색에 담으면 $(0.5, 0.5, 1)$ — ==R·G는 중간, B는 최대==인 보랏빛 파랑이 되기 때문입니다." },
 
+      { use: [
+        ["게임", "툰 셰이딩", "셀 셰이딩 게임은 $N·L$ 을 계단(램프 텍스처)으로 바꿉니다. 이 프로젝트의 ToonLit 셰이딩 모델도 같은 원리입니다."],
+        ["엔진", "머티리얼 Normal 입력", "UE 머티리얼의 Normal에 노멀 맵을 꽂으면 엔진이 픽셀마다 $N$ 을 바꿔 조명을 계산합니다."],
+        ["아트", "베이킹", "하이폴리 디테일은 노멀 맵으로, 움직이지 않는 조명은 라이트맵으로 미리 구워 실시간 비용을 줄입니다."],
+        ["실생활", "계절과 태양 고도", "겨울이 추운 큰 이유가 이 장의 $cos θ$ 입니다. 햇빛이 비스듬해 같은 빛이 넓은 땅에 퍼집니다."]
+      ] },
+
       { recap: [
         ["max(0, N·L)", "램버트 확산: 비스듬할수록 어두움"],
         ["(N·L · 0.5 + 0.5)^2", "하프 램버트, 계단으로 바꾸면 툰"],
@@ -4194,19 +4953,1925 @@ function render() {
 })();
 
 
-/* ===== js\lessons\09-gpu.js ===== */
+/* ===== js\lessons\13-color.js ===== */
+/* 12 색 · 감마 · 블렌딩 */
+(() => {
+  const f2 = n => num(n, 2);
+  const toLin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const toSrgb = c => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+  const B = v => Math.round(clamp(v, 0, 1) * 255);
+
+  lesson({
+    topic: "color", title: "색 · 감마 · 블렌딩", desc: "숫자와 눈의 밝기는 다르다", stage: "빛과 색",
+    sym: { c: "yellow", a: "teal", s: "pink", d: "blue" },
+    hook: "모니터의 숫자 0.5는 ==빛의 양 절반이 아닙니다==. 이 어긋남(감마)을 모르면 조명·블렌딩·텍스처 필터링이 모두 조금씩 틀립니다.",
+    blocks: [
+      { h: "숫자 0.5는 빛의 절반이 아니다" },
+      "위 띠는 ==저장된 숫자(sRGB)를 고르게==, 아래 띠는 ==실제 빛의 양(선형)을 고르게== 늘린 것입니다. 눈은 어두운 쪽 변화에 민감해서 sRGB는 어두운 쪽에 숫자를 더 많이 배정합니다. 막대를 움직여 같은 숫자가 두 띠에서 어떻게 다른지 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5, stretch: true },
+        eq: ["선형 = sRGB^2.2 (대략)   →   sRGB {s} = 선형 {l}"],
+        setup(F, C, L) {
+          let v = 0.5;
+          F.handle({ color: "yellow", get: () => [0.5 + v * 9, 4.6], set: x => { v = clamp((x - 0.5) / 9, 0, 1); } });
+          F.draw = g => {
+            g.field(300, (x, y) => {
+              const u = clamp((x - 0.5) / 9, 0, 1);
+              if (x < 0.5 || x > 9.5) return null;
+              if (y > 3.1 && y < 4.3) { const c = B(u); return [c, c, c, 255]; }
+              if (y > 1.7 && y < 2.9) { const c = B(toSrgb(u)); return [c, c, c, 255]; }
+              return null;
+            }, { smooth: false });
+            g.text("숫자가 고르게 (sRGB 0 → 1)", [0.5, 4.45], "white", { align: "left", size: 12, bold: true, dy: -2 });
+            g.text("빛의 양이 고르게 (선형 0 → 1)", [0.5, 1.55], "white", { align: "left", size: 12, bold: true, dy: 8 });
+            // 곡선
+            const pts = [];
+            for (let i = 0; i <= 50; i++) { const u = i / 50; pts.push([0.5 + u * 9, 0.15 + toLin(u) * 1.2]); }
+            g.poly(pts, { stroke: "yellow", w: 2.5, close: false });
+            g.line([0.5, 0.15], [9.5, 1.35], "grey", { w: 1, dash: [4, 4] });
+            const x = 0.5 + v * 9;
+            g.line([x, 3.1], [x, 4.3], "yellow", { w: 2 });
+            g.line([0.5 + toLin(v) * 9, 1.7], [0.5 + toLin(v) * 9, 2.9], "yellow", { w: 2 });
+            g.line([x, 3.1], [0.5 + toLin(v) * 9, 2.9], "yellow", { w: 1.2, dash: [4, 4] });
+            g.dot([x, 0.15 + toLin(v) * 1.2], "yellow", 5);
+            L.set("s", f2(v)); L.set("l", f2(toLin(v)));
+          };
+        }
+      } },
+      { key: "텍스처와 화면은 ==sRGB(감마 적용) 숫자==로 저장되고, 빛의 계산(더하기·곱하기·평균)은 ==선형 공간==에서 해야 맞습니다. 그래서 셰이더는 텍스처를 읽을 때 선형으로 풀고, 화면에 쓸 때 다시 sRGB로 감습니다." },
+
+      { h: "어디서 섞느냐에 따라 색이 다르다" },
+      "빨강과 초록을 섞어 보겠습니다. ==sRGB 숫자를 그대로 평균==하면 가운데가 칙칙하게 어두워지고, ==선형으로 풀어서 평균==하면 밝은 노랑이 됩니다. 실제 빛을 섞으면 후자가 맞습니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["가운데 색: sRGB 평균 ({a1}, {a2}, 0)   vs   선형 평균 ({b1}, {b2}, 0)"],
+        setup(F, C, L) {
+          const pal = { "빨강 → 초록": [[1, 0, 0], [0, 1, 0]], "파랑 → 노랑": [[0, 0, 1], [1, 1, 0]], "검정 → 흰색": [[0, 0, 0], [1, 1, 1]] };
+          let key = "빨강 → 초록";
+          C.seg({ options: Object.keys(pal).map(k => ({ value: k, label: k })), value: key, onChange: x => { key = x; } });
+          F.draw = g => {
+            const [A, Bc] = pal[key];
+            g.field(300, (x, y) => {
+              const u = clamp((x - 0.5) / 9, 0, 1);
+              if (x < 0.5 || x > 9.5) return null;
+              if (y > 2.3 && y < 3.6) return [...A.map((a, i) => B(lerp(a, Bc[i], u))), 255];
+              if (y > 0.5 && y < 1.8) return [...A.map((a, i) => B(toSrgb(lerp(toLin(a), toLin(Bc[i]), u)))), 255];
+              return null;
+            }, { smooth: false });
+            g.text("sRGB 숫자 그대로 섞기", [0.5, 3.6], "white", { align: "left", size: 12, bold: true, dy: -10 });
+            g.text("선형으로 풀어서 섞기", [0.5, 1.8], "white", { align: "left", size: 12, bold: true, dy: -10 });
+            g.line([5, 0.4], [5, 3.7], "white", { w: 1, dash: [3, 4], alpha: 0.6 });
+            const m1 = A.map((a, i) => lerp(a, Bc[i], 0.5)), m2 = A.map((a, i) => toSrgb(lerp(toLin(a), toLin(Bc[i]), 0.5)));
+            L.set("a1", f2(m1[0])); L.set("a2", f2(m1[1])); L.set("b1", f2(m2[0])); L.set("b2", f2(m2[1]));
+          };
+        }
+      } },
+      "그라데이션, 블러, 밉맵 생성, 텍스처 필터링이 모두 '섞기'입니다. ==sRGB 텍스처 포맷을 지정하면 GPU가 읽을 때 자동으로 선형으로 풀어 줍니다==. 반대로 노멀 맵이나 마스크처럼 '색이 아닌 숫자'는 선형으로 저장해야 합니다.",
+
+      { h: "알파 블렌딩: 순서가 중요하다" },
+      "반투명 사각형 두 장을 겹칩니다. 기본 알파 블렌딩은 ==새 색 × α + 기존 색 × (1 − α)== 라서 그리는 순서가 바뀌면 결과도 바뀝니다. 더하기 블렌딩은 순서와 무관합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = "alpha", order = 0, a = 0.6;
+          const A = [-1.9, -0.2], Bp = [0.3, 0.3];
+          F.vec(A, "pink", { snap: 0.02 }); F.vec(Bp, "teal", { snap: 0.02 });
+          C.seg({ options: [{ value: "alpha", label: "알파" }, { value: "add", label: "더하기" }, { value: "mul", label: "곱하기" }], value: mode, onChange: x => { mode = x; } });
+          C.seg({ options: [{ value: 0, label: "분홍 먼저" }, { value: 1, label: "청록 먼저" }], value: 0, onChange: x => { order = x; } });
+          C.slider({ label: "불투명도 $a$", min: 0, max: 1, value: a, onInput: x => { a = x; } });
+          const P = rgb("pink").map(v => toLin(v / 255)), T = rgb("teal").map(v => toLin(v / 255)), BG = [0.03, 0.035, 0.05];
+          F.draw = g => {
+            const inA = (x, y) => Math.abs(x - A[0]) < 1.4 && Math.abs(y - A[1]) < 1.1;
+            const inB = (x, y) => Math.abs(x - Bp[0]) < 1.4 && Math.abs(y - Bp[1]) < 1.1;
+            const blend = (dst, src) => mode === "alpha" ? dst.map((d, i) => src[i] * a + d * (1 - a)) : mode === "add" ? dst.map((d, i) => d + src[i] * a) : dst.map((d, i) => d * lerp(1, src[i], a));
+            g.field(240, (x, y) => {
+              let c = mode === "mul" ? [0.8, 0.8, 0.8] : BG.slice();
+              const layers = order === 0 ? [[inA, P], [inB, T]] : [[inB, T], [inA, P]];
+              layers.forEach(([hit, col]) => { if (hit(x, y)) c = blend(c, col); });
+              return [...c.map(v => B(toSrgb(v))), 255];
+            }, { smooth: false });
+            L.set("eq", mode === "alpha" ? "$결과 = 새 색 · a + 기존 색 · (1 − a)$   순서를 바꾸면 겹친 곳 색이 바뀜" : mode === "add" ? "$결과 = 기존 색 + 새 색 · a$   순서와 무관, 밝아지기만 함 (불꽃·빛)" : "$결과 = 기존 색 · 새 색$   순서와 무관, 어두워지기만 함 (그림자·얼룩)");
+          };
+        }
+      } },
+      { key: "알파 블렌딩은 순서에 민감하므로 엔진은 ==반투명 물체를 뒤에서 앞으로 정렬해서== 그립니다. 그래도 서로 관통하는 반투명 물체는 정렬로 해결되지 않습니다(OIT가 필요한 이유)." },
+
+      { h: "프리멀티플라이드 알파: 가장자리의 검은 테" },
+      "빨간 잎 스프라이트를 확대해 필터링하면, ==투명한 바깥 텍셀의 색(보통 검정)이 섞여 들어와== 가장자리에 검은 테가 생깁니다. 색에 미리 알파를 곱해 두면(premultiplied) 이 문제가 사라집니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let pre = false, zoom = 7;
+          C.seg({ options: [{ value: 0, label: "일반 알파 (straight)" }, { value: 1, label: "프리멀티플라이드" }], value: 0, onChange: x => { pre = !!x; } });
+          C.slider({ label: "확대", min: 3, max: 12, step: 1, value: zoom, fmt: x => "×" + x, onInput: x => { zoom = x; } });
+          // 8×4 텍스처: 가운데만 불투명한 빨강, 바깥 텍셀은 색 (0,0,0), 알파 0
+          const tex = (i, j) => { const inside = i >= 2 && i <= 5 && j >= 1 && j <= 2; return inside ? [1, 0.25, 0.2, 1] : [0, 0, 0, 0]; };
+          const BG = [0.85, 0.85, 0.75];
+          F.draw = g => {
+            g.field(260, (x, y) => {
+              const u = (x / 10) * 8, v = (y / 4.2) * 4;
+              const fx = u - 0.5, fy = v - 0.5, i = Math.floor(fx), j = Math.floor(fy), tx = fx - i, ty = fy - j;
+              const s = (ii, jj) => { const c = tex(clamp(ii, 0, 7), clamp(jj, 0, 3)); return pre ? [c[0] * c[3], c[1] * c[3], c[2] * c[3], c[3]] : c; };
+              const c00 = s(i, j), c10 = s(i + 1, j), c01 = s(i, j + 1), c11 = s(i + 1, j + 1);
+              const c = c00.map((_, k) => lerp(lerp(c00[k], c10[k], tx), lerp(c01[k], c11[k], tx), ty));
+              const out = pre ? BG.map((b, k) => c[k] + b * (1 - c[3])) : BG.map((b, k) => c[k] * c[3] + b * (1 - c[3]));
+              return [...out.map(B), 255];
+            }, { smooth: false });
+            void zoom;
+            L.set("eq", pre ? "$결과 = 색 + 배경 · (1 − a)$   색에 이미 a가 곱해져 있어 바깥 검정이 섞여도 영향 없음" : "$결과 = 색 · a + 배경 · (1 − a)$   필터링 중 색이 먼저 검정과 섞여 테두리가 어두워짐");
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "선형 워크플로", "UE는 선형 공간에서 조명을 계산하고 마지막에 sRGB로 바꿉니다. ==마스크·러프니스 텍스처는 sRGB를 꺼야== 값이 정확합니다."],
+        ["게임", "반투명 정렬 문제", "파티클·유리·UI가 겹칠 때 깜빡이는 것은 정렬 순서 문제입니다. 순서와 무관한 더하기 블렌딩을 불꽃·빛 효과에 씁니다."],
+        ["UI", "아이콘의 검은 테", "아이콘 가장자리의 어두운 테는 대부분 프리멀티플라이드 알파 설정 문제입니다."],
+        ["실생활", "사진 노출", "카메라 JPEG도 sRGB로 저장됩니다. 그래서 사진 편집의 '노출 +1스톱(빛 2배)'은 숫자 2배가 아닙니다."]
+      ] },
+
+      { recap: [
+        ["선형 ≈ sRGB^2.2", "저장은 sRGB, 계산은 선형"],
+        ["lerp(toLinear(A), toLinear(B), t)", "섞기는 선형 공간에서"],
+        ["새 색 · a + 기존 색 · (1 − a)", "알파 블렌딩: 뒤에서 앞으로 그려야 함"],
+        ["색 + 배경 · (1 − a)", "프리멀티플라이드: 필터링해도 테두리가 깨끗"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\14-pbr.js ===== */
+/* 14 PBR 재질 */
+(() => {
+  const f2 = n => num(n, 2);
+  const lin = c => Math.pow(c / 255, 2.2);
+  const out = v => Math.round(255 * Math.pow(clamp(v / (1 + v), 0, 1), 1 / 2.2));   // 간단한 톤매핑 + 감마
+  // 쿡-토런스: GGX 분포 + 스미스 그림자 + 슐릭 프레넬
+  function brdf(N, Lv, Vv, base, rough, metal) {
+    const H = V3.norm(V3.add(Lv, Vv));
+    const NoL = Math.max(0, V3.dot(N, Lv)), NoV = Math.max(1e-3, V3.dot(N, Vv)), NoH = Math.max(0, V3.dot(N, H)), VoH = Math.max(0, V3.dot(Vv, H));
+    const a = Math.max(0.02, rough * rough), a2 = a * a;
+    const dd = NoH * NoH * (a2 - 1) + 1, D = a2 / (Math.PI * dd * dd);
+    const k = (rough + 1) * (rough + 1) / 8, G = (NoL / (NoL * (1 - k) + k)) * (NoV / (NoV * (1 - k) + k));
+    const F0 = base.map(c => lerp(0.04, c, metal)), fw = Math.pow(1 - VoH, 5);
+    const Fr = F0.map(f => f + (1 - f) * fw);
+    return base.map((c, i) => {
+      const spec = D * G * Fr[i] / Math.max(1e-4, 4 * NoL * NoV);
+      const diff = (1 - Fr[i]) * (1 - metal) * c / Math.PI;
+      return (diff + spec) * NoL * 3.2 + c * 0.04 * (1 - metal) + F0[i] * 0.06;
+    });
+  }
+  function lightDir(p, c, R) {
+    const d = [(p[0] - c[0]) / R, (p[1] - c[1]) / R], r = Math.min(V.len(d), 1.9), az = Math.atan2(d[1], d[0]), a = r * Math.PI / 2;
+    return [Math.sin(a) * Math.cos(az), Math.sin(a) * Math.sin(az), Math.cos(a)];
+  }
+  function ball(g, c, R, shade) {
+    g.field(Math.round(R * 70), (x, y) => {
+      const nx = (x - c[0]) / R, ny = (y - c[1]) / R, r2 = nx * nx + ny * ny;
+      if (r2 > 1) return null;
+      const col = shade([nx, ny, Math.sqrt(1 - r2)]);
+      return [out(col[0]), out(col[1]), out(col[2]), 255 * clamp((1 - r2) * 40, 0, 1)];
+    }, { rect: { x0: c[0] - R, x1: c[0] + R, y0: c[1] - R, y1: c[1] + R } });
+  }
+
+  lesson({
+    topic: "pbr", title: "PBR 재질", desc: "거칠기·금속성·에너지 보존", stage: "빛과 색",
+    sym: { N: "yellow", L: "gold", V: "teal", H: "purple", D: "pink", G: "green", F: "orange", F0: "orange" },
+    hook: "물리 기반 렌더링(PBR)은 '그럴듯해 보이는 공식' 대신 ==실제 빛의 규칙(에너지 보존, 미세면, 프레넬)==을 따릅니다. 그래서 아티스트는 숫자 두 개, 거칠기와 금속성만 정하면 됩니다.",
+    blocks: [
+      { h: "거칠기 = 아주 작은 거울들의 흐트러짐" },
+      "확대하면 모든 표면은 ==작은 거울 조각(미세면)==의 모음입니다. 평행한 빛이 들어올 때, 조각들이 고르면 한 방향으로 튕기고 울퉁불퉁하면 사방으로 퍼집니다. 거칠기를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -1.1, y1: 2.9 },
+        eq: ["거칠기 {r}   →   반사 방향의 퍼짐 ±{spread}°"],
+        setup(F, C, L) {
+          let rough = 0.3, ang = 0.6;
+          C.slider({ label: "거칠기", min: 0, max: 1, value: rough, onInput: x => { rough = x; } });
+          F.handle({ color: "gold", get: () => [-Math.sin(ang) * 2.5, Math.cos(ang) * 2.5], set: (x, y) => { ang = clamp(Math.atan2(-x, Math.max(0.05, y)), -1.3, 1.3); } });
+          F.draw = g => {
+            let seed = 11;
+            const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5;
+            const pts = [];
+            for (let x = -4; x <= 4.01; x += 0.25) pts.push([x, rnd() * rough * 0.5]);
+            g.poly(pts.concat([[4, -1.1], [-4, -1.1]]), { fill: "rgba(138,147,166,0.25)", stroke: "grey", w: 2 });
+            const Ld = [-Math.sin(ang), Math.cos(ang)];
+            let maxDev = 0;
+            for (let i = 1; i < pts.length - 2; i += 2) {
+              const a = pts[i], b = pts[i + 1], m = V.lerp(a, b, 0.5);
+              const n = V.norm(V.perp(V.sub(b, a)));
+              const r = V.sub(V.mul(n, 2 * V.dot(n, Ld)), Ld);
+              if (V.dot(n, Ld) <= 0) continue;
+              g.line(V.add(m, V.mul(Ld, 3)), m, "gold", { w: 1.2, alpha: 0.5 });
+              g.arrow(m, V.add(m, V.mul(r, 1.3)), "pink", { w: 2, head: 7, alpha: 0.9 });
+              maxDev = Math.max(maxDev, Math.abs(Math.atan2(r[0], r[1]) - Math.atan2(Ld[0] * -1, Ld[1])));
+            }
+            L.set("r", f2(rough)); L.set("spread", num(maxDev / DEG, 0));
+          };
+        }
+      } },
+      "이 퍼짐을 통계로 적은 것이 ==미세면 분포 함수 $D$==(보통 GGX)입니다. 반사광은 $D·G·F / (4 (N·L)(N·V))$ 로 계산하는데, $G$는 조각끼리 가리는 그림자, $F$는 다음 장의 프레넬입니다.",
+
+      { h: "금속과 비금속" },
+      "비금속(나무·플라스틱·피부)은 빛의 일부를 ==표면에서 흰색으로 반사==하고 나머지는 안으로 들어갔다가 ==고유색으로 흩어져== 나옵니다. 금속은 안으로 들어간 빛이 바로 흡수되어 확산이 없고, 대신 ==반사광 자체에 색==이 있습니다. 금속성을 움직여 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["F0 = lerp(0.04, 기본색, 금속성) = ({f0r}, {f0g}, {f0b})", "확산 = (1 − F)·(1 − 금속성)·기본색 / π"],
+        setup(F, C, L) {
+          let metal = 0, rough = 0.3, col = "gold";
+          const sun = [-1.6, 1.0];
+          F.vec(sun, "gold", { snap: 0.01 });
+          C.slider({ label: "금속성", min: 0, max: 1, value: metal, onInput: x => { metal = x; } });
+          C.slider({ label: "거칠기", min: 0.03, max: 1, value: rough, onInput: x => { rough = x; } });
+          C.seg({ options: [{ value: "gold", label: "금색" }, { value: "red", label: "빨강" }, { value: "white", label: "흰색" }], value: col, onChange: x => { col = x; } });
+          F.draw = g => {
+            const base = rgb(col).map(lin), c = [0, 0], R = 1.8;
+            const Lv = lightDir(sun, c, R);
+            ball(g, c, R, N => brdf(N, Lv, [0, 0, 1], base, rough, metal));
+            g.circle(sun, 0.15, "gold", { fill: "gold", w: 0 });
+            const F0 = base.map(b => lerp(0.04, b, metal));
+            L.set("f0r", f2(F0[0])); L.set("f0g", f2(F0[1])); L.set("f0b", f2(F0[2]));
+          };
+        }
+      } },
+      { key: "PBR 재질의 핵심 입력은 ==기본색 · 금속성 · 거칠기== 셋입니다. 비금속의 반사율은 거의 모두 4% 근처($F0 ≈ 0.04$)라서 따로 정하지 않아도 됩니다." },
+
+      { h: "재질 표: 거칠기 × 금속성" },
+      "가로는 거칠기, 세로는 금속성입니다. 해를 끌어 보세요. 거칠수록 하이라이트가 ==넓고 어두워지는== 것에 주목하세요. 들어온 빛보다 많이 내보낼 수 없으니(에너지 보존), 넓게 퍼지면 한 점의 밝기는 줄어듭니다.",
+      { fig: {
+        aspect: 0.62, view: { x0: 0, x1: 10, y0: 0, y1: 6.2 },
+        eq: ["반사광 = D·G·F / (4 (N·L)(N·V))   ·   확산 = (1 − F)(1 − 금속성)·기본색 / π"],
+        setup(F, C, L) {
+          const sun = [2.0, 5.6];
+          F.vec(sun, "gold", { snap: 0.01 });
+          let col = "red";
+          C.seg({ options: [{ value: "red", label: "빨강" }, { value: "gold", label: "금색" }, { value: "teal", label: "청록" }], value: col, onChange: x => { col = x; } });
+          F.draw = g => {
+            const base = rgb(col).map(lin);
+            const Lv = V3.norm([(sun[0] - 5) / 4, (sun[1] - 3) / 3, 0.8]);
+            for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) {
+              const c = [1.1 + i * 1.95, 1.05 + j * 2.0], R = 0.82;
+              ball(g, c, R, N => brdf(N, Lv, [0, 0, 1], base, 0.05 + i * 0.235, j / 2));
+            }
+            for (let i = 0; i < 5; i++) g.text(num(0.05 + i * 0.235, 2), [1.1 + i * 1.95, 0.05], "grey", { size: 11 });
+            ["비금속", "반금속", "금속"].forEach((t, j) => g.text(t, [0.1, 1.05 + j * 2.0], "grey", { size: 11, align: "left" }));
+            g.text("거칠기 →", [5, 0.05], "grey", { size: 11, dy: -12 });
+            g.circle(sun, 0.13, "gold", { fill: "gold", w: 0 });
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "머티리얼 핀", "UE 머티리얼의 Base Color · Metallic · Roughness · Specular 핀이 이 장의 입력입니다. Specular 기본값 0.5가 $F0 = 0.04$ 입니다."],
+        ["아트", "텍스처 세트", "Substance 등에서 만드는 BaseColor·Normal·ORM(오클루전·러프니스·메탈릭) 텍스처 세트가 PBR 입력 그대로입니다."],
+        ["게임", "어떤 조명에서도 맞는 재질", "PBR 이전에는 조명마다 재질을 다시 손봐야 했습니다. 에너지 보존 덕분에 낮·밤·실내 어디서도 재질이 일관되게 보입니다."],
+        ["실생활", "제품 렌더와 온라인 쇼핑", "가구·자동차 광고의 3D 렌더, 쇼핑몰의 3D 미리보기가 같은 PBR 재질 모델(glTF 표준)을 씁니다."]
+      ] },
+
+      { recap: [
+        ["D (GGX)", "미세면 분포: 거칠기가 클수록 넓게 퍼짐"],
+        ["F0 = lerp(0.04, 기본색, 금속성)", "비금속은 4% 흰 반사, 금속은 색 있는 반사"],
+        ["확산 = (1 − F)(1 − 금속성)·기본색 / π", "금속은 확산이 없음"],
+        ["D·G·F / (4 (N·L)(N·V))", "쿡-토런스 반사광, 에너지 보존"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\15-fresnel.js ===== */
+/* 15 프레넬과 굴절 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 비편광 유전체의 정확한 프레넬 반사율
+  function fresnel(cosi, n1, n2) {
+    const sint = n1 / n2 * Math.sqrt(Math.max(0, 1 - cosi * cosi));
+    if (sint >= 1) return 1;                               // 전반사
+    const cost = Math.sqrt(1 - sint * sint);
+    const rs = (n1 * cosi - n2 * cost) / (n1 * cosi + n2 * cost), rp = (n1 * cost - n2 * cosi) / (n1 * cost + n2 * cosi);
+    return (rs * rs + rp * rp) / 2;
+  }
+  const schlick = (cosi, n1, n2) => { const r0 = ((n1 - n2) / (n1 + n2)) ** 2; return r0 + (1 - r0) * Math.pow(1 - cosi, 5); };
+  // 굴절: d(진행 방향), n(입사 쪽을 향한 노멀)
+  function refract(d, n, eta) {
+    const c = -V.dot(n, d), k = 1 - eta * eta * (1 - c * c);
+    if (k < 0) return null;
+    return V.add(V.mul(d, eta), V.mul(n, eta * c - Math.sqrt(k)));
+  }
+  const reflect = (d, n) => V.sub(d, V.mul(n, 2 * V.dot(d, n)));
+
+  lesson({
+    topic: "fresnel", title: "프레넬과 굴절", desc: "비스듬할수록 거울이 된다", stage: "빛과 색",
+    sym: { n: "teal", n_1: "teal", n_2: "pink", "θ": "blue", F: "orange", N: "yellow", V: "teal" },
+    hook: "호수를 발밑으로 보면 물속이 보이고, 멀리 보면 하늘이 비칩니다. ==보는 각도가 비스듬할수록 반사가 강해지는 것==, 이것이 프레넬입니다. 그리고 반사되지 않은 빛은 꺾여서 들어갑니다(굴절).",
+    blocks: [
+      { h: "프레넬: 각도에 따라 반사율이 바뀐다" },
+      "수면을 옆에서 본 그림입니다. 눈(청록 점)을 끌어 보는 각도를 바꿔 보세요. [[orange:반사되는 빛]]과 [[blue:물속으로 들어가는 빛]]의 굵기가 ==비율 그대로== 입니다. 오른쪽 그래프는 각도별 반사율입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4.2, x1: 4.2, y0: -2.1, y1: 2.1 },
+        eq: ["F(θ) = {F}   (Schlick 근사 {S})   →   들어가는 빛 = 1 − F = {T}"],
+        setup(F, C, L) {
+          let th = 1.1, n2 = 1.33;
+          F.handle({ color: "teal", get: () => [-Math.sin(th) * 2.2 - 1.6, Math.cos(th) * 2.2], set: (x, y) => { th = clamp(Math.atan2(-(x + 1.6), Math.max(0.02, y)), 0, 1.55); } });
+          C.seg({ options: [{ value: 1.33, label: "물 1.33" }, { value: 1.5, label: "유리 1.5" }, { value: 2.42, label: "다이아몬드 2.42" }], value: 1.33, onChange: x => { n2 = x; } });
+          F.draw = g => {
+            const o = [-1.6, 0];
+            g.poly([[-4.2, 0], [0.4, 0], [0.4, -2.1], [-4.2, -2.1]], { fill: "rgba(88,196,221,0.12)" });
+            g.line([-4.2, 0], [0.4, 0], "blue", { w: 2 });
+            const Fv = fresnel(Math.cos(th), 1, n2), S = schlick(Math.cos(th), 1, n2);
+            const inDir = [Math.sin(th), -Math.cos(th)];
+            const rDir = [Math.sin(th), Math.cos(th)];
+            const tDir = refract(inDir, [0, 1], 1 / n2);
+            g.line(V.sub(o, V.mul(inDir, 2.2)), o, "teal", { w: 3, dash: [6, 5] });
+            g.arrow(o, V.add(o, V.mul(rDir, 2.0)), "orange", { w: 1 + 12 * Fv });
+            if (tDir) g.arrow(o, V.add(o, V.mul(tDir, 1.8)), "blue", { w: 1 + 12 * (1 - Fv) });
+            g.line([o[0], -1.6], [o[0], 1.6], "yellow", { w: 1, dash: [3, 4], alpha: 0.6 });
+            g.arc(o, 0.6, Math.PI / 2, Math.PI / 2 + th, "teal", { w: 2 });
+            g.tex("θ", V.add(o, [-Math.sin(th / 2) * 0.85, Math.cos(th / 2) * 0.85]), "teal", { size: 16 });
+            // 그래프
+            const G0 = [1.1, -1.7], GW = 2.8, GH = 3.4;
+            g.poly([G0, [G0[0] + GW, G0[1]], [G0[0] + GW, G0[1] + GH], [G0[0], G0[1] + GH]], { stroke: "rgba(236,239,244,0.25)", w: 1 });
+            const p1 = [], p2 = [];
+            for (let i = 0; i <= 60; i++) { const a = i / 60 * Math.PI / 2; p1.push([G0[0] + a / (Math.PI / 2) * GW, G0[1] + fresnel(Math.cos(a), 1, n2) * GH]); p2.push([G0[0] + a / (Math.PI / 2) * GW, G0[1] + schlick(Math.cos(a), 1, n2) * GH]); }
+            g.poly(p2, { stroke: "grey", w: 1.5, close: false, dash: [4, 4] });
+            g.poly(p1, { stroke: "orange", w: 3, close: false });
+            g.dot([G0[0] + th / (Math.PI / 2) * GW, G0[1] + Fv * GH], "orange", 6);
+            g.text("0°", G0, "grey", { dy: 12, size: 11 }); g.text("90°", [G0[0] + GW, G0[1]], "grey", { dy: 12, size: 11 });
+            g.text("반사율", [G0[0], G0[1] + GH], "grey", { dy: -10, size: 11, align: "left" });
+            L.set("F", f2(Fv)); L.set("S", f2(S)); L.set("T", f2(1 - Fv));
+          };
+        }
+      } },
+      { key: "정면($θ = 0$)에서 물의 반사율은 ==겨우 2%==지만, 수면과 거의 나란히 보면 ==100%에 가까워집니다==. 게임에서는 $F ≈ F0 + (1 − F0)(1 − N·V)^5$ (슐릭 근사)를 씁니다." },
+
+      { h: "굴절: 스넬의 법칙" },
+      "빛은 매질이 바뀌면 속도가 달라져 꺾입니다. ==느린 매질(굴절률이 큰 쪽)로 들어가면 노멀 쪽으로 꺾입니다==. 빛을 끌고, 물에서 공기로 나가는 경우도 바꿔 보세요. 어느 각도를 넘으면 빛이 ==전혀 나가지 못하고 모두 반사==됩니다(전반사).",
+      { fig: {
+        aspect: 0.5, view: { x0: -4.2, x1: 4.2, y0: -2.1, y1: 2.1 },
+        eq: ["n_1 · sin θ_1 = n_2 · sin θ_2   →   {n1} · {s1} = {n2} · {s2}", "{msg}"],
+        setup(F, C, L) {
+          let th = 0.7, dir = 0;
+          const pairs = [[1, 1.33], [1.33, 1], [1, 1.5], [1.5, 1]];
+          F.handle({ color: "gold", get: () => [-Math.sin(th) * 2, Math.cos(th) * 2], set: (x, y) => { th = clamp(Math.atan2(-x, Math.max(0.02, y)), 0, 1.55); } });
+          C.seg({ options: [{ value: 0, label: "공기 → 물" }, { value: 1, label: "물 → 공기" }, { value: 2, label: "공기 → 유리" }, { value: 3, label: "유리 → 공기" }], value: 0, onChange: x => { dir = x; } });
+          F.draw = g => {
+            const [n1, n2] = pairs[dir];
+            g.poly([[-4.2, 0], [4.2, 0], [4.2, -2.1], [-4.2, -2.1]], { fill: n2 > n1 ? "rgba(88,196,221,0.14)" : "rgba(0,0,0,0)" });
+            g.poly([[-4.2, 0], [4.2, 0], [4.2, 2.1], [-4.2, 2.1]], { fill: n1 > n2 ? "rgba(88,196,221,0.14)" : "rgba(0,0,0,0)" });
+            g.line([-4.2, 0], [4.2, 0], "grey", { w: 2 });
+            g.line([0, -2], [0, 2], "yellow", { w: 1, dash: [3, 4], alpha: 0.6 });
+            const d = [Math.sin(th), -Math.cos(th)];
+            const t = refract(d, [0, 1], n1 / n2), Fv = fresnel(Math.cos(th), n1, n2);
+            g.line([-Math.sin(th) * 2, Math.cos(th) * 2], [0, 0], "gold", { w: 3 });
+            g.arrow([0, 0], V.mul(reflect(d, [0, 1]), 1.8), "orange", { w: 1 + 10 * Fv, alpha: 0.9 });
+            if (t) {
+              g.arrow([0, 0], V.mul(t, 2), "blue", { w: 1 + 10 * (1 - Fv) });
+              g.arc([0, 0], 0.7, -Math.PI / 2, -Math.PI / 2 + Math.asin(clamp(t[0], -1, 1)), "blue", { w: 2 });
+            }
+            g.arc([0, 0], 0.7, Math.PI / 2, Math.PI / 2 + th, "gold", { w: 2 });
+            g.text(`n = ${n1}`, [-3.4, 1.7], "white", { size: 13, bold: true }); g.text(`n = ${n2}`, [-3.4, -1.7], "white", { size: 13, bold: true });
+            const crit = n1 > n2 ? Math.asin(n2 / n1) : null;
+            L.set("n1", n1); L.set("n2", n2); L.set("s1", f2(Math.sin(th))); L.set("s2", t ? f2(Math.abs(t[0])) : "—");
+            L.set("msg", !t ? `전반사! 임계각 ${num(crit / DEG, 1)}°를 넘어 빛이 모두 반사됩니다` : crit ? `임계각 ${num(crit / DEG, 1)}° — 이보다 비스듬하면 전반사` : "느린 매질로 들어가 노멀 쪽으로 꺾임");
+          };
+        }
+      } },
+
+      { h: "둥근 유리 = 렌즈" },
+      "평행한 빛이 유리 공을 지나갑니다. 들어갈 때 한 번, 나올 때 한 번 꺾여서 ==한 점 근처로 모입니다==. 굴절률을 바꿔 초점이 어떻게 움직이는지 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4.2, x1: 4.2, y0: -2.1, y1: 2.1 },
+        eq: ["굴절률 {n}   →   초점까지 거리 ≈ {f}"],
+        setup(F, C, L) {
+          let n = 1.5, rays = 13;
+          C.slider({ label: "굴절률", min: 1, max: 2.4, value: n, onInput: x => { n = x; } });
+          C.slider({ label: "광선 수", min: 3, max: 25, step: 2, value: rays, fmt: x => num(x, 0), onInput: x => { rays = x; } });
+          F.draw = g => {
+            const c = [-0.8, 0], R = 1.3;
+            g.circle(c, R, "teal", { fill: "rgba(92,208,179,0.12)", w: 2 });
+            const hitCircle = (o, d, inside) => {
+              const oc = V.sub(o, c), b = V.dot(oc, d), cc = V.dot(oc, oc) - R * R, disc = b * b - cc;
+              if (disc < 0) return null;
+              const t = inside ? -b + Math.sqrt(disc) : -b - Math.sqrt(disc);
+              return t > 1e-4 ? V.add(o, V.mul(d, t)) : null;
+            };
+            for (let k = 0; k < rays; k++) {
+              const y = (k / (rays - 1) - 0.5) * 2 * R * 0.92;
+              let o = [-4.2, y], d = [1, 0];
+              const p1 = hitCircle(o, d, false);
+              if (!p1) { g.line(o, [4.2, y], "yellow", { w: 1.5, alpha: 0.5 }); continue; }
+              g.line(o, p1, "yellow", { w: 1.8 });
+              let n1 = V.norm(V.sub(p1, c));
+              let t1 = refract(d, n1, 1 / n);
+              if (!t1) continue;
+              const p2 = hitCircle(p1, t1, true);
+              g.line(p1, p2, "yellow", { w: 1.8, alpha: 0.85 });
+              const n2 = V.mul(V.norm(V.sub(p2, c)), -1);
+              const t2 = refract(t1, n2, n);
+              if (t2) g.line(p2, V.add(p2, V.mul(t2, 6)), "yellow", { w: 1.8 });
+              else g.line(p2, V.add(p2, V.mul(reflect(t1, n2), 1)), "orange", { w: 1.8 });
+            }
+            // 근축 초점 거리(공 렌즈): f = n R / (2 (n − 1)), 중심에서
+            const f = n > 1.001 ? n * R / (2 * (n - 1)) : Infinity;
+            if (isFinite(f) && c[0] + f < 4.2) { g.dot([c[0] + f, 0], "pink", 6); g.text("초점", [c[0] + f, 0], "pink", { dy: 16, size: 12, bold: true }); }
+            L.set("n", f2(n)); L.set("f", isFinite(f) ? f2(f) + " (반지름 " + R + " 기준)" : "∞");
+          };
+        }
+      } },
+      "가장자리를 지나는 빛은 초점보다 더 앞에서 모입니다(구면 수차). 굴절률이 2에 가까워지면 ==초점이 공의 뒷면 바로 위==로 옵니다 — 고양이 눈과 자전거 반사판이 빛을 되돌려 보내는 원리입니다.",
+
+      { h: "게임의 굴절: 화면을 살짝 비틀기" },
+      "실시간 게임은 광선을 따라가는 대신 ==이미 그려진 화면을 노멀만큼 밀어서 읽는== 싸구려(하지만 효과적인) 굴절을 씁니다. 물결 세기를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4.2, x1: 4.2, y0: -2.1, y1: 2.1 },
+        eq: ["uv' = uv + N_xy · 세기   (그려진 화면을 밀어서 읽기)"],
+        setup(F, C, L) {
+          let str = 0.18;
+          C.play(true);
+          C.slider({ label: "굴절 세기", min: 0, max: 0.5, value: str, onInput: x => { str = x; } });
+          F.loop(() => {});
+          // 배경: 체크무늬 + 줄무늬
+          const bg = (x, y) => { const c = (Math.floor(x * 2) + Math.floor(y * 2)) % 2 ? 1 : 0; const s = Math.sin(x * 3 + y) > 0.6; return s ? [240, 172, 95] : c ? [70, 90, 130] : [40, 52, 80]; };
+          F.draw = g => {
+            const t = F.t;
+            g.field(260, (x, y) => {
+              const inWater = Math.abs(x) < 2.4 && Math.abs(y) < 1.5;
+              if (!inWater) return [...bg(x, y), 255];
+              const nx = Math.sin(x * 3.1 + t * 2.1) * 0.6 + Math.sin(y * 5.3 - t * 1.7) * 0.4, ny = Math.cos(y * 3.7 + t * 1.6) * 0.6 + Math.cos(x * 4.1 - t * 2.3) * 0.4;
+              const c = bg(x + nx * str, y + ny * str);
+              return [c[0] * 0.8 + 20, c[1] * 0.85 + 30, c[2] * 0.9 + 45, 255];
+            });
+            g.poly([[-2.4, -1.5], [2.4, -1.5], [2.4, 1.5], [-2.4, 1.5]], { stroke: "teal", w: 2 });
+          };
+        }
+      } },
+
+      { use: [
+        ["셰이더", "림 라이트와 프레넬 노드", "UE 머티리얼의 Fresnel 노드가 $(1 − N·V)^지수$ 입니다. 캐릭터 외곽선 빛, 방어막·홀로그램 가장자리 강조에 씁니다."],
+        ["게임", "물 표현", "물은 가까이는 투명(굴절)하고 멀리는 하늘을 비추는(반사) 것을 프레넬로 섞습니다. 굴절은 화면을 밀어 읽는 방식으로 처리합니다."],
+        ["엔진", "유리·굴절 머티리얼", "UE의 반투명 머티리얼 Refraction 입력, Pixel Normal Offset 모드가 이 장의 화면 비틀기입니다. 레이트레이싱 반투명은 실제 스넬 법칙을 씁니다."],
+        ["실생활", "안경·카메라·광섬유", "안경과 카메라 렌즈는 굴절로 초점을 맞추고, 광섬유는 전반사로 빛을 가둬 수 km를 보냅니다."]
+      ] },
+
+      { recap: [
+        ["F ≈ F0 + (1 − F0)(1 − N·V)^5", "슐릭 프레넬: 비스듬할수록 반사가 강함"],
+        ["n_1 sin θ_1 = n_2 sin θ_2", "스넬의 법칙: 느린 매질로 가면 노멀 쪽으로"],
+        ["sin θ_c = n_2 / n_1", "임계각을 넘으면 전반사"],
+        ["uv' = uv + N_xy · 세기", "게임의 화면 공간 굴절"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\16-shadow.js ===== */
+/* 16 그림자 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 2D 상자들과 광선 교차 (가장 가까운 거리)
+  function rayBoxes(o, d, boxes) {
+    let best = Infinity;
+    boxes.forEach(b => {
+      let t0 = -Infinity, t1 = Infinity;
+      for (let k = 0; k < 2; k++) {
+        if (Math.abs(d[k]) < 1e-9) { if (o[k] < b[0][k] || o[k] > b[1][k]) return; continue; }
+        let a = (b[0][k] - o[k]) / d[k], c = (b[1][k] - o[k]) / d[k];
+        if (a > c) [a, c] = [c, a];
+        t0 = Math.max(t0, a); t1 = Math.min(t1, c);
+      }
+      if (t0 <= t1 && t1 > 0) best = Math.min(best, t0 > 0 ? t0 : t1);
+    });
+    return best;
+  }
+
+  lesson({
+    topic: "shadow", title: "그림자", desc: "빛의 눈으로 한 번 더 보기", stage: "빛과 색",
+    sym: { d: "yellow", z: "blue", b: "orange" },
+    hook: "어떤 점이 그림자 안인지 알려면 =='빛에서 이 점이 보이는가?'== 를 물으면 됩니다. 섀도우 맵은 이 질문을 위해 빛의 자리에서 장면을 한 번 더 그려 두는 방법입니다.",
+    blocks: [
+      { h: "섀도우 맵: 빛이 본 깊이를 저장" },
+      "옆에서 본 장면입니다. 위쪽 띠는 ==빛이 각 방향으로 본 가장 가까운 거리==(섀도우 맵)입니다. 바닥의 점 $P$를 끌어 보세요. 빛까지 거리 $d_P$ 가 저장된 깊이보다 크면, 무언가에 가려진 것이므로 그림자입니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4.2, x1: 4.2, y0: -2.35, y1: 2.35 },
+        eq: ["d_P = {dp}   vs   섀도우 맵 = {sm}   →   {res}"],
+        setup(F, C, L) {
+          const light = [-2.6, 2.0], P = [1.2, -1.7];
+          const boxes = [[[-1.2, -1.7], [-0.4, -0.3]], [[0.6, -1.7], [1.0, -1.0]], [[2.1, -1.7], [3.2, -0.9]]];
+          F.vec(light, "gold", { snap: 0.02 });
+          F.vec(P, "white", { constrain: q => [q[0], -1.7], snap: 0.02 });
+          F.draw = g => {
+            g.poly([[-4.2, -1.7], [4.2, -1.7], [4.2, -2.35], [-4.2, -2.35]], { fill: "rgba(138,147,166,0.25)" });
+            // 바닥 음영 (점마다 가려짐 판정)
+            for (let x = -4.2; x < 4.2; x += 0.05) {
+              const q = [x + 0.025, -1.7], dir = V.norm(V.sub(q, light)), dist = V.len(V.sub(q, light));
+              const hit = rayBoxes(light, dir, boxes);
+              g.line([x, -1.72], [x + 0.05, -1.72], hit < dist - 1e-3 ? "rgba(16,19,26,0.95)" : "rgba(244,211,69,0.8)", { w: 5 });
+            }
+            boxes.forEach(b => g.poly([b[0], [b[1][0], b[0][1]], b[1], [b[0][0], b[1][1]]], { fill: "rgba(177,137,198,0.5)", stroke: "purple", w: 2 }));
+            // 섀도우 맵: 빛에서 아래쪽 부채꼴로 N개 방향
+            const Nn = 48, a0 = -Math.PI * 0.95, a1 = -Math.PI * 0.05;
+            for (let k = 0; k < Nn; k++) {
+              const a = lerp(a0, a1, (k + 0.5) / Nn), dir = [Math.cos(a), Math.sin(a)];
+              const floorT = (light[1] + 1.7) / -dir[1];
+              const dpt = Math.min(rayBoxes(light, dir, boxes), dir[1] < 0 ? floorT : 99);
+              const v = clamp(dpt / 7, 0, 1);
+              const x0 = -4 + k * 8 / Nn;
+              g.poly([[x0, 2.0], [x0 + 8 / Nn, 2.0], [x0 + 8 / Nn, 2.3], [x0, 2.3]], { fill: `rgb(${Math.round(255 * v)},${Math.round(255 * v)},${Math.round(255 * v)})` });
+            }
+            g.text("섀도우 맵 (밝을수록 멀다)", [-4, 2.0], "grey", { align: "left", dy: -10, size: 11 });
+            const dir = V.norm(V.sub(P, light)), dp = V.len(V.sub(P, light)), sm = rayBoxes(light, dir, boxes);
+            const shadowed = sm < dp - 1e-3;
+            if (shadowed) {
+              g.line(light, V.add(light, V.mul(dir, sm)), "gold", { w: 2.5 });
+              g.line(V.add(light, V.mul(dir, sm)), P, "red", { w: 2, dash: [5, 5] });
+              g.dot(V.add(light, V.mul(dir, sm)), "orange", 5);
+            } else g.line(light, P, "gold", { w: 2.5 });
+            g.circle(light, 0.16, "gold", { fill: "gold", w: 0 });
+            g.tex("P", P, "white", { dy: 16 });
+            L.set("dp", f2(dp)); L.set("sm", isFinite(sm) ? f2(Math.min(sm, dp)) : f2(dp)); L.set("res", shadowed ? "더 멀다 → 그림자" : "같다 → 빛을 받음");
+          };
+        }
+      } },
+      { key: "그림자 판정은 ==깊이 비교 한 번==입니다. 대신 빛마다 장면을 한 번 더 그려야 하므로(점광원은 6방향), 그림자를 드리우는 빛이 많을수록 비쌉니다." },
+
+      { h: "그림자 여드름과 바이어스" },
+      "섀도우 맵은 해상도가 유한해서 텍셀 하나가 ==바닥의 한 구간을 하나의 깊이로 퉁칩니다==. 그러면 같은 바닥이 자기 자신을 가리는 줄무늬(그림자 여드름)가 생깁니다. 비교할 때 조금 봐주는 값(바이어스)을 더하면 사라지지만, 너무 크면 그림자가 물체에서 떨어집니다(피터 팬 현상).",
+      { fig: {
+        aspect: 0.5, view: { x0: -4.2, x1: 4.2, y0: -2.1, y1: 2.1 },
+        eq: ["그림자 = d_P > 섀도우 맵 + b   (b = {b})", "{msg}"],
+        setup(F, C, L) {
+          let b = 0.0, res = 24, ang = 0.75;
+          C.slider({ label: "바이어스 $b$", min: 0, max: 0.6, step: 0.005, value: b, onInput: x => { b = x; } });
+          C.slider({ label: "섀도우 맵 해상도", min: 8, max: 96, step: 4, value: res, fmt: x => num(x, 0), onInput: x => { res = x; } });
+          C.slider({ label: "빛 기울기", min: 0.2, max: 1.3, value: ang, fmt: x => num(x / DEG, 0) + "°", onInput: x => { ang = x; } });
+          F.draw = g => {
+            // 방향광: 빛 방향 기준 좌표 u(가로)·depth(빛까지 깊이)
+            const Ld = [Math.sin(ang), -Math.cos(ang)], U = [Math.cos(ang), Math.sin(ang)];
+            const box = [[0.2, -1.6], [0.9, -0.6]];
+            const floorY = -1.6;
+            const toLight = p => [V.dot(p, U), V.dot(p, Ld)];            // [u, depth]
+            const span = [-6, 6], texel = (span[1] - span[0]) / res;
+            // 텍셀마다 깊이 = 텍셀 중심 방향으로 쏜 광선의 첫 교차
+            const depthAt = u => {
+              const uc = span[0] + (Math.floor((u - span[0]) / texel) + 0.5) * texel;
+              const o = V.sub(V.mul(U, uc), V.mul(Ld, 10));
+              const tb = rayBoxes(o, Ld, [box]), tf = (floorY - o[1]) / Ld[1];
+              return Math.min(tb, tf) - 10;
+            };
+            g.poly([[-4.2, floorY], [4.2, floorY], [4.2, -2.1], [-4.2, -2.1]], { fill: "rgba(138,147,166,0.2)" });
+            let acne = 0, gap = 0;
+            for (let x = -4.2; x < 4.2; x += 0.03) {
+              const q = [x + 0.015, floorY], [u, dq] = toLight(q);
+              const sh = dq > depthAt(u) + b + 1e-6;
+              const trulyLit = !(rayBoxes(q, V.mul(Ld, -1), [box]) < 99);
+              if (sh && trulyLit) acne++;
+              if (!sh && !trulyLit) gap++;
+              g.line([x, floorY - 0.02], [x + 0.03, floorY - 0.02], sh ? "rgba(16,19,26,1)" : "rgba(244,211,69,0.85)", { w: 7 });
+            }
+            g.poly([box[0], [box[1][0], box[0][1]], box[1], [box[0][0], box[1][1]]], { fill: "rgba(177,137,198,0.55)", stroke: "purple", w: 2 });
+            for (let k = -6; k <= 6; k++) { const s = V.add(V.mul(U, k * 0.7), V.mul(Ld, -4)); g.arrow(s, V.add(s, V.mul(Ld, 1.3)), "gold", { w: 1.5, head: 7, alpha: 0.5 }); }
+            L.set("b", f2(b));
+            L.set("msg", acne > 20 ? "여드름: 바닥이 자기 자신을 가린다고 착각 → 줄무늬" : gap > 3 ? "피터 팬: 바이어스가 커서 그림자가 상자에서 떨어짐" : "적당함");
+          };
+        }
+      } },
+      "여드름은 ==빛이 비스듬할수록, 해상도가 낮을수록== 심해집니다. 그래서 엔진은 기울기에 비례하는 바이어스(slope-scaled bias)와 노멀 방향으로 살짝 미는 오프셋을 함께 씁니다.",
+
+      { h: "부드러운 가장자리: PCF" },
+      "섀도우 맵 비교는 '예/아니오'라서 가장자리가 계단처럼 딱딱합니다. ==주변 여러 텍셀과 비교해 그림자인 비율==을 쓰면(PCF) 가장자리가 부드러워집니다. 실제 그림자도 광원이 크면 부드럽습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4.2, x1: 4.2, y0: -2.1, y1: 2.1 },
+        eq: ["그림자 = (가려진 샘플 수) / {n}"],
+        setup(F, C, L) {
+          let k = 2, res = 32;
+          const occ = [-0.5, 0.2];
+          F.vec(occ, "purple", { snap: 0.02 });
+          C.slider({ label: "PCF 범위", min: 0, max: 5, step: 1, value: k, fmt: x => `${2 * x + 1}×${2 * x + 1}`, onInput: x => { k = x; } });
+          C.slider({ label: "섀도우 맵 해상도", min: 8, max: 96, step: 4, value: res, fmt: x => num(x, 0), onInput: x => { res = x; } });
+          F.draw = g => {
+            const tex = 8.4 / res;
+            const inShadowTexel = (x, y) => {
+              const cx = (Math.floor(x / tex) + 0.5) * tex, cy = (Math.floor(y / tex) + 0.5) * tex;   // 텍셀 중심
+              return Math.hypot(cx - occ[0] - 0.6, cy - occ[1] + 0.4) < 1.1;                          // 비스듬한 빛이라 그림자는 오른쪽 아래로
+            };
+            g.field(240, (x, y) => {
+              let s = 0, n = 0;
+              for (let i = -k; i <= k; i++) for (let j = -k; j <= k; j++) { s += inShadowTexel(x + i * tex, y + j * tex) ? 1 : 0; n++; }
+              const lit = 1 - s / n;
+              return [lerp(40, 236, lit), lerp(44, 225, lit), lerp(60, 190, lit), 255];
+            });
+            g.circle(occ, 1.1, "purple", { fill: "rgba(177,137,198,0.65)", w: 2 });
+            g.text("가리는 물체(위에 떠 있음)", occ, "white", { size: 12, bold: true });
+            L.set("n", (2 * k + 1) * (2 * k + 1));
+          };
+        }
+      } },
+      "샘플이 많을수록 부드럽지만 비쌉니다. 실무에서는 ==가리는 물체와의 거리에 따라 범위를 바꾸는 PCSS==(물체에 가까운 곳은 선명, 멀수록 흐릿)나, 여러 해상도를 거리별로 나눈 ==캐스케이드 섀도우 맵==을 함께 씁니다.",
+
+      { use: [
+        ["엔진", "캐스케이드 섀도우", "UE 디렉셔널 라이트의 Dynamic Shadow Distance·Cascade 수는 가까운 곳에 고해상도 맵을 몰아주는 설정입니다. 멀수록 흐려지는 이유입니다."],
+        ["엔진", "가상 섀도우 맵", "UE5의 Virtual Shadow Map은 16k×16k 가상 텍스처에서 화면에 필요한 페이지만 그려 해상도 문제를 크게 줄였습니다."],
+        ["게임", "그림자 품질 옵션", "그래픽 옵션의 그림자 품질은 맵 해상도·필터 샘플 수·그림자 거리입니다. 바이어스 설정이 틀리면 벽에 줄무늬가 생깁니다."],
+        ["실생활", "해시계와 일식", "광원이 크면 그림자 가장자리가 흐릿해지는 반그림자(penumbra)는 일식과 해시계 그림자에서도 보입니다."]
+      ] },
+
+      { recap: [
+        ["d_P > 섀도우 맵(P)", "빛이 본 것보다 멀면 그림자"],
+        ["d_P > 섀도우 맵 + b", "바이어스: 여드름 ↔ 피터 팬 사이의 균형"],
+        ["PCF = 가려진 샘플 / 전체", "부드러운 가장자리"],
+        ["캐스케이드 · PCSS · VSM", "실무의 해상도·부드러움 해법"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\17-fog.js ===== */
+/* 17 안개와 높이 안개 */
+(() => {
+  const f2 = n => num(n, 2);
+  const FOG = [178, 196, 214], SUN = [255, 214, 150];
+
+  lesson({
+    topic: "fog", title: "안개와 높이 안개", desc: "멀수록, 낮을수록 흐려진다", stage: "빛과 색",
+    sym: { d: "yellow", h: "red", a: "teal", k: "orange", T: "blue", "σ": "teal" },
+    hook: "공기 중의 입자는 빛을 조금씩 가리고 조금씩 흩뿌립니다. ==거리를 지날수록 원래 색은 지수적으로 줄고, 안개 색이 그 자리를 채웁니다==. 높이 안개는 여기에 '아래쪽일수록 짙다'를 더한 것입니다.",
+    blocks: [
+      { h: "거리 안개: 투과율은 지수적으로 줄어든다" },
+      "같은 기둥들이 점점 멀어집니다. 안개 밀도 $σ$ 를 바꿔 보세요. 원래 색이 남는 비율(투과율) $T = e^(−σ·d)$ 는 ==직선이 아니라 지수 곡선==이라, 가까운 곳은 금방 변하고 먼 곳은 서서히 안개색에 수렴합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5, stretch: true },
+        eq: ["T = e^(−σ·d)   →   거리 {d} 에서 T = {t}", "색 = 물체 색 · T + 안개 색 · (1 − T)"],
+        setup(F, C, L) {
+          let s = 0.25, probe = 4;
+          C.slider({ label: "밀도 $σ$", min: 0, max: 1, value: s, onInput: x => { s = x; } });
+          F.handle({ color: "yellow", get: () => [0.6 + probe * 0.9, 0.35], set: x => { probe = clamp((x - 0.6) / 0.9, 0, 10); } });
+          F.draw = g => {
+            // 아래: 투과율 곡선
+            const pts = [];
+            for (let i = 0; i <= 100; i++) { const d = i / 10; pts.push([0.6 + d * 0.9, 0.35 + Math.exp(-s * d) * 1.6]); }
+            g.line([0.6, 0.35], [9.6, 0.35], "grey", { w: 1 });
+            g.poly(pts, { stroke: "blue", w: 3, close: false });
+            const T = Math.exp(-s * probe);
+            g.line([0.6 + probe * 0.9, 0.35], [0.6 + probe * 0.9, 0.35 + T * 1.6], "yellow", { w: 1.5, dash: [3, 4] });
+            g.dot([0.6 + probe * 0.9, 0.35 + T * 1.6], "yellow", 5);
+            g.text("투과율 T", [0.6, 1.95], "blue", { align: "left", size: 11, dy: -6 });
+            // 위: 같은 기둥 9개를 거리 1~9에
+            g.poly([[0, 2.4], [10, 2.4], [10, 5], [0, 5]], { fill: `rgb(${FOG.join(",")})` });
+            for (let i = 1; i <= 9; i++) {
+              const t = Math.exp(-s * i), base = [220, 90, 70];
+              const c = base.map((v, k) => Math.round(v * t + FOG[k] * (1 - t)));
+              const x = 0.6 + i * 0.9, hgt = 2.1 / Math.sqrt(i) + 0.3;
+              g.poly([[x - 0.18, 2.55], [x + 0.18, 2.55], [x + 0.18, 2.55 + hgt], [x - 0.18, 2.55 + hgt]], { fill: `rgb(${c.join(",")})` });
+            }
+            L.set("d", f2(probe)); L.set("t", f2(T));
+          };
+        }
+      } },
+
+      { h: "높이 안개: 아래쪽이 짙다" },
+      "실제 안개는 지면 근처에 깔립니다. 밀도를 ==높이에 따라 지수적으로 줄어들게== $σ(h) = a · e^(−k·h)$ 로 두면, 시선을 따라 쌓이는 안개의 양을 식 하나로 계산할 수 있습니다. 시선 방향(노란 점)을 위아래로 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -0.5, x1: 9.5, y0: -0.5, y1: 4.5 },
+        eq: ["σ(h) = a · e^(−k·h)", "시선을 따라 쌓인 양 = a · e^(−k·h_0) · (1 − e^(−k·d·sin φ)) / (k·sin φ) = {od}   →   T = {t}"],
+        setup(F, C, L) {
+          let a = 0.6, k = 0.9, camH = 1.2;
+          const aim = [6, 2.2];
+          F.vec(aim, "yellow", { constrain: q => [clamp(q[0], 1, 9.3), clamp(q[1], -0.3, 4.3)], snap: 0.02 });
+          C.slider({ label: "밀도 $a$", min: 0, max: 1.5, value: a, onInput: x => { a = x; } });
+          C.slider({ label: "높이 감쇠 $k$", min: 0.05, max: 3, value: k, onInput: x => { k = x; } });
+          C.slider({ label: "카메라 높이", min: 0, max: 3.5, value: camH, onInput: x => { camH = x; } });
+          F.draw = g => {
+            g.field(200, (x, y) => {
+              if (y < 0) return [60, 66, 70, 255];
+              const dens = a * Math.exp(-k * y);
+              const v = clamp(dens / 0.9, 0, 1);
+              return [lerp(16, FOG[0], v), lerp(19, FOG[1], v), lerp(26, FOG[2], v), 255];
+            });
+            g.line([-0.5, 0], [9.5, 0], "grey", { w: 2 });
+            const cam = [0.3, camH], dv = V.sub(aim, cam), d = V.len(dv), sinp = dv[1] / d;
+            const od = Math.abs(sinp) < 1e-4 ? a * Math.exp(-k * camH) * d : a * Math.exp(-k * camH) * (1 - Math.exp(-k * d * sinp)) / (k * sinp);
+            g.line(cam, aim, "yellow", { w: 3 });
+            g.circle(cam, 0.14, "white", { fill: PAL.bg, w: 2.5 });
+            g.text("카메라", cam, "white", { dy: -16, size: 11, bold: true });
+            for (let h = 0.5; h <= 4; h += 1) g.text("h=" + h, [9.2, h], "grey", { size: 10, align: "right" });
+            L.set("od", f2(od)); L.set("t", f2(Math.exp(-od)));
+          };
+        }
+      } },
+      { key: "높이 안개는 ==위로 볼수록 빨리 맑아지고, 아래로 볼수록 끝없이 짙어집니다==. 시선 위의 적분이 식 하나로 풀려서(지수 함수의 적분) 픽셀마다 비싼 반복 없이 계산됩니다." },
+
+      { h: "장면에 적용: 태양 쪽 산란까지" },
+      "산 능선과 바닥이 있는 장면에 높이 안개를 씌웁니다. 해 쪽을 바라볼 때 ==안개가 해 색으로 밝게 빛나는== 것(방향성 산란)까지 넣으면 공기의 깊이가 살아납니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["색 = 장면 · T + (안개 색 + 해 색 · max(0, V·L)^8) · (1 − T)"],
+        setup(F, C, L) {
+          let a = 0.35, k = 0.7, sunAz = 0.4, sunAmt = 0.8;
+          C.slider({ label: "밀도", min: 0, max: 1.2, value: a, onInput: x => { a = x; } });
+          C.slider({ label: "높이 감쇠", min: 0.1, max: 2.5, value: k, onInput: x => { k = x; } });
+          C.slider({ label: "해 방향", min: -1.2, max: 1.2, value: sunAz, onInput: x => { sunAz = x; } });
+          C.slider({ label: "해 산란", min: 0, max: 1.5, value: sunAmt, onInput: x => { sunAmt = x; } });
+          const ridge = (x, layer) => 0.35 + 0.55 * Math.sin(x * (1.1 + layer * 0.5) + layer * 2.1) * Math.cos(x * 0.6 - layer) + 0.2 * Math.sin(x * 3.1 + layer);
+          F.draw = g => {
+            const camH = 0.6;
+            g.field(260, (x, y) => {
+              // 화면 좌표 → 시선 방향. 산은 거리 D에 서 있는 능선, 바닥은 높이 0 평면
+              const dir = V3.norm([x * 0.35, y * 0.35, 1]);
+              const sunDir = V3.norm([Math.sin(sunAz), 0.12, Math.cos(sunAz)]);
+              const sky = clamp(1 - y * 0.25, 0, 1);
+              let dist = 400, base = [lerp(80, 160, sky), lerp(120, 190, sky), lerp(190, 220, sky)];
+              for (let l = 0; l < 3; l++) {
+                const D = 8 + l * 14, Hr = (ridge(x, l) + 0.7) * (3.2 - l * 0.5);
+                const yTop = (Hr - camH) / (0.35 * D);
+                if (y < yTop) { dist = D / dir[2]; const sh = clamp(0.5 + (y - yTop) * 0.6 + 0.4, 0, 1); base = [lerp(35, 85, sh), lerp(60, 105, sh), lerp(45, 75, sh)]; break; }
+              }
+              if (dir[1] < 0) { const t = camH / -dir[1]; if (t < dist) { dist = t; base = [72, 92, 60]; } }
+              const sp = dir[1], ae = a * 0.12;
+              const od = Math.abs(sp) < 1e-4 ? ae * Math.exp(-k * camH) * dist : ae * Math.exp(-k * camH) * (1 - Math.exp(-k * dist * sp)) / (k * sp);
+              const T = Math.exp(-Math.max(0, od));
+              const vl = Math.pow(Math.max(0, V3.dot(dir, sunDir)), 8) * sunAmt;
+              const fog = FOG.map((c, i) => c + SUN[i] * vl * 0.6);
+              return [0, 1, 2].map(i => clamp(base[i] * T + fog[i] * (1 - T), 0, 255)).concat(255);
+            });
+          };
+        }
+      } },
+      "안개는 멀리 있는 것을 흐리게 해 ==거리감을 만들고==, 그리지 않아도 되는 먼 곳을 자연스럽게 가립니다. 성능상 그리는 거리를 줄이는 오래된 기법이기도 합니다.",
+
+      { use: [
+        ["엔진", "Exponential Height Fog", "UE의 지수 높이 안개 액터가 이 장의 식입니다. Fog Density = $a$, Height Falloff = $k$, Directional Inscattering = 해 쪽 산란입니다."],
+        ["엔진", "볼류메트릭 포그", "빛줄기(갓 레이)와 그림자 진 안개는 화면을 3D 격자(프로브)로 나눠 칸마다 산란을 적분하는 볼류메트릭 포그로 처리합니다."],
+        ["게임", "분위기와 거리감", "공포 게임의 짙은 안개, 오픈월드의 먼 산 푸르스름함이 모두 이 공기 원근법입니다. 렌더 거리를 숨기는 데도 씁니다."],
+        ["실생활", "대기 원근법", "먼 산이 파랗고 흐려 보이는 현상은 레오나르도 다 빈치가 그림에 쓴 '공기 원근법'이고, 물리적으로는 이 장의 지수 감쇠입니다."]
+      ] },
+
+      { recap: [
+        ["T = e^(−σ·d)", "투과율: 거리에 따라 지수적으로 감소"],
+        ["색 = 장면·T + 안개·(1 − T)", "안개 섞기"],
+        ["σ(h) = a · e^(−k·h)", "높이 안개: 아래쪽이 짙음"],
+        ["(1 − e^(−k·d·sin φ)) / (k·sin φ)", "시선 위 적분이 식 하나로 풀림"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\18-shader.js ===== */
+/* 18 셰이더로 무늬 만들기 */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const hash = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const SNIP = {
+    grad: ["c = uv.x", (u, v, a, t) => u],
+    step: ["c = step(a, uv.x)", (u, v, a) => (u >= a ? 1 : 0)],
+    smooth: ["c = smoothstep(a − 0.1, a + 0.1, uv.x)", (u, v, a) => sstep(a - 0.1, a + 0.1, u)],
+    dist: ["c = length(uv − 0.5)", (u, v) => Math.hypot(u - 0.5, v - 0.5)],
+    circle: ["c = step(length(uv − 0.5), a)", (u, v, a) => (Math.hypot(u - 0.5, v - 0.5) <= a ? 1 : 0)],
+    rep: ["c = fract(uv.x · 6)", u => fract(u * 6)],
+    wave: ["c = sin(uv.x · 20 + t) · 0.5 + 0.5", (u, v, a, t) => Math.sin(u * 20 + t) * 0.5 + 0.5]
+  };
+
+  lesson({
+    topic: "shader", title: "셰이더로 무늬 만들기", desc: "픽셀마다 같은 함수 한 줄", stage: "셰이더로 그리기",
+    sym: { uv: "green", c: "yellow", a: "orange", t: "teal", n: "gold", r: "pink", "θ": "blue", p: "white", k: "orange" },
+    hook: "픽셀 셰이더는 ==모든 픽셀에서 동시에 실행되는 함수 하나==입니다. 입력은 자기 위치 $uv$, 출력은 색 하나. 이 제약 안에서 무늬를 만드는 사고법을 익혀 봅니다.",
+    blocks: [
+      { h: "한 줄 = 한 그림" },
+      "코드 한 줄을 고르고 $a$를 움직여 보세요. 아래 띠는 ==가로 한 줄을 따라 잰 값의 그래프==입니다. 셰이더를 짤 때는 항상 이 그래프를 머릿속에 그립니다. 노란 선을 끌어 그래프를 볼 줄을 바꿀 수 있습니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: 0, x1: 1.78, y0: -0.42, y1: 1, stretch: false },
+        eq: ["{code}"],
+        setup(F, C, L) {
+          let key = "smooth", a = 0.5, probe = 0.5;
+          C.seg({ options: Object.keys(SNIP).map(k => ({ value: k, label: { grad: "기울기", step: "step", smooth: "smoothstep", dist: "거리", circle: "원", rep: "반복", wave: "물결" }[k] })), value: key, onChange: x => { key = x; } });
+          C.slider({ label: "$a$", min: 0, max: 1, value: a, onInput: x => { a = x; } });
+          C.play();
+          F.loop(() => {});
+          F.handle({ color: "yellow", get: () => [1.72, probe], set: (x, y) => { probe = clamp(y, 0, 1); } });
+          F.draw = g => {
+            const fn = SNIP[key][1], t = F.t * 2;
+            const W = 1.68;   // 그림 영역: x 0~1.68 → uv.x 0~1 (정사각형이 아니므로 uv.y는 0~1)
+            g.field(240, (x, y) => {
+              if (y < 0 || x > W) return null;
+              const u = x / W, v = y, c = clamp(fn(u, v, a, t), 0, 1) * 255;
+              return [c, c, c, 255];
+            }, { rect: { x0: 0, x1: W, y0: 0, y1: 1 }, smooth: false });
+            g.line([0, probe], [W, probe], "yellow", { w: 1.5, dash: [4, 4] });
+            g.poly([[0, -0.4], [W, -0.4], [W, -0.04], [0, -0.04]], { fill: "rgba(236,239,244,0.04)" });
+            const pts = [];
+            for (let i = 0; i <= 200; i++) { const u = i / 200; pts.push([u * W, -0.38 + clamp(fn(u, probe, a, t), 0, 1) * 0.32]); }
+            g.poly(pts, { stroke: "yellow", w: 2.5, close: false });
+            g.text("0", [0, -0.38], "grey", { size: 10, dx: 8 }); g.text("1", [0, -0.06], "grey", { size: 10, dx: 8 });
+            L.set("code", "$" + SNIP[key][0] + "$");
+          };
+        }
+      } },
+      { key: "셰이더 무늬의 기본 부품은 ==기울기(uv), 문턱(step), 부드러운 문턱(smoothstep), 거리(length), 반복(fract), 물결(sin)== 여섯 개입니다. 이것들을 곱하고 더하고 넣으면 거의 모든 절차적 무늬가 나옵니다." },
+
+      { h: "칸 나누기: floor와 fract" },
+      "$uv$에 $n$을 곱하고 ==정수 부분($floor$)은 칸 번호, 소수 부분($fract$)은 칸 안의 위치==로 씁니다. 칸 번호로 난수를 만들면 칸마다 다른 크기·색이 나옵니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["id = floor(uv · n),   f = fract(uv · n),   r = hash(id)", "c = step(length(f − 0.5), 0.15 + 0.3·r)"],
+        setup(F, C, L) {
+          let n = 6, show = false, pulse = true;
+          C.slider({ label: "$n$", min: 1, max: 16, step: 1, value: n, fmt: x => num(x, 0), onInput: x => { n = x; } });
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "칸 번호·위치 보기" }], value: 0, onChange: x => { show = !!x; } });
+          C.play(true);
+          F.loop(() => {});
+          F.draw = g => {
+            const t = F.t;
+            g.field(260, (x, y) => {
+              const u = x * n, v = y * n, ix = Math.floor(u), iy = Math.floor(v), fx = u - ix, fy = v - iy, r = hash(ix, iy);
+              if (show) return [fx * 255, fy * 255, r * 120, 255];
+              const rad = 0.15 + 0.3 * r * (pulse ? 0.75 + 0.25 * Math.sin(t * 2 + r * 6) : 1);
+              const d = Math.hypot(fx - 0.5, fy - 0.5);
+              const m = sstep(rad + 0.03, rad - 0.03, d);
+              const col = [lerp(88, 244, r), lerp(196, 211, r), lerp(221, 69, r)];
+              return [lerp(16, col[0], m), lerp(19, col[1], m), lerp(26, col[2], m), 255];
+            }, { smooth: false });
+            if (show && n <= 8) for (let i = 0; i < n * 2; i++) for (let j = 0; j < n; j++) g.text(`${i},${j}`, [(i + 0.5) / n, (j + 0.5) / n], "white", { size: 10 });
+          };
+        }
+      } },
+
+      { h: "극좌표: 원과 꽃과 나선" },
+      "가운데를 기준으로 ==거리 $r$와 각도 $θ$== 로 바꾸면 원형 무늬가 쉬워집니다. 반지름을 각도에 따라 흔들면 꽃잎이 생깁니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -1, x1: 1, y0: -0.5, y1: 0.5 },
+        eq: ["r = length(p),   θ = atan2(p.y, p.x)", "{eq}"],
+        setup(F, C, L) {
+          let k = 5, amp = 0.08, mode = 0;
+          C.seg({ options: [{ value: 0, label: "꽃" }, { value: 1, label: "나선" }], value: 0, onChange: x => { mode = x; } });
+          C.slider({ label: "꽃잎 $k$", min: 1, max: 12, step: 1, value: k, fmt: x => num(x, 0), onInput: x => { k = x; } });
+          C.slider({ label: "흔들림", min: 0, max: 0.2, value: amp, onInput: x => { amp = x; } });
+          C.play(true);
+          F.loop(() => {});
+          F.draw = g => {
+            const t = F.t;
+            g.field(280, (x, y) => {
+              const r = Math.hypot(x, y), th = Math.atan2(y, x);
+              let m;
+              if (mode === 0) { const R = 0.28 + amp * Math.cos(k * th + t); m = sstep(R + 0.008, R - 0.008, r); }
+              else m = sstep(0.45, 0.55, fract(th / TAU * k + r * 6 - t * 0.5));
+              const hue = [lerp(227, 92, r * 2), lerp(111, 208, r * 2), lerp(200, 179, r * 2)];
+              return [lerp(16, hue[0], m), lerp(19, hue[1], m), lerp(26, hue[2], m), 255];
+            });
+            L.set("eq", mode === 0 ? "$c = step(r, 0.28 + 흔들림 · cos(k·θ + t))$" : "$c = step(0.5, fract(θ / 2π · k + r · 6 − t))$");
+          };
+        }
+      } },
+
+      { h: "분기 대신 섞기" },
+      "두 무늬 중 하나를 고를 때 `if` 대신 ==마스크로 섞으면($lerp$)== GPU의 분기 비용(26장)이 없고 경계도 부드럽습니다. 마스크의 부드러움을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -1, x1: 1, y0: -0.5, y1: 0.5 },
+        eq: ["m = smoothstep(0.3 + s, 0.3 − s, length(p − 마우스))", "c = lerp(무늬A, 무늬B, m)"],
+        setup(F, C, L) {
+          let s = 0.06;
+          const P = [0.2, 0];
+          F.vec(P, "white", { snap: 0.005 });
+          C.slider({ label: "부드러움 s", min: 0.002, max: 0.3, value: s, onInput: x => { s = x; } });
+          F.draw = g => {
+            g.field(260, (x, y) => {
+              const A = (Math.floor(x * 10) + Math.floor(y * 10)) % 2 ? [70, 90, 130] : [40, 52, 80];
+              const B = [lerp(244, 255, 0.5 + 0.5 * Math.sin(x * 30)), lerp(211, 134, 0.5 + 0.5 * Math.sin(y * 30)), 69];
+              const m = sstep(0.3 + s, 0.3 - s, Math.hypot(x - P[0], y - P[1]));
+              return [lerp(A[0], B[0], m), lerp(A[1], B[1], m), lerp(A[2], B[2], m), 255];
+            });
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "머티리얼 그래프", "UE 머티리얼의 TexCoord·Frac·Floor·Step·SmoothStep·Distance·Sine 노드가 이 장의 부품입니다. 노드 그래프는 이 '한 줄 함수'를 그림으로 이은 것입니다."],
+        ["게임", "UI·이펙트", "체력 바의 채움, 원형 쿨다운, 스캔 라인, 방어막의 육각 격자, 마법진이 텍스처 없이 셰이더 수식으로 만들어집니다."],
+        ["아트", "절차적 텍스처", "타일·벽돌·물방울 무늬를 해상도 제한 없이 만들고, 칸마다 난수로 변화를 줘 반복 티를 없앱니다."],
+        ["실생활", "Shadertoy와 데모씬", "Shadertoy의 놀라운 장면들은 거의 전부 이 장의 부품을 수백 줄 조합한 픽셀 셰이더 하나입니다."]
+      ] },
+
+      { recap: [
+        ["step · smoothstep", "문턱: 딱딱하게 / 부드럽게"],
+        ["length(uv − c)", "거리 → 원, 링, 빛무리"],
+        ["floor(uv·n) · fract(uv·n)", "칸 번호와 칸 안의 위치 → 타일"],
+        ["r, θ = length, atan2", "극좌표 → 꽃, 나선, 방사형"],
+        ["lerp(A, B, mask)", "분기 대신 섞기"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\19-derivatives.js ===== */
+/* 19 DDX · DDY: 화면 공간 미분 */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const FUN = {
+    lin: ["f = uv.x · 3", (x, y) => x * 3],
+    sq: ["f = uv.x^2 · 4", (x, y) => x * x * 4],
+    wave: ["f = sin(uv.x · 9) + uv.y", (x, y) => Math.sin(x * 9) + y]
+  };
+
+  lesson({
+    topic: "derivatives", title: "DDX · DDY", desc: "옆 픽셀과의 차이", stage: "셰이더로 그리기",
+    sym: { f: "yellow", uv: "green", w: "orange", u: "green" },
+    hook: "픽셀 셰이더는 혼자 도는 것 같지만, GPU는 ==픽셀 4개(2×2)를 한 묶음으로 동시에== 실행합니다. 그래서 '오른쪽 픽셀에서 이 값은 얼마였지?'를 공짜로 물어볼 수 있습니다. 이것이 $ddx$, $ddy$ 입니다.",
+    blocks: [
+      { h: "2×2 쿼드 안에서 빼기" },
+      "확대한 픽셀 격자입니다. 굵은 선이 2×2 쿼드입니다. 쿼드를 눌러 보세요. ==$ddx$ = 오른쪽 − 왼쪽, $ddy$ = 아래 − 위==. 값이 빨리 변하는 곳일수록 미분이 큽니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: 0, x1: 16, y0: 0, y1: 9 },
+        eq: ["{fn}", "ddx(f) = {dx},   ddy(f) = {dy},   fwidth(f) = |ddx| + |ddy| = {fw}"],
+        setup(F, C, L) {
+          let key = "sq", q = [5, 2];
+          C.seg({ options: [{ value: "lin", label: "직선 증가" }, { value: "sq", label: "제곱" }, { value: "wave", label: "물결" }], value: key, onChange: x => { key = x; } });
+          F.onTap = (p, sx, sy, moving) => { if (moving) return; q = [clamp(Math.floor(p[0] / 2), 0, 7), clamp(Math.floor((9 - p[1]) / 2), 0, 3)]; };
+          F.draw = g => {
+            const fn = FUN[key][1];
+            const val = (i, j) => fn((i + 0.5) / 16, (j + 0.5) / 9);
+            let mn = Infinity, mx = -Infinity;
+            for (let i = 0; i < 16; i++) for (let j = 0; j < 9; j++) { const v = val(i, j); mn = Math.min(mn, v); mx = Math.max(mx, v); }
+            for (let i = 0; i < 16; i++) for (let j = 0; j < 9; j++) {
+              const v = (val(i, j) - mn) / (mx - mn || 1), c = Math.round(30 + 200 * v);
+              const y = 9 - j - 1;
+              g.poly([[i, y], [i + 1, y], [i + 1, y + 1], [i, y + 1]], { fill: `rgb(${c},${Math.round(c * 0.9)},${Math.round(c * 0.6)})`, stroke: "rgba(16,19,26,0.5)", w: 1 });
+              g.text(num(val(i, j), 1), [i + 0.5, y + 0.5], v > 0.55 ? "#10131A" : "white", { size: 10, halo: false });
+            }
+            for (let i = 0; i <= 16; i += 2) g.line([i, 0], [i, 9], "white", { w: 2.2, alpha: 0.7 });
+            for (let j = 9; j >= 0; j -= 2) g.line([0, j], [16, j], "white", { w: 2.2, alpha: 0.7 });
+            const i0 = q[0] * 2, j0 = q[1] * 2;
+            const a = val(i0, j0), b = val(i0 + 1, j0), c = val(i0, j0 + 1);
+            g.poly([[i0, 9 - j0], [i0 + 2, 9 - j0], [i0 + 2, 9 - j0 - 2], [i0, 9 - j0 - 2]], { stroke: "yellow", w: 4 });
+            g.arrow([i0 + 0.5, 9 - j0 - 0.5], [i0 + 1.5, 9 - j0 - 0.5], "green", { w: 3, head: 9 });
+            g.arrow([i0 + 0.5, 9 - j0 - 0.5], [i0 + 0.5, 9 - j0 - 1.5], "red", { w: 3, head: 9 });
+            L.set("fn", "$" + FUN[key][0] + "$");
+            L.set("dx", f2(b - a)); L.set("dy", f2(c - a)); L.set("fw", f2(Math.abs(b - a) + Math.abs(c - a)));
+          };
+        }
+      } },
+      { key: "미분은 ==쿼드 안의 이웃 값 빼기==라 거의 공짜입니다. 대신 쿼드 단위라서 정밀도가 2픽셀 수준이고, 쿼드 안에서 일부 픽셀만 다른 갈래(분기)로 가면 값이 망가집니다." },
+
+      { h: "fwidth: 어떤 배율에서도 1픽셀 두께로 부드럽게" },
+      "절차적 원의 가장자리를 $step$으로 자르면 계단이 생기고(왼쪽), ==$fwidth$만큼만 부드럽게 자르면== 확대·축소와 관계없이 딱 1픽셀 폭으로 깔끔해집니다(오른쪽). 확대 배율을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["왼쪽: c = step(d, 0)", "오른쪽: c = smoothstep(w, −w, d),   w = fwidth(d)"],
+        setup(F, C, L) {
+          let zoom = 1, lines = true;
+          C.slider({ label: "확대 배율", min: 0.2, max: 4, value: zoom, fmt: x => "×" + num(x, 1), onInput: x => { zoom = x; } });
+          C.seg({ options: [{ value: 1, label: "원 + 격자선" }, { value: 0, label: "원만" }], value: 1, onChange: x => { lines = !!x; } });
+          F.draw = g => {
+            const cols = 180, px = 4 / cols;
+            // 왼쪽·오른쪽 절반에 같은 장면(원 + 격자선)을 그립니다. d < 0 이면 안쪽
+            const dfun = (x, y) => {
+              const X = (x < 0 ? x + 1 : x - 1) / zoom, Y = y / zoom;
+              let d = Math.hypot(X, Y) - 0.35;
+              if (lines) { const gx = Math.abs(fract(X * 4 + 0.5) - 0.5) / 4, gy = Math.abs(fract(Y * 4 + 0.5) - 0.5) / 4; d = Math.min(d, Math.min(gx, gy) - 0.003); }
+              return d;
+            };
+            g.field(cols, (x, y) => {
+              const d = dfun(x, y);
+              let m;
+              if (x < 0) m = d <= 0 ? 1 : 0;
+              else { const w = Math.abs(dfun(x + px, y) - d) + Math.abs(dfun(x, y + px) - d); m = clamp(0.5 - d / (w || 1e-6), 0, 1); }
+              return [lerp(16, 244, m), lerp(19, 211, m), lerp(26, 69, m), 255];
+            }, { smooth: false });
+            g.line([0, -1], [0, 1], "white", { w: 2 });
+            g.text("step", [-1, 0.92], "white", { size: 12, bold: true }); g.text("fwidth로 부드럽게", [1, 0.92], "white", { size: 12, bold: true });
+          };
+        }
+      } },
+      "$fwidth$는 '이 값이 픽셀 하나 건너갈 때 얼마나 변하나'입니다. 그래서 ==값의 단위를 픽셀 단위로 바꿔 주는 자==처럼 씁니다 — 일정한 두께의 외곽선, 와이어프레임, 격자 그리드 셰이더가 모두 이 방식입니다.",
+
+      { h: "미분이 튀는 곳: 이음매 버그" },
+      "가운데를 감는 원형 UV $u = atan2(y, x) / 2π$ 에 체크 텍스처를 입혔습니다. 왼쪽 수평선에서 $u$가 0.99 → 0.0으로 ==갑자기 뛰면서 미분이 커지고==, GPU는 아주 작은 밉맵을 골라 가는 회색 선이 생깁니다. 고친 버전과 비교해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let fix = false, show = 0;
+          C.seg({ options: [{ value: 0, label: "그대로 (이음매 생김)" }, { value: 1, label: "고침" }], value: 0, onChange: x => { fix = !!x; } });
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "밉 레벨 보기" }], value: 0, onChange: x => { show = x; } });
+          F.draw = g => {
+            const cols = 240, px = 4 / cols;
+            const U = (x, y) => Math.atan2(y, x) / TAU + 0.5;
+            g.field(cols, (x, y) => {
+              const r = Math.hypot(x, y);
+              if (r < 0.25 || r > 0.95) return null;
+              const u = U(x, y), v = r;
+              let du = Math.max(Math.abs(U(x + px, y) - u), Math.abs(U(x, y + px) - u));
+              if (fix) { const u2 = fract(u + 0.5); du = Math.min(du, Math.max(Math.abs(fract(U(x + px, y) + 0.5) - u2), Math.abs(fract(U(x, y + px) + 0.5) - u2))); }
+              const texels = du * 64;                       // 텍스처 64칸 기준 픽셀당 텍셀 수
+              const lv = Math.max(0, Math.log2(texels + 1e-9));
+              if (show) { const k = clamp(lv / 6, 0, 1); return [lerp(88, 252, k), lerp(196, 98, k), lerp(221, 85, k), 255]; }
+              const chk = (Math.floor(u * 16) + Math.floor(v * 8)) % 2;
+              const blend = clamp(lv - 1, 0, 1);              // 레벨이 높으면 평균색(회색)
+              const val = lerp(chk, 0.5, blend);
+              return [lerp(40, 236, val), lerp(46, 239, val), lerp(60, 244, val), 255];
+            }, { smooth: false });
+            L.set("eq", fix ? "$du = min(fwidth(u), fwidth(fract(u + 0.5)))$   이음매 반대편 값으로도 재서 작은 쪽 사용" : "$u$가 1 → 0으로 뛰는 곳에서 $fwidth(u) ≈ 1$ → 가장 작은 밉맵 → 회색 선");
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "밉맵 선택", "텍스처 샘플러는 내부적으로 UV의 ddx·ddy로 밉 레벨과 비등방 필터 방향을 고릅니다. UE 머티리얼의 DDX·DDY 노드로 직접 꺼낼 수도 있습니다."],
+        ["셰이더", "안티에일리어싱된 선", "와이어프레임·격자·외곽선·텍스트(SDF 폰트)를 $fwidth$로 1픽셀 폭만 부드럽게 잘라 어떤 줌에서도 깔끔하게 그립니다."],
+        ["셰이더", "노멀 없는 면 노멀", "$normalize(cross(ddx(위치), ddy(위치)))$ 로 픽셀 셰이더 안에서 면 노멀을 만들어 로우폴리 스타일을 냅니다."],
+        ["디버깅", "이음매와 깨진 밉", "구형·원형 UV, 아틀라스 경계, 분기 안 샘플링에서 생기는 가는 선은 대부분 미분 문제입니다. `SampleGrad`/`SampleLevel`로 해결합니다."]
+      ] },
+
+      { recap: [
+        ["ddx(f) = 오른쪽 − 왼쪽", "2×2 쿼드 안의 이웃 빼기"],
+        ["fwidth(f) = |ddx| + |ddy|", "픽셀 하나당 변화량 = 픽셀 단위 자"],
+        ["smoothstep(w, −w, d)", "1픽셀 폭 안티에일리어싱"],
+        ["mip ← ddx(uv), ddy(uv)", "밉 선택도 미분, 이음매에서 튀면 선이 생김"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\20-noise.js ===== */
+/* 20 노이즈 */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  const h1 = i => fract(Math.sin(i * 127.1) * 43758.5453);
+  const h2 = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const fade = t => t * t * t * (t * (t * 6 - 15) + 10);               // 펄린의 5차 곡선
+  const smooth = t => t * t * (3 - 2 * t);
+  function value2(x, y) {
+    const i = Math.floor(x), j = Math.floor(y), fx = smooth(x - i), fy = smooth(y - j);
+    return lerp(lerp(h2(i, j), h2(i + 1, j), fx), lerp(h2(i, j + 1), h2(i + 1, j + 1), fx), fy);
+  }
+  const grad = (i, j) => { const a = h2(i, j) * TAU; return [Math.cos(a), Math.sin(a)]; };
+  function perlin2(x, y) {
+    const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
+    const d = (gi, gj) => { const g = grad(gi, gj); return g[0] * (x - gi) + g[1] * (y - gj); };
+    const u = fade(fx), v = fade(fy);
+    return lerp(lerp(d(i, j), d(i + 1, j), u), lerp(d(i, j + 1), d(i + 1, j + 1), u), v) * 0.7 + 0.5;
+  }
+  function fbm(x, y, oct, lac, gain) {
+    let s = 0, a = 0.5, f = 1, norm = 0;
+    for (let o = 0; o < oct; o++) { s += a * perlin2(x * f + o * 17.3, y * f - o * 9.1); norm += a; a *= gain; f *= lac; }
+    return s / norm;
+  }
+
+  lesson({
+    topic: "noise", title: "노이즈", desc: "부드러운 무작위", stage: "셰이더로 그리기",
+    sym: { n: "yellow", f: "gold", t: "teal", i: "grey" },
+    hook: "그냥 난수는 지글거리는 TV 잡음이고, 자연은 그렇게 생기지 않았습니다. ==격자 점에만 난수를 두고 그 사이를 부드럽게 이으면== 구름·돌·물결 같은 자연스러운 무작위가 됩니다.",
+    blocks: [
+      { h: "1D로 먼저: 점에만 난수, 사이는 보간" },
+      "흰 점이 정수 위치의 난수입니다. 그 사이를 ==직선으로 이으면 꺾이고, smoothstep으로 이으면 부드럽습니다==. '그냥 난수'와 비교해 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 12, y0: -0.2, y1: 1.2, stretch: true },
+        eq: ["n(x) = lerp(h(i), h(i+1), {interp}),   i = floor(x)"],
+        setup(F, C, L) {
+          let mode = "smooth", freq = 1, off = 0;
+          C.seg({ options: [{ value: "white", label: "그냥 난수" }, { value: "lin", label: "직선 보간" }, { value: "smooth", label: "smoothstep 보간" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "주파수", min: 0.5, max: 4, value: freq, onInput: x => { freq = x; } });
+          C.play();
+          F.loop(dt => { off += dt * 1.2; });
+          F.draw = g => {
+            g.line([0, 0], [12, 0], "grey", { w: 1 });
+            const pts = [];
+            for (let k = 0; k <= 600; k++) {
+              const x = k / 50, X = x * freq + off, i = Math.floor(X), t = X - i;
+              let v;
+              if (mode === "white") v = h1(Math.floor(X * 20) + 0.5);
+              else v = lerp(h1(i), h1(i + 1), mode === "lin" ? t : smooth(t));
+              pts.push([x, v]);
+            }
+            g.poly(pts, { stroke: "yellow", w: 2.5, close: false });
+            if (mode !== "white") for (let i = Math.ceil(off); i <= off + 12 * freq; i++) g.dot([(i - off) / freq, h1(i)], "white", 4.5);
+            L.set("interp", mode === "smooth" ? "$smoothstep(x − i)$" : mode === "lin" ? "$x − i$" : "— (보간 없음)");
+          };
+        }
+      } },
+
+      { h: "2D: 값 노이즈와 그레디언트(펄린) 노이즈" },
+      "격자 꼭짓점마다 ==값을 두면 값 노이즈, 기울기(화살표)를 두면 그레디언트 노이즈==입니다. 값 노이즈는 격자 모양이 비쳐 보이고, 펄린 노이즈는 덩어리가 더 고르게 퍼집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 8, y0: 0, y1: 4 },
+        eq: ["{eq}"],
+        setup(F, C, L) {
+          let mode = "perlin", grid = true, scale = 1;
+          C.seg({ options: [{ value: "value", label: "값 노이즈" }, { value: "perlin", label: "그레디언트(펄린)" }], value: mode, onChange: x => { mode = x; } });
+          C.seg({ options: [{ value: 1, label: "격자 보기" }, { value: 0, label: "숨기기" }], value: 1, onChange: x => { grid = !!x; } });
+          C.slider({ label: "크기", min: 0.5, max: 3, value: scale, onInput: x => { scale = x; } });
+          F.draw = g => {
+            g.field(220, (x, y) => {
+              const v = mode === "value" ? value2(x * scale, y * scale) : clamp(perlin2(x * scale, y * scale), 0, 1);
+              const c = v * 255;
+              return [c * 0.85, c * 0.92, c, 255];
+            });
+            if (grid) for (let i = 0; i <= 8 * scale; i++) for (let j = 0; j <= 4 * scale; j++) {
+              const p = [i / scale, j / scale];
+              g.line([p[0], 0], [p[0], 4], "rgba(244,211,69,0.25)", { w: 1 }); g.line([0, p[1]], [8, p[1]], "rgba(244,211,69,0.25)", { w: 1 });
+              if (mode === "perlin") { const gr = grad(i, j); g.arrow(p, V.add(p, V.mul(gr, 0.35 / scale)), "orange", { w: 2, head: 7 }); }
+              else g.dot(p, h2(i, j) > 0.5 ? "white" : "#222", 4);
+            }
+            L.set("eq", mode === "value" ? "꼭짓점의 난수 값 4개를 smoothstep으로 섞음 → 격자 결이 남음" : "꼭짓점의 기울기와 (위치 − 꼭짓점)의 내적 4개를 섞음 → 고른 덩어리");
+          };
+        }
+      } },
+
+      { h: "fBm: 크기만 다른 노이즈를 겹치기" },
+      "노이즈 하나는 너무 매끈합니다. ==주파수를 두 배씩 올리고 세기를 절반씩 줄인 노이즈를 여러 겹 더하면==(옥타브) 산맥처럼 큰 굴곡 위에 잔디테일이 얹힙니다. 높이에 따라 물·모래·풀·바위·눈으로 칠했습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 8, y0: 0, y1: 4 },
+        eq: ["fBm(p) = Σ (gain^i) · noise(p · lacunarity^i),   i = 0 … {oct}"],
+        setup(F, C, L) {
+          let oct = 5, lac = 2, gain = 0.5, sea = 0.45, probe = 2;
+          C.slider({ label: "옥타브", min: 1, max: 8, step: 1, value: oct, fmt: x => num(x, 0), onInput: x => { oct = x; } });
+          C.slider({ label: "lacunarity", min: 1.4, max: 3, value: lac, onInput: x => { lac = x; } });
+          C.slider({ label: "gain", min: 0.2, max: 0.8, value: gain, onInput: x => { gain = x; } });
+          C.slider({ label: "해수면", min: 0.2, max: 0.7, value: sea, onInput: x => { sea = x; } });
+          F.handle({ color: "white", get: () => [7.85, probe], set: (x, y) => { probe = clamp(y, 0.95, 3.95); } });
+          const col = h => h < sea - 0.04 ? [30, 70, 140] : h < sea ? [60, 120, 180] : h < sea + 0.03 ? [215, 200, 140] : h < 0.62 ? [80, 140, 70] : h < 0.72 ? [110, 100, 85] : [240, 242, 245];
+          F.draw = g => {
+            g.field(200, (x, y) => {
+              if (y < 0.9 && y > 0) return null;
+              const h = fbm(x * 0.6, y * 0.6, oct, lac, gain);
+              const c = col(h), sh = 0.85 + 0.3 * (fbm(x * 0.6 + 0.02, y * 0.6, oct, lac, gain) - h) * 20;
+              return [c[0] * sh, c[1] * sh, c[2] * sh, 255];
+            }, { rect: { x0: 0, x1: 8, y0: 0.9, y1: 4 } });
+            // 아래: 노란 줄을 따라 자른 단면
+            g.poly([[0, 0], [8, 0], [8, 0.85], [0, 0.85]], { fill: "rgba(236,239,244,0.04)" });
+            const pts = [];
+            for (let i = 0; i <= 200; i++) { const x = i / 25; pts.push([x, fbm(x * 0.6, probe * 0.6, oct, lac, gain) * 0.8]); }
+            g.poly(pts.concat([[8, 0], [0, 0]]), { fill: "rgba(131,193,103,0.35)", stroke: "green", w: 2 });
+            g.line([0, sea * 0.8], [8, sea * 0.8], "blue", { w: 1.5, dash: [4, 4] });
+            g.line([0, probe], [8, probe], "yellow", { w: 1.5, dash: [4, 4] });
+            L.set("oct", oct - 1);
+          };
+        }
+      } },
+      { key: "노이즈는 ==같은 입력에 늘 같은 값==을 주는 결정적 함수입니다. 그래서 텍스처를 저장하지 않고도 무한히 넓은 지형·구름을 셰이더에서 그 자리에서 계산할 수 있습니다." },
+
+      { use: [
+        ["엔진", "노이즈 노드와 텍스처", "UE 머티리얼 Noise 노드(펄린·그레디언트·보로노이), 그리고 미리 구운 타일링 노이즈 텍스처가 구름·물·디졸브 효과의 재료입니다."],
+        ["게임", "지형과 월드 생성", "마인크래프트·노 맨즈 스카이의 무한 지형이 fBm 노이즈입니다. 시드 하나로 같은 세계가 다시 만들어집니다."],
+        ["이펙트", "디졸브·불꽃·연기", "노이즈 값에 문턱을 두고 시간에 따라 올리면 타서 사라지는 디졸브, 흐르게 하면 불꽃·연기가 됩니다."],
+        ["실생활", "영화 CG의 시작", "펄린 노이즈는 영화 '트론'(1982) 작업에서 나와 아카데미 기술상을 받았습니다. 지금도 거의 모든 CG 툴에 들어 있습니다."]
+      ] },
+
+      { recap: [
+        ["lerp(h(i), h(i+1), smoothstep(x − i))", "값 노이즈: 격자 점 난수를 부드럽게 이음"],
+        ["dot(기울기, p − 꼭짓점)", "그레디언트(펄린) 노이즈: 더 고른 덩어리"],
+        ["Σ gain^i · noise(p · lacunarity^i)", "fBm: 옥타브를 겹쳐 디테일"],
+        ["같은 입력 → 같은 값", "저장 없이 무한한 패턴"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\21-sdf.js ===== */
+/* 21 SDF와 레이마칭 */
+(() => {
+  const f2 = n => num(n, 2);
+  const sdCircle = (p, c, r) => Math.hypot(p[0] - c[0], p[1] - c[1]) - r;
+  const sdBox = (p, c, b) => { const dx = Math.abs(p[0] - c[0]) - b[0], dy = Math.abs(p[1] - c[1]) - b[1]; return Math.hypot(Math.max(dx, 0), Math.max(dy, 0)) + Math.min(Math.max(dx, dy), 0); };
+  const smin = (a, b, k) => { if (k <= 0) return Math.min(a, b); const h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1); return lerp(b, a, h) - k * h * (1 - h); };
+  // iq 스타일 거리장 색: 바깥 주황, 안쪽 파랑, 등고선 줄무늬, 경계 흰 선
+  function sdfColor(d) {
+    const out = d > 0 ? [0.9, 0.6, 0.3] : [0.4, 0.7, 0.85];
+    const k = (1 - Math.exp(-4 * Math.abs(d))) * (0.8 + 0.2 * Math.cos(60 * d));
+    let c = out.map(v => v * k);
+    const e = clamp(1 - Math.abs(d) / 0.015, 0, 1);
+    c = c.map(v => lerp(v, 1, e));
+    return [c[0] * 255, c[1] * 255, c[2] * 255, 255];
+  }
+
+  lesson({
+    topic: "sdf", title: "SDF와 레이마칭", desc: "모양 = 거리 함수", stage: "셰이더로 그리기",
+    sym: { d: "yellow", k: "orange", p: "white", t: "teal" },
+    hook: "모양을 삼각형으로 적는 대신 =='이 점에서 표면까지 얼마나 머냐'를 돌려주는 함수==로 적을 수 있습니다(부호 있는 거리장, SDF). 그러면 합치기·깎기·부드럽게 녹이기가 $min$, $max$ 한 줄이 됩니다.",
+    blocks: [
+      { h: "거리장: 안은 음수, 밖은 양수" },
+      "원과 상자의 SDF를 그렸습니다. 줄무늬가 ==같은 거리의 등고선==, 흰 선이 $d = 0$ 인 표면입니다. 흰 점을 끌면 그 점에서의 거리가 원으로 보입니다. 합치는 방식을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.56, view: { x0: -2, x1: 2, y0: -1.12, y1: 1.12 },
+        eq: ["{op}", "d(p) = {d}"],
+        setup(F, C, L) {
+          const cc = [-0.45, 0.05], bc = [0.45, -0.1], P = [0.9, 0.7];
+          let op = "union", k = 0.25;
+          F.vec(cc, "teal", { snap: 0.01 }); F.vec(bc, "pink", { snap: 0.01 }); F.vec(P, "white", { snap: 0.01 });
+          C.seg({ options: [{ value: "union", label: "합치기 min" }, { value: "inter", label: "교집합 max" }, { value: "sub", label: "깎기" }, { value: "smooth", label: "부드럽게 녹이기" }], value: op, onChange: x => { op = x; } });
+          C.slider({ label: "녹임 $k$", min: 0, max: 0.6, value: k, onInput: x => { k = x; } });
+          const scene = p => {
+            const a = sdCircle(p, cc, 0.45), b = sdBox(p, bc, [0.4, 0.3]);
+            return op === "union" ? Math.min(a, b) : op === "inter" ? Math.max(a, b) : op === "sub" ? Math.max(a, -b) : smin(a, b, k);
+          };
+          F.draw = g => {
+            g.field(240, (x, y) => sdfColor(scene([x, y])));
+            const d = scene(P);
+            g.circle(P, Math.abs(d), "white", { w: 1.5, dash: [4, 4] });
+            L.set("d", f2(d));
+            L.set("op", { union: "$d = min(d_원, d_상자)$", inter: "$d = max(d_원, d_상자)$", sub: "$d = max(d_원, −d_상자)$", smooth: "$d = smin(d_원, d_상자, k)$   경계를 k 만큼 부드럽게 녹임" }[op]);
+          };
+        }
+      } },
+      { key: "SDF끼리 ==$min$은 합집합, $max$는 교집합, $max(a, −b)$는 빼기==입니다. 삼각형 메시로는 어려운 부드러운 융합(smooth min)도 식 한 줄입니다." },
+
+      { h: "레이마칭: 거리만큼 안심하고 전진" },
+      "SDF가 있으면 광선을 쏘아 표면을 찾기 쉽습니다. 현재 위치의 거리 $d$만큼은 ==아무것도 없다는 보장==이 있으니 그만큼 한 번에 전진하면 됩니다(구 추적). 원이 각 걸음의 안전 반경입니다. 광선 방향을 끌어 보세요.",
+      { fig: {
+        aspect: 0.56, view: { x0: -2, x1: 2, y0: -1.12, y1: 1.12 },
+        eq: ["p ← p + d(p) · 방향   ({n}걸음, {res})"],
+        setup(F, C, L) {
+          const O = [-1.8, -0.7], aim = [-0.9, -0.2];
+          F.vec(O, "white", { snap: 0.01 });
+          F.vec(aim, "yellow", { base: () => O, constrain: q => V.mul(V.norm(q), 0.6), snap: 0.001 });
+          const scene = p => Math.min(sdCircle(p, [0.5, 0.35], 0.4), sdBox(p, [0.9, -0.55], [0.35, 0.25]), sdCircle(p, [-0.4, 0.75], 0.25), p[1] + 1.05);
+          F.draw = g => {
+            g.field(200, (x, y) => { const d = scene([x, y]); const c = sdfColor(d); return [c[0] * 0.55, c[1] * 0.55, c[2] * 0.55, 255]; });
+            const dir = V.norm(aim);
+            let p = O.slice(), n = 0, hit = false;
+            for (; n < 64; n++) {
+              const d = scene(p);
+              if (d < 0.004) { hit = true; break; }
+              if (V.len(p) > 4) break;
+              g.circle(p, d, "yellow", { w: 1.2, alpha: 0.6 });
+              const q = V.add(p, V.mul(dir, d));
+              g.line(p, q, "yellow", { w: 2 });
+              g.dot(p, "yellow", 3);
+              p = q;
+            }
+            if (hit) g.dot(p, "pink", 6);
+            L.set("n", n); L.set("res", hit ? "표면에 닿음" : "놓침");
+          };
+        }
+      } },
+      "표면을 스치듯 지나가면 걸음 수가 늘어납니다. ==걸음 수 자체를 어둡기로 쓰면== 틈새가 어두워지는 값싼 앰비언트 오클루전이 되기도 합니다.",
+
+      { h: "3D 레이마칭 렌더" },
+      "같은 방법을 픽셀마다 3D로 하면 메시 없이 장면이 그려집니다. 구와 상자를 $smin$으로 녹였고, ==노멀은 거리장의 기울기==(옆으로 조금씩 움직여 잰 차이)로 구합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["N = normalize(∇d) ≈ normalize(d(p + ε) − d(p − ε))", "녹임 k = {k}"],
+        setup(F, C, L) {
+          let k = 0.35, rot = 0.4;
+          C.slider({ label: "녹임 $k$", min: 0, max: 0.8, value: k, onInput: x => { k = x; } });
+          C.play();
+          F.loop(dt => { rot += dt * 0.6; });
+          C.slider({ label: "돌리기", min: -3.14, max: 3.14, value: rot, fmt: x => num(x / DEG, 0) + "°", onInput: x => { rot = x; } });
+          const Ld = V3.norm([0.6, 0.8, -0.4]);
+          F.draw = g => {
+            const by = 0.15 + 0.35 * Math.sin(rot * 1.3);
+            const sc = p => {
+              const q = [p[0] * Math.cos(rot) - p[2] * Math.sin(rot), p[1], p[0] * Math.sin(rot) + p[2] * Math.cos(rot)];
+              const s = Math.hypot(q[0] - 0.35, q[1] - by, q[2]) - 0.42;
+              const dx = Math.abs(q[0] + 0.35) - 0.3, dy = Math.abs(q[1]) - 0.3, dz = Math.abs(q[2]) - 0.3;
+              const b = Math.hypot(Math.max(dx, 0), Math.max(dy, 0), Math.max(dz, 0)) + Math.min(Math.max(dx, dy, dz), 0) - 0.04;
+              return Math.min(smin(s, b, k), p[1] + 0.5);
+            };
+            g.field(F.playing ? 110 : 150, (x, y) => {        // 재생 중엔 해상도를 낮춰 부드럽게
+              const ro = [0, 0.35, -2.6], rd = V3.norm([x * 0.55, y * 0.55 - 0.12, 1]);
+              let t = 0, hit = false, steps = 0;
+              for (; steps < 48; steps++) { const d = sc(V3.add(ro, V3.mul(rd, t))); if (d < 0.002) { hit = true; break; } t += d; if (t > 8) break; }
+              if (!hit) return [16 + y * 20, 19 + y * 25, 30 + y * 40, 255];
+              const p = V3.add(ro, V3.mul(rd, t)), e = 0.002;
+              const n = V3.norm([sc([p[0] + e, p[1], p[2]]) - sc([p[0] - e, p[1], p[2]]), sc([p[0], p[1] + e, p[2]]) - sc([p[0], p[1] - e, p[2]]), sc([p[0], p[1], p[2] + e]) - sc([p[0], p[1], p[2] - e])]);
+              let sh = 1, st = 0.02;
+              for (let i = 0; i < 16 && st < 3; i++) { const h = sc(V3.add(p, V3.mul(Ld, st))); if (h < 0.001) { sh = 0; break; } sh = Math.min(sh, 8 * h / st); st += h; }
+              const dif = Math.max(0, V3.dot(n, Ld)) * sh, ao = 1 - steps / 70;
+              const floor = p[1] < -0.49;
+              const base = floor ? ((Math.floor(p[0] * 2) + Math.floor(p[2] * 2)) % 2 ? [0.5, 0.52, 0.55] : [0.38, 0.4, 0.44]) : [0.95, 0.55, 0.35];
+              return base.map(c => Math.pow(clamp(c * (0.12 + 0.95 * dif) * ao, 0, 1), 1 / 2.2) * 255).concat(255);
+            });
+            L.set("k", f2(k));
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "거리장(Distance Field)", "UE의 메시 거리장은 각 메시의 SDF를 미리 구워 둔 것으로, 부드러운 그림자·AO·Lumen의 소프트웨어 레이트레이싱에 씁니다."],
+        ["셰이더", "SDF 폰트와 UI", "글자를 SDF 텍스처로 저장하면 아주 작은 텍스처로 어떤 크기에서도 선명한 글자와 외곽선·그림자를 그립니다."],
+        ["게임", "부드러운 모델링", "Dreams(PS4), Claybook은 장면 전체를 SDF로 만들어 찰흙처럼 녹이고 깎는 조형을 했습니다."],
+        ["실생활", "3D 프린팅·CAD", "SDF는 두께 계산, 부드러운 필렛, 격자 구조 설계에 쓰이고, 의료 영상의 장기 경계 표현에도 쓰입니다."]
+      ] },
+
+      { recap: [
+        ["d(p) < 0 안, > 0 밖", "부호 있는 거리장"],
+        ["min · max · max(a, −b)", "합치기 · 교집합 · 빼기"],
+        ["smin(a, b, k)", "부드럽게 녹이기"],
+        ["p ← p + d(p)·방향", "구 추적 레이마칭"],
+        ["N = normalize(∇d)", "노멀은 거리장의 기울기"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\22-blur.js ===== */
+/* 22 이미지 필터와 가우시안 블러 */
+(() => {
+  const f2 = n => num(n, 2);
+  const gauss = (r, sigma) => { const w = []; let s = 0; for (let k = -r; k <= r; k++) { const v = Math.exp(-(k * k) / (2 * sigma * sigma)); w.push(v); s += v; } return w.map(v => v / s); };
+  const boxK = r => Array(2 * r + 1).fill(1 / (2 * r + 1));
+  // 원본 이미지(흑백 + 색 점): 160×80
+  const IW = 160, IH = 80, SRC = new Float32Array(IW * IH * 3);
+  for (let j = 0; j < IH; j++) for (let i = 0; i < IW; i++) {
+    const x = i / IW * 2, y = j / IH;
+    let c = [0.08, 0.09, 0.12];
+    if ((Math.floor(i / 10) + Math.floor(j / 10)) % 2 && i < 50) c = [0.85, 0.87, 0.9];
+    if (Math.hypot(x - 0.95, y - 0.5) < 0.22) c = [0.96, 0.72, 0.3];
+    if (Math.abs(y - 0.25 - (x - 1.3) * 0.5) < 0.02 && x > 1.3) c = [0.35, 0.77, 0.87];
+    if (i % 23 === 0 && j % 17 === 0) c = [1, 1, 1];
+    SRC.set(c, (j * IW + i) * 3);
+  }
+  function blurPass(src, w, dx, dy) {
+    const out = new Float32Array(src.length), r = (w.length - 1) / 2;
+    for (let j = 0; j < IH; j++) for (let i = 0; i < IW; i++) {
+      let a = 0, b = 0, c = 0;
+      for (let k = -r; k <= r; k++) {
+        const ii = clamp(i + k * dx, 0, IW - 1), jj = clamp(j + k * dy, 0, IH - 1), o = (jj * IW + ii) * 3, wk = w[k + r];
+        a += src[o] * wk; b += src[o + 1] * wk; c += src[o + 2] * wk;
+      }
+      const o = (j * IW + i) * 3; out[o] = a; out[o + 1] = b; out[o + 2] = c;
+    }
+    return out;
+  }
+  const show = (img, x, y, rect) => {
+    const i = clamp(Math.floor((x - rect.x0) / (rect.x1 - rect.x0) * IW), 0, IW - 1), j = clamp(Math.floor((rect.y1 - y) / (rect.y1 - rect.y0) * IH), 0, IH - 1), o = (j * IW + i) * 3;
+    return [Math.pow(img[o], 1 / 2.2) * 255, Math.pow(img[o + 1], 1 / 2.2) * 255, Math.pow(img[o + 2], 1 / 2.2) * 255, 255];
+  };
+
+  lesson({
+    topic: "blur", title: "이미지 필터와 블러", desc: "주변을 가중 평균하기", stage: "화면 후처리",
+    sym: { w: "orange", "σ": "teal", N: "gold" },
+    hook: "다 그린 화면에도 수학을 한 번 더 씁니다. 가장 기본은 ==각 픽셀을 주변 픽셀의 가중 평균으로 바꾸는 것==(컨볼루션)입니다. 블러·샤픈·엣지 검출·블룸이 모두 여기서 나옵니다.",
+    blocks: [
+      { h: "컨볼루션: 커널을 밀면서 가중 평균" },
+      "아래쪽 막대가 원래 신호, 주황 막대가 커널(가중치)입니다. 커널을 좌우로 끌어 보세요. ==커널 아래 값들을 가중치대로 곱해 더한 것==이 위쪽 출력 한 칸이 됩니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 40, y0: -0.2, y1: 2.6, stretch: true },
+        eq: ["출력[i] = Σ w_k · 입력[i + k],   Σ w_k = 1   (탭 {n}개)"],
+        setup(F, C, L) {
+          let mode = "gauss", r = 3, sig = 1.5, pos = 15;
+          const sig1 = []; for (let i = 0; i < 40; i++) sig1.push((i > 8 && i < 18 ? 0.9 : 0.15) + (i === 27 ? 0.9 : 0) + (i > 31 ? 0.5 : 0) + 0.1 * Math.sin(i * 2.7));
+          C.seg({ options: [{ value: "box", label: "박스 (균등)" }, { value: "gauss", label: "가우시안" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "반경", min: 1, max: 8, step: 1, value: r, fmt: x => num(x, 0), onInput: x => { r = x; sig = x / 2; } });
+          F.handle({ color: "orange", get: () => [pos + 0.5, 1.05], set: x => { pos = clamp(Math.round(x - 0.5), 0, 39); } });
+          F.draw = g => {
+            const w = mode === "box" ? boxK(r) : gauss(r, Math.max(0.5, sig));
+            const out = sig1.map((_, i) => w.reduce((s, wk, k) => s + wk * sig1[clamp(i + k - r, 0, 39)], 0));
+            for (let i = 0; i < 40; i++) {
+              const under = Math.abs(i - pos) <= r;
+              g.poly([[i + 0.1, 0], [i + 0.9, 0], [i + 0.9, sig1[i] * 0.8], [i + 0.1, sig1[i] * 0.8]], { fill: under ? "rgba(88,196,221,0.9)" : "rgba(88,196,221,0.4)" });
+              g.poly([[i + 0.1, 1.6], [i + 0.9, 1.6], [i + 0.9, 1.6 + out[i] * 0.8], [i + 0.1, 1.6 + out[i] * 0.8]], { fill: i === pos ? "yellow" : "rgba(244,211,69,0.45)" });
+            }
+            w.forEach((wk, k) => { const i = pos + k - r; if (i < 0 || i > 39) return; g.poly([[i + 0.25, 0.95], [i + 0.75, 0.95], [i + 0.75, 0.95 + wk * 2], [i + 0.25, 0.95 + wk * 2]], { fill: "orange" }); });
+            g.arrow([pos + 0.5, 1.35], [pos + 0.5, 1.58], "yellow", { w: 2, head: 6 });
+            g.text("입력", [0, 0.8], "blue", { size: 11, align: "left", dy: -8 }); g.text("출력", [0, 2.45], "yellow", { size: 11, align: "left" });
+            L.set("n", 2 * r + 1);
+          };
+        }
+      } },
+      "박스는 경계가 각지고 '뭉개진' 느낌이, 가우시안은 ==가운데가 무겁고 멀수록 가벼워 자연스럽게== 흐려집니다. 렌즈의 초점이 흐려지는 모습이 가우시안에 가깝습니다.",
+
+      { h: "2D 가우시안은 가로 한 번 + 세로 한 번" },
+      "2D 가우시안 커널은 ==가로 1D 가우시안 × 세로 1D 가우시안==으로 나뉩니다(분리 가능). 그래서 $N×N$ 번 읽는 대신 가로로 $N$번, 그 결과를 세로로 $N$번 읽으면 똑같은 결과가 나옵니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["2D 한 번에: {n}² = {nn} 번 읽기   vs   분리: {n} + {n} = {n2} 번 읽기"],
+        setup(F, C, L) {
+          let sig = 2.5, stage = 2, cache = {};
+          C.slider({ label: "$σ$", min: 0.5, max: 8, value: sig, onInput: x => { sig = x; } });
+          C.seg({ options: [{ value: 0, label: "원본" }, { value: 1, label: "가로만" }, { value: 2, label: "가로 → 세로" }], value: stage, onChange: x => { stage = x; } });
+          F.draw = g => {
+            const r = Math.ceil(sig * 2.5), key = sig.toFixed(2);
+            if (!cache[key]) { const w = gauss(r, sig); const h = blurPass(SRC, w, 1, 0); cache = { [key]: { h, hv: blurPass(h, w, 0, 1) } }; }
+            const img = stage === 0 ? SRC : stage === 1 ? cache[key].h : cache[key].hv;
+            const rect = { x0: 0, x1: 2, y0: 0, y1: 1 };
+            g.field(IW, (x, y) => show(img, x, y, rect), { rows: IH, smooth: true });
+            const n = 2 * r + 1;
+            L.set("n", n); L.set("nn", n * n); L.set("n2", 2 * n);
+          };
+        }
+      } },
+      { key: "분리 덕분에 블러 비용이 ==$N^2$에서 $2N$으로== 줄어듭니다. 반경 10이면 441번이 42번이 됩니다. 실시간 블러는 거의 항상 이렇게 두 패스로 나눠 그립니다." },
+
+      { h: "한 번 더 절반으로: 바이리니어 트릭" },
+      "GPU 텍스처 읽기는 두 텍셀 사이를 읽으면 ==바이리니어로 둘을 섞어 줍니다==(10장). 그렇다면 이웃한 탭 두 개를, 가중치 비율만큼 사이 위치에서 한 번 읽으면 됩니다. 탭 수가 또 절반이 됩니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: -10, x1: 10, y0: -0.25, y1: 1.1, stretch: true },
+        eq: ["위치 = (w_1·1 + w_2·2) / (w_1 + w_2),   가중치 = w_1 + w_2   →   탭 {a}개 → {b}개"],
+        setup(F, C, L) {
+          let r = 6;
+          C.slider({ label: "반경", min: 2, max: 9, step: 1, value: r, fmt: x => num(x, 0), onInput: x => { r = x; } });
+          F.draw = g => {
+            const w = gauss(r, r / 2.5), mx = Math.max(...w);
+            g.line([-10, 0], [10, 0], "grey", { w: 1 });
+            w.forEach((wk, k) => { const x = k - r; g.poly([[x - 0.3, 0], [x + 0.3, 0], [x + 0.3, wk / mx * 0.8], [x - 0.3, wk / mx * 0.8]], { fill: "rgba(88,196,221,0.55)" }); });
+            const taps = [[0, w[r]]];
+            for (let k = 1; k <= r; k += 2) {
+              const w1 = w[r + k], w2 = k + 1 <= r ? w[r + k + 1] : 0, s = w1 + w2, off = (w1 * k + w2 * (k + 1)) / s;
+              taps.push([off, s], [-off, s]);
+            }
+            taps.forEach(([o, s]) => { g.line([o, 0], [o, 0.95], "orange", { w: 2.5 }); g.dot([o, 0.95], "orange", 5); g.text(num(s, 2), [o, 0.95], "orange", { dy: -12, size: 10 }); });
+            L.set("a", 2 * r + 1); L.set("b", taps.length);
+          };
+        }
+      } },
+      "실무의 큰 블러는 여기서 더 나아가 ==화면을 1/2, 1/4, 1/8로 줄여 가며 흐리고 다시 키우는== 다운샘플 피라미드(듀얼 카와세 등)를 씁니다. 작은 이미지에서 흐리면 같은 반경이 훨씬 싸기 때문입니다.",
+
+      { use: [
+        ["엔진", "후처리 블러와 DOF", "피사계 심도(초점 밖 흐림), 모션 블러, 블룸, UI 뒤 배경 흐림(Background Blur 위젯)이 모두 이 장의 필터입니다."],
+        ["게임", "UI 글래스 효과", "메뉴 뒤 게임 화면을 흐리게 깔아 집중시키는 효과는 다운샘플 + 분리 가우시안으로 싸게 만듭니다."],
+        ["셰이더", "엣지 검출·샤픈", "가중치에 음수를 섞으면 샤픈, 이웃과의 차이를 보면 엣지 검출(소벨)이 됩니다. 툰 외곽선 후처리가 깊이·노멀에 소벨을 씁니다."],
+        ["실생활", "사진 앱과 화상회의", "인물 사진 모드의 배경 흐림, 화상회의 배경 블러, 휴대폰 노이즈 제거가 같은 컨볼루션입니다."]
+      ] },
+
+      { recap: [
+        ["출력 = Σ w_k · 입력[i + k]", "컨볼루션: 커널을 밀며 가중 평균"],
+        ["G(x, y) = G(x) · G(y)", "가우시안은 분리 가능: N² → 2N"],
+        ["바이리니어로 두 탭을 한 번에", "탭 수 또 절반"],
+        ["다운샘플 피라미드", "큰 반경 블러를 싸게"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\23-hdr.js ===== */
+/* 23 HDR · 톤매핑 · 블룸 */
+(() => {
+  const f2 = n => num(n, 2);
+  const srgb = v => Math.round(255 * Math.pow(clamp(v, 0, 1), 1 / 2.2));
+  const ACES = x => clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0, 1);
+  const TM = {
+    clamp: [x => Math.min(1, x), "$출력 = min(1, 값)$   1을 넘으면 잘려 하얗게 날아감"],
+    reinhard: [x => x / (1 + x), "$출력 = 값 / (1 + 값)$   라인하르트: 무한대도 1 안으로"],
+    aces: [ACES, "ACES 근사: 어두운 쪽은 대비를 살리고 밝은 쪽은 부드럽게 눌러 줌 (영화·UE 기본)"]
+  };
+  // HDR 장면(가로 140 × 세로 70): 하늘, 해, 램프, 그림자 바닥 — 값은 1을 훌쩍 넘습니다
+  const W = 140, H = 70, HDR = new Float32Array(W * H * 3);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const x = i / W * 2, y = 1 - j / H;
+    let c = y > 0.35 ? [0.5 + y * 0.6, 0.7 + y * 0.6, 1.2 + y * 0.9] : [0.06, 0.05, 0.045];
+    if (Math.hypot(x - 1.55, y - 0.78) < 0.07) c = [60, 50, 35];                       // 해
+    if (y < 0.35 && Math.abs(x - 0.5) < 0.1 && y > 0.1) c = [0.3, 0.2, 0.15];           // 기둥
+    if (Math.hypot(x - 0.5, y - 0.4) < 0.045) c = [24, 9, 2];                           // 램프
+    if (y < 0.1) c = [0.12, 0.1, 0.09];
+    if (Math.abs(x - 1.1) < 0.18 && y > 0.12 && y < 0.3) c = [0.9, 0.3, 0.25];            // 빨간 상자(햇빛)
+    HDR.set(c, (j * W + i) * 3);
+  }
+  const gauss = (r, s) => { const w = []; let t = 0; for (let k = -r; k <= r; k++) { const v = Math.exp(-k * k / (2 * s * s)); w.push(v); t += v; } return w.map(v => v / t); };
+  function blur(src, sigma) {
+    const r = Math.ceil(sigma * 2.5), w = gauss(r, sigma);
+    const pass = (s, dx, dy) => { const o = new Float32Array(s.length); for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { let a = 0, b = 0, c = 0; for (let k = -r; k <= r; k++) { const ii = clamp(i + k * dx, 0, W - 1), jj = clamp(j + k * dy, 0, H - 1), q = (jj * W + ii) * 3, wk = w[k + r]; a += s[q] * wk; b += s[q + 1] * wk; c += s[q + 2] * wk; } const q = (j * W + i) * 3; o[q] = a; o[q + 1] = b; o[q + 2] = c; } return o; };
+    return pass(pass(src, 1, 0), 0, 1);
+  }
+  const at = (img, x, y, R) => { const i = clamp(Math.floor((x - R.x0) / (R.x1 - R.x0) * W), 0, W - 1), j = clamp(Math.floor((R.y1 - y) / (R.y1 - R.y0) * H), 0, H - 1), q = (j * W + i) * 3; return [img[q], img[q + 1], img[q + 2]]; };
+
+  lesson({
+    topic: "hdr", title: "HDR · 톤매핑 · 블룸", desc: "1을 넘는 밝기 다루기", stage: "화면 후처리",
+    sym: { e: "gold", L: "yellow" },
+    hook: "실제 세상의 밝기 차이는 엄청납니다. 해는 그늘보다 ==수만 배== 밝습니다. 그래서 계산은 1을 넘는 값(HDR)으로 하고, 마지막에 화면이 낼 수 있는 0~1로 ==부드럽게 눌러 담습니다==(톤매핑).",
+    blocks: [
+      { h: "톤매핑: 무한대를 0~1로" },
+      "아래 장면의 해와 램프는 값이 20~60입니다. 노출을 바꾸고 톤매핑 곡선을 골라 보세요. 그냥 자르면(clamp) ==밝은 곳이 하얗게 날아가고 색이 노랗게 변합니다==.",
+      { fig: {
+        aspect: 0.62, view: { x0: 0, x1: 2, y0: -0.45, y1: 1 },
+        eq: ["{eq}", "노출 e = {e}"],
+        setup(F, C, L) {
+          let op = "aces", ev = 0;
+          C.seg({ options: [{ value: "clamp", label: "자르기" }, { value: "reinhard", label: "라인하르트" }, { value: "aces", label: "ACES" }], value: op, onChange: x => { op = x; } });
+          C.slider({ label: "노출 (EV)", min: -4, max: 4, step: 0.1, value: ev, fmt: x => (x >= 0 ? "+" : "") + num(x, 1), onInput: x => { ev = x; } });
+          F.draw = g => {
+            const fn = TM[op][0], e = Math.pow(2, ev), R = { x0: 0, x1: 2, y0: 0, y1: 1 };
+            g.field(W, (x, y) => { if (y < 0) return null; const c = at(HDR, x, y, R); return [srgb(fn(c[0] * e)), srgb(fn(c[1] * e)), srgb(fn(c[2] * e)), 255]; }, { rect: R, rows: H, smooth: false });
+            // 아래: 톤 곡선 (가로: 입력 log, 세로: 출력)
+            const G0 = [0.1, -0.42], GW = 1.8, GH = 0.36;
+            g.poly([G0, [G0[0] + GW, G0[1]], [G0[0] + GW, G0[1] + GH], [G0[0], G0[1] + GH]], { stroke: "rgba(236,239,244,0.2)", w: 1 });
+            const pts = [];
+            for (let i = 0; i <= 120; i++) { const lv = -3 + i / 120 * 5, v = Math.pow(10, lv) * e; pts.push([G0[0] + i / 120 * GW, G0[1] + fn(v) * GH]); }
+            g.poly(pts, { stroke: "yellow", w: 2.5, close: false });
+            ["0.001", "0.01", "0.1", "1", "10", "100"].forEach((s, k) => g.text(s, [G0[0] + k / 5 * GW, G0[1]], "grey", { dy: 9, size: 9 }));
+            L.set("eq", TM[op][1]); L.set("e", "×" + num(e, 2));
+          };
+        }
+      } },
+      { key: "조명·반사·안개는 모두 ==선형 HDR 값으로 계산==하고, 톤매핑과 감마(13장)는 화면에 내보내기 직전 마지막에 딱 한 번 합니다. 순서가 바뀌면 색이 틀어집니다." },
+
+      { h: "블룸: 밝은 빛이 번지는 효과" },
+      "카메라와 눈은 아주 밝은 빛 주변이 뿌옇게 번져 보입니다. 이것을 ==밝은 부분만 골라 → 크게 흐리고 → 원래 화면에 더하는== 세 단계로 흉내 냅니다. 단계를 하나씩 눌러 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["블룸 = blur(max(0, 색 − 문턱)) · 세기   →   결과 = 색 + 블룸"],
+        setup(F, C, L) {
+          let stage = 3, thr = 1, amt = 0.6, sig = 4, cache = null;
+          C.seg({ options: [{ value: 0, label: "원본" }, { value: 1, label: "밝은 부분" }, { value: 2, label: "흐리기" }, { value: 3, label: "더하기(결과)" }], value: stage, onChange: x => { stage = x; } });
+          C.slider({ label: "문턱", min: 0.2, max: 8, value: thr, onInput: x => { thr = x; } });
+          C.slider({ label: "번짐 반경", min: 1, max: 10, value: sig, onInput: x => { sig = x; } });
+          C.slider({ label: "세기", min: 0, max: 2, value: amt, onInput: x => { amt = x; } });
+          F.draw = g => {
+            const key = thr.toFixed(2) + "/" + sig.toFixed(2);
+            if (!cache || cache.key !== key) {
+              const br = new Float32Array(HDR.length);
+              for (let k = 0; k < HDR.length; k++) br[k] = Math.max(0, HDR[k] - thr);
+              cache = { key, br, bl: blur(br, sig) };
+            }
+            const R = { x0: 0, x1: 2, y0: 0, y1: 1 };
+            g.field(W, (x, y) => {
+              const o = at(HDR, x, y, R), b = at(cache.br, x, y, R), bl = at(cache.bl, x, y, R);
+              const c = stage === 0 ? o : stage === 1 ? b : stage === 2 ? bl.map(v => v * amt * 4) : o.map((v, i) => v + bl[i] * amt * 4);
+              return [srgb(ACES(c[0])), srgb(ACES(c[1])), srgb(ACES(c[2])), 255];
+            }, { rows: H, smooth: true });
+          };
+        }
+      } },
+
+      { h: "자동 노출: 눈의 적응" },
+      "어두운 터널에서 밝은 바깥으로 나가면 잠시 눈이 부시다가 적응합니다. 엔진도 ==화면의 평균 밝기를 재서 노출을 천천히 따라가게== 합니다. 재생해서 장면 밝기가 바뀔 때 노출이 늦게 따라오는 것을 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["목표 노출 = 0.18 / 평균 밝기,   노출 ← lerp(노출, 목표, 1 − e^(−속도·dt))"],
+        setup(F, C, L) {
+          let speed = 1.5, hist = [], expo = 1, t = 0;
+          C.play(true);
+          C.slider({ label: "적응 속도", min: 0.2, max: 6, value: speed, onInput: x => { speed = x; } });
+          const sceneLum = tt => { const p = (tt % 12) / 12; return p < 0.4 ? 0.02 : p < 0.8 ? 3 : 0.3; };
+          F.loop(dt => {
+            t += dt;
+            const target = 0.18 / sceneLum(t);
+            expo = lerp(expo, target, 1 - Math.exp(-speed * dt));
+            hist.push([sceneLum(t), expo]); if (hist.length > 300) hist.shift();
+          });
+          F.draw = g => {
+            const lum = sceneLum(t), shown = ACES(lum * expo);
+            g.poly([[0.3, 2.2], [3.3, 2.2], [3.3, 4], [0.3, 4]], { fill: `rgb(${srgb(shown)},${srgb(shown * 0.95)},${srgb(shown * 0.85)})`, stroke: "grey", w: 1 });
+            g.text(lum < 0.1 ? "터널 안" : lum > 1 ? "밝은 바깥" : "그늘", [1.8, 3.1], shown > 0.5 ? "#10131A" : "white", { size: 14, bold: true, halo: false });
+            g.text("화면에 보이는 밝기", [1.8, 2.2], "grey", { size: 11, dy: 10 });
+            const X = k => 4 + k / 300 * 5.8, Y = v => 0.3 + clamp((Math.log10(v) + 2) / 4, 0, 1) * 3.6;
+            const p1 = hist.map((h, k) => [X(k), Y(h[0])]), p2 = hist.map((h, k) => [X(k), Y(0.18 / h[1])]);
+            if (p1.length > 1) { g.poly(p1, { stroke: "yellow", w: 2, close: false }); g.poly(p2, { stroke: "teal", w: 2.5, close: false }); }
+            g.text("장면 평균 밝기", [4, 4], "yellow", { size: 11, align: "left" }); g.text("눈(노출)이 맞춰 둔 밝기", [6.6, 4], "teal", { size: 11, align: "left" });
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "포스트 프로세스 볼륨", "UE 포스트 프로세스의 Exposure(자동 노출 최소·최대·속도), Bloom(문턱·세기), 톤매퍼 설정이 이 장 그대로입니다."],
+        ["게임", "HDR 디스플레이", "HDR 모니터 출력은 톤매핑 범위를 1이 아니라 디스플레이 최대 밝기(1000니트 등)로 넓혀 같은 원리로 매핑합니다."],
+        ["아트", "라이트 단위", "UE의 물리 라이트 단위(룩스·칸델라)를 쓰면 해와 전구의 실제 밝기 차이를 그대로 넣고 노출로 맞춥니다."],
+        ["실생활", "휴대폰 HDR 사진", "휴대폰 HDR 모드는 노출이 다른 사진 여러 장을 합쳐 넓은 밝기 범위를 얻고, 이 장의 톤매핑으로 한 장에 눌러 담습니다."]
+      ] },
+
+      { recap: [
+        ["값 > 1", "HDR: 실제 밝기 그대로 계산"],
+        ["값 / (1 + 값) · ACES", "톤매핑: 화면 범위로 부드럽게 압축"],
+        ["blur(max(0, 색 − 문턱)) 더하기", "블룸"],
+        ["노출 = 0.18 / 평균 밝기", "자동 노출, 천천히 따라감"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\24-raytrace.js ===== */
+/* 24 레이 트레이싱 */
+(() => {
+  const f2 = n => num(n, 2);
+  // 2D 광선-원 교차: [t0, t1] 또는 null
+  function hitCircle2(o, d, c, r) {
+    const oc = V.sub(o, c), b = V.dot(oc, d), cc = V.dot(oc, oc) - r * r, disc = b * b - cc;
+    if (disc < 0) return { disc, t: null, b, cc };
+    const s = Math.sqrt(disc);
+    return { disc, t: [-b - s, -b + s], b, cc };
+  }
+
+  lesson({
+    topic: "raytrace", title: "레이 트레이싱", desc: "픽셀마다 광선 쏘기", stage: "빛을 따라가는 렌더링",
+    sym: { O: "white", d: "yellow", t: "teal", b: "orange", c: "pink", C: "pink", r: "gold", P: "white" },
+    hook: "래스터화는 '삼각형이 어느 픽셀을 덮나'를 묻고, 레이 트레이싱은 반대로 =='이 픽셀에서 쏜 광선이 무엇에 맞나'==를 묻습니다. 반사·굴절·그림자가 자연스럽게 따라옵니다.",
+    blocks: [
+      { h: "광선과 구의 교차 = 2차 방정식" },
+      "광선 $P(t) = O + t·d$ 가 원(3D에선 구)에 닿는 $t$를 구하면 2차 방정식이 됩니다. ==판별식이 음수면 빗나감, 0이면 스침, 양수면 두 점==에서 만납니다. 시작점·방향·원을 끌어 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["t = −b ± √(b^2 − c),   b = (O − C)·d,   c = |O − C|^2 − r^2", "판별식 b^2 − c = {disc}   →   {res}"],
+        setup(F, C, L) {
+          const O = [-3.3, -0.8], aim = [1.0, 0.3], Cc = [0.8, 0.2];
+          F.vec(O, "white", { snap: 0.01 });
+          F.vec(aim, "yellow", { base: () => O, constrain: q => V.mul(V.norm(q), 1), snap: 0.001 });
+          F.vec(Cc, "pink", { snap: 0.01 });
+          F.draw = g => {
+            g.grid(1, { minor: false, axes: false });
+            const r = 1.1, d = V.norm(aim), h = hitCircle2(O, d, Cc, r);
+            g.circle(Cc, r, "pink", { fill: "rgba(227,111,200,0.15)", w: 2 });
+            const end = h.t && h.t[0] > 0 ? h.t[0] : 9;
+            g.line(O, V.add(O, V.mul(d, 9)), "yellow", { w: 1.2, alpha: 0.35, dash: [5, 5] });
+            g.arrow(O, V.add(O, V.mul(d, Math.min(end, 9))), "yellow", { w: 3 });
+            if (h.t) h.t.forEach((t, i) => { if (t > 0) { g.dot(V.add(O, V.mul(d, t)), i ? "teal" : "orange", 6); g.tex(i ? "t₁" : "t₀", V.add(O, V.mul(d, t)), i ? "teal" : "orange", { dy: -16, size: 15 }); } });
+            if (h.t && h.t[0] > 0) { const P = V.add(O, V.mul(d, h.t[0])), n = V.norm(V.sub(P, Cc)); g.arrow(P, V.add(P, V.mul(n, 0.7)), "yellow", { w: 2, head: 8 }); }
+            L.set("disc", f2(h.disc)); L.set("res", h.disc < -0.001 ? "음수: 빗나감" : Math.abs(h.disc) < 0.02 ? "0: 스침" : h.t[1] < 0 ? "교차는 뒤쪽: 빗나감" : "양수: 두 점에서 만남 (가까운 t₀가 보이는 점)");
+          };
+        }
+      } },
+
+      { h: "맞은 곳에서 다시 쏘기: 반사" },
+      "거울에 맞으면 반사 방향으로 광선을 ==한 번 더== 쏩니다. 튕김 횟수를 늘려 보세요. 레이 트레이싱의 반사가 '진짜'인 이유는 화면 밖에 있는 물체도 이렇게 찾아가 비추기 때문입니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["d' = d − 2(d·N)N   ({n}번 튕김)"],
+        setup(F, C, L) {
+          const O = [-3.4, 1.3], aim = [1, -0.45];
+          let bounces = 4;
+          F.vec(O, "white", { snap: 0.01 });
+          F.vec(aim, "yellow", { base: () => O, constrain: q => V.mul(V.norm(q), 1), snap: 0.001 });
+          C.slider({ label: "튕김 횟수", min: 0, max: 12, step: 1, value: bounces, fmt: x => num(x, 0), onInput: x => { bounces = x; } });
+          const balls = [[[-1, -0.6], 0.7], [[1.4, 0.7], 0.6], [[2.6, -1.1], 0.5], [[-2.2, -1.5], 0.35], [[0.3, 1.5], 0.3]];
+          F.draw = g => {
+            g.poly([[-3.9, -1.95], [3.9, -1.95], [3.9, 1.95], [-3.9, 1.95]], { stroke: "grey", w: 2 });
+            balls.forEach(([c, r]) => g.circle(c, r, "purple", { fill: "rgba(177,137,198,0.25)", w: 2 }));
+            let o = O.slice(), d = V.norm(aim), n = 0;
+            for (let k = 0; k <= bounces; k++) {
+              let best = Infinity, N = null;
+              balls.forEach(([c, r]) => { const h = hitCircle2(o, d, c, r); if (h.t && h.t[0] > 1e-3 && h.t[0] < best) { best = h.t[0]; N = V.norm(V.sub(V.add(o, V.mul(d, best)), c)); } });
+              [[0, -3.9, 1], [0, 3.9, -1], [1, -1.95, 1], [1, 1.95, -1]].forEach(([ax, v, s]) => { if (Math.abs(d[ax]) > 1e-9) { const t = (v - o[ax]) / d[ax]; if (t > 1e-3 && t < best) { best = t; N = ax ? [0, s] : [s, 0]; } } });
+              if (!N) break;                                   // 상자 밖에서 쏘면 맞을 것이 없음
+              const p = V.add(o, V.mul(d, best));
+              g.line(o, p, "yellow", { w: 2.5, alpha: 1 - k / (bounces + 2) });
+              g.dot(p, "orange", 4);
+              d = V.sub(d, V.mul(N, 2 * V.dot(d, N))); o = p; n = k;
+            }
+            g.circle(O, 0.12, "white", { fill: PAL.bg, w: 2.5 });
+            L.set("n", n);
+          };
+        }
+      } },
+
+      { h: "픽셀마다 광선: 작은 레이 트레이서" },
+      "이제 화면의 픽셀마다 광선을 쏩니다. 맞은 점에서 ==빛 쪽으로 그림자 광선==을 쏘아 가려졌는지 보고, 거울 공이면 ==반사 광선==을 이어서 쏩니다. 해를 끌고 반사 깊이를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["색 = 직접광 · (그림자 광선이 막히지 않으면 1) + 반사율 · trace(반사 광선)   (깊이 {k})"],
+        setup(F, C, L) {
+          let depth = 2;
+          const sun = [1.2, 0.75];
+          F.vec(sun, "gold", { snap: 0.01 });
+          C.slider({ label: "반사 깊이", min: 0, max: 4, step: 1, value: depth, fmt: x => num(x, 0), onInput: x => { depth = x; } });
+          const S = [{ c: [-0.75, 0, 3.2], r: 0.55, col: [0.9, 0.3, 0.25], m: 0.1 }, { c: [0.45, -0.05, 3.6], r: 0.5, col: [0.95, 0.95, 0.95], m: 0.85 }, { c: [1.2, -0.25, 2.6], r: 0.3, col: [0.3, 0.75, 0.85], m: 0.2 }];
+          function hit(o, d) {
+            let best = { t: Infinity };
+            S.forEach(s => { const oc = V3.sub(o, s.c), b = V3.dot(oc, d), c = V3.dot(oc, oc) - s.r * s.r, disc = b * b - c; if (disc > 0) { const t = -b - Math.sqrt(disc); if (t > 1e-3 && t < best.t) best = { t, s }; } });
+            if (d[1] < 0) { const t = (-0.55 - o[1]) / d[1]; if (t > 1e-3 && t < best.t) best = { t, floor: true }; }
+            return best;
+          }
+          function trace(o, d, k, Ld) {
+            const h = hit(o, d);
+            if (!isFinite(h.t)) return [0.25 + d[1] * 0.3, 0.32 + d[1] * 0.35, 0.5 + d[1] * 0.4];
+            const p = V3.add(o, V3.mul(d, h.t));
+            const n = h.floor ? [0, 1, 0] : V3.norm(V3.sub(p, h.s.c));
+            const base = h.floor ? ((Math.floor(p[0] * 2) + Math.floor(p[2] * 2)) % 2 ? [0.75, 0.75, 0.72] : [0.35, 0.36, 0.4]) : h.s.col;
+            const m = h.floor ? 0.15 : h.s.m;
+            const shadow = isFinite(hit(V3.add(p, V3.mul(n, 1e-3)), Ld).t) ? 0.15 : 1;
+            const dif = Math.max(0, V3.dot(n, Ld)) * shadow;
+            let col = base.map(c => c * (0.08 + 0.9 * dif));
+            if (k > 0 && m > 0) { const r = V3.sub(d, V3.mul(n, 2 * V3.dot(d, n))); const rc = trace(V3.add(p, V3.mul(n, 1e-3)), r, k - 1, Ld); col = col.map((c, i) => lerp(c, rc[i], m)); }
+            return col;
+          }
+          F.draw = g => {
+            const Ld = V3.norm([sun[0], sun[1] + 0.3, -0.6]);
+            g.field(200, (x, y) => {
+              const d = V3.norm([x * 0.5, y * 0.5, 1]);
+              const c = trace([0, 0.15, 0], d, depth, Ld);
+              return [Math.pow(clamp(c[0], 0, 1), 1 / 2.2) * 255, Math.pow(clamp(c[1], 0, 1), 1 / 2.2) * 255, Math.pow(clamp(c[2], 0, 1), 1 / 2.2) * 255, 255];
+            });
+            g.circle(sun, 0.07, "gold", { fill: "gold", w: 0 });
+            L.set("k", depth);
+          };
+        }
+      } },
+      { key: "레이 트레이싱의 비용은 ==광선 수 × 교차 검사 수==입니다. 장면의 삼각형 수백만 개를 하나씩 검사할 수는 없으니, 27장의 BVH 같은 공간 자료구조가 필수입니다." },
+
+      { use: [
+        ["엔진", "하드웨어 레이 트레이싱", "UE의 RT 반사·그림자·Lumen 하드웨어 모드가 이 장의 반사·그림자 광선을 RTX GPU의 전용 회로로 쏩니다."],
+        ["게임", "스크린 스페이스의 한계", "화면에 보이는 것만 반사하는 SSR은 화면 밖 물체를 못 비춥니다. 레이 트레이싱 반사가 차이 나는 지점이 바로 여기입니다."],
+        ["영상", "영화·애니메이션", "픽사·디즈니 장편과 VFX는 오래전부터 레이 트레이싱(경로 추적)으로 렌더합니다. 프레임당 몇 시간씩 걸리기도 합니다."],
+        ["실생활", "건축·제품 시각화", "인테리어 시안, 자동차 컨피규레이터, 렌즈 설계 프로그램이 같은 광선 추적 원리를 씁니다."]
+      ] },
+
+      { recap: [
+        ["P(t) = O + t·d", "광선"],
+        ["t = −b ± √(b^2 − c)", "구와의 교차: 판별식으로 맞음/빗나감"],
+        ["d' = d − 2(d·N)N", "반사 광선"],
+        ["그림자 광선이 막히면 그림자", "섀도우 맵 없이 정확한 그림자"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\25-pathtrace.js ===== */
+/* 25 몬테카를로와 경로 추적 */
+(() => {
+  const f2 = n => num(n, 2);
+
+  lesson({
+    topic: "pathtrace", title: "몬테카를로와 경로 추적", desc: "무작위로 평균 내기", stage: "빛을 따라가는 렌더링",
+    sym: { N: "gold", "π": "yellow", p: "teal", f: "yellow" },
+    hook: "현실의 빛은 벽에 튕기고 또 튕깁니다(간접광). 모든 경로를 셀 수는 없으니 ==무작위로 몇 개만 골라 평균을 냅니다==. 샘플이 적으면 지글지글한 노이즈, 많을수록 정답에 가까워집니다.",
+    blocks: [
+      { h: "무작위로 넓이 재기" },
+      "정사각형 안에 점을 무작위로 뿌리고 ==원 안에 떨어진 비율×4== 를 구하면 $π$ 가 나옵니다. 재생해서 점을 늘려 보세요. 오른쪽 그래프는 오차인데, ==점이 100배가 되어야 오차가 10배 줄어듭니다==($1/√N$).",
+      { fig: {
+        aspect: 0.5, view: { x0: -1.1, x1: 3.3, y0: -1.1, y1: 1.1 },
+        eq: ["π ≈ 4 · (안에 든 점) / N = 4 · {in} / {n} = {est}   (오차 {err})"],
+        setup(F, C, L) {
+          let pts = [], inside = 0, hist = [], seed = 1;
+          const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+          const add = k => { for (let i = 0; i < k; i++) { const p = [rnd() * 2 - 1, rnd() * 2 - 1]; const hit = p[0] * p[0] + p[1] * p[1] <= 1; if (hit) inside++; if (pts.length < 6000) pts.push([p, hit]); } hist.push([pts.length > 0 ? n() : 1, Math.abs(4 * inside / n() - Math.PI)]); };
+          let count = 0; const n = () => count;
+          const addN = k => { count += k; add(k); };
+          C.play(true);
+          C.button("↺ 처음부터", () => { pts = []; inside = 0; hist = []; count = 0; seed = 1 + Math.floor(Math.random() * 1000); });
+          F.loop(() => { if (count < 200000) addN(count < 200 ? 2 : count < 2000 ? 20 : 400); });
+          F.draw = g => {
+            g.poly([[-1, -1], [1, -1], [1, 1], [-1, 1]], { stroke: "grey", w: 1.5 });
+            g.circle([0, 0], 1, "yellow", { w: 2 });
+            pts.forEach(([p, h]) => g.dot(p, h ? "yellow" : "rgba(138,147,166,0.6)", 1.6));
+            // 오차 그래프 (로그-로그)
+            const X = v => 1.3 + clamp(Math.log10(v) / 5.3, 0, 1) * 1.9, Y = e => -1 + clamp((Math.log10(e + 1e-6) + 4) / 4, 0, 1) * 2;
+            g.poly([[1.3, -1], [3.2, -1], [3.2, 1], [1.3, 1]], { stroke: "rgba(236,239,244,0.2)", w: 1 });
+            g.poly([[1.3, Y(1.7)], [3.2, Y(1.7 / Math.sqrt(Math.pow(10, 5.3)))]], { stroke: "teal", w: 1.5, dash: [4, 4], close: false });
+            hist.forEach(([nn, e]) => g.dot([X(nn), Y(e)], "orange", 1.8));
+            g.text("오차 (로그)", [1.3, 1], "grey", { align: "left", size: 10, dy: -8 }); g.text("N →", [3.2, -1], "grey", { align: "right", size: 10, dy: 10 });
+            g.text("1/√N", [2.6, Y(1.7 / Math.sqrt(Math.pow(10, 3.4)))], "teal", { size: 11, dy: -10 });
+            const est = count ? 4 * inside / count : 0;
+            L.set("in", inside); L.set("n", count); L.set("est", num(est, 4)); L.set("err", num(Math.abs(est - Math.PI), 4));
+          };
+        }
+      } },
+      { key: "몬테카를로 적분은 ==차원이 아무리 높아도 같은 속도($1/√N$)로 수렴==합니다. 빛의 경로는 튕길 때마다 차원이 늘어나서, 이 방법 말고는 현실적인 답이 없습니다." },
+
+      { h: "경로 추적: 튕기는 빛을 무작위로 따라가기" },
+      "벽이 빨강·초록인 상자 방(코넬 박스)입니다. 픽셀마다 광선을 쏘고, 맞은 곳에서 ==무작위 방향으로 다시 튕겨== 천장 조명에 닿을 때까지 따라갑니다. 프레임마다 픽셀당 샘플 하나씩 더해 평균 냅니다. 흰 공 옆면에 ==벽의 빨강·초록이 번지는 것==(간접광)을 보세요.",
+      { fig: {
+        aspect: 0.62, view: { x0: -1, x1: 1, y0: -0.62, y1: 0.62 },
+        eq: ["픽셀 색 = (1/N) Σ (경로 하나가 가져온 빛)   →   샘플 {spp}개 / 픽셀"],
+        setup(F, C, L) {
+          const RW = 96, RH = 60;
+          let acc = new Float32Array(RW * RH * 3), spp = 0, maxB = 3;
+          C.play(true);
+          C.slider({ label: "최대 튕김", min: 1, max: 5, step: 1, value: maxB, fmt: x => num(x, 0), onInput: x => { maxB = x; acc.fill(0); spp = 0; } });
+          C.button("↺ 다시", () => { acc.fill(0); spp = 0; });
+          let seed = 7;
+          const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+          const walls = [
+            { n: [1, 0, 0], d: 1, col: [0.75, 0.15, 0.12] }, { n: [-1, 0, 0], d: 1, col: [0.15, 0.6, 0.18] },
+            { n: [0, 1, 0], d: 1, col: [0.75, 0.75, 0.72] }, { n: [0, -1, 0], d: 1, col: [0.75, 0.75, 0.72] },
+            { n: [0, 0, -1], d: 1, col: [0.75, 0.75, 0.72] }
+          ];
+          const balls = [{ c: [-0.4, -0.62, 0.25], r: 0.38, col: [0.85, 0.85, 0.85] }, { c: [0.45, -0.7, -0.2], r: 0.3, col: [0.85, 0.75, 0.4] }];
+          function hit(o, d) {
+            let best = { t: Infinity };
+            walls.forEach(w => {
+              const den = V3.dot(w.n, d);
+              if (den < -1e-6) {
+                const t = -(V3.dot(w.n, o) + w.d) / den, p = V3.add(o, V3.mul(d, t));
+                if (t > 1e-4 && t < best.t && p[2] >= -1.001 && Math.abs(p[0]) <= 1.001 && Math.abs(p[1]) <= 1.001) best = { t, n: w.n, col: w.col };   // 방 안쪽 면만
+              }
+            });
+            balls.forEach(b => { const oc = V3.sub(o, b.c), bb = V3.dot(oc, d), c = V3.dot(oc, oc) - b.r * b.r, disc = bb * bb - c; if (disc > 0) { const t = -bb - Math.sqrt(disc); if (t > 1e-4 && t < best.t) { const p = V3.add(o, V3.mul(d, t)); best = { t, n: V3.norm(V3.sub(p, b.c)), col: b.col }; } } });
+            return best;
+          }
+          // 천장 조명: |x|, |z| < LS 인 사각형(y = 1). 맞은 곳마다 조명 위 한 점으로 그림자 광선을 쏘는 '직접광 샘플링'으로 수렴을 빠르게 합니다.
+          const LS = 0.4, LE = 7, LA = (2 * LS) * (2 * LS);
+          const onLight = p => p[1] > 0.999 && Math.abs(p[0]) < LS && Math.abs(p[2]) < LS;
+          function radiance(o, d) {
+            let thr = [1, 1, 1], L0 = [0, 0, 0];
+            for (let b = 0; b <= maxB; b++) {
+              const h = hit(o, d);
+              if (!isFinite(h.t)) break;
+              const p = V3.add(o, V3.mul(d, h.t));
+              if (onLight(p)) { if (b === 0) L0 = L0.map(v => v + LE); break; }   // 직접 본 조명만 더함(나머지는 직접광 샘플링이 담당)
+              thr = thr.map((v, i) => v * h.col[i]);
+              const n = h.n, q = V3.add(p, V3.mul(n, 1e-3));
+              // 직접광: 조명 위 무작위 점
+              const lp = [(rnd() * 2 - 1) * LS, 0.999, (rnd() * 2 - 1) * LS], ld = V3.sub(lp, q), dist2 = V3.dot(ld, ld), ldn = V3.mul(ld, 1 / Math.sqrt(dist2));
+              const cos1 = V3.dot(n, ldn), cos2 = ldn[1];
+              if (cos1 > 0 && cos2 > 0) { const sh = hit(q, ldn); if (sh.t * sh.t >= dist2 - 1e-3) { const k = LE * cos1 * cos2 * LA / (Math.PI * dist2); L0 = L0.map((v, i) => v + thr[i] * k); } }
+              // 다음 튕김: 코사인 가중 반구 샘플
+              const u1 = rnd(), u2 = rnd(), r = Math.sqrt(u1), phi = TAU * u2;
+              const a = Math.abs(n[0]) > 0.9 ? [0, 1, 0] : [1, 0, 0], tt = V3.norm(V3.cross(a, n)), bt = V3.cross(n, tt);
+              d = V3.norm(V3.add(V3.add(V3.mul(tt, r * Math.cos(phi)), V3.mul(bt, r * Math.sin(phi))), V3.mul(n, Math.sqrt(1 - u1))));
+              o = q;
+            }
+            return L0;
+          }
+          F.loop(() => {
+            if (spp >= 2000) return;
+            for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
+              const x = (i + rnd()) / RW * 2 - 1, y = 1 - (j + rnd()) / RH * 2;
+              const d = V3.norm([x * 0.8, y * 0.8 * RH / RW, 1]);
+              const c = radiance([0, 0, -2.6], d), k = (j * RW + i) * 3;
+              acc[k] += c[0]; acc[k + 1] += c[1]; acc[k + 2] += c[2];
+            }
+            spp++;
+          });
+          F.draw = g => {
+            const n = Math.max(1, spp);
+            g.field(RW, (x, y, i, j) => {
+              const k = (j * RW + i) * 3, tm = v => Math.pow(clamp((v / n) / (1 + v / n), 0, 1), 1 / 2.2) * 255;
+              return [tm(acc[k]), tm(acc[k + 1]), tm(acc[k + 2]), 255];
+            }, { rows: RH, smooth: spp > 8 });
+            L.set("spp", spp);
+          };
+        }
+      } },
+      "처음 몇 샘플은 점이 흩뿌려진 듯 지글거리다가, 수십·수백 샘플이 쌓이면 부드러워집니다. 실시간 게임은 픽셀당 1~2 샘플밖에 못 쏘므로 ==AI·시간 누적 디노이저==로 나머지를 메웁니다.",
+
+      { h: "중요도 샘플링: 중요한 곳을 더 자주" },
+      "뾰족한 함수의 넓이(노란 곡선 아래)를 무작위로 잽니다. 고르게 뽑으면(주황) 대부분이 거의 0인 곳에 떨어져 낭비됩니다. ==함수 모양을 닮은 분포로 뽑고 그 확률로 나누면==(청록) 같은 샘플 수로 훨씬 빨리 정답에 붙습니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["추정값 = (1/N) Σ f(x_i) / p(x_i)   — 정답 {truth}: 고르게 {u}, 중요도 {im}"],
+        setup(F, C, L) {
+          const f = x => Math.exp(-Math.pow((x - 0.7) / 0.05, 2)) * 3 + 0.1;   // 0~1에서 뾰족
+          const truth = 0.1 + 3 * 0.05 * Math.sqrt(Math.PI) * 0.5 * (erf((1 - 0.7) / 0.05) + erf(0.7 / 0.05));
+          function erf(x) { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; }
+          let su = 0, si = 0, n = 0, hu = [], hi = [], seed = 5, lastU = [], lastI = [];
+          const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+          const gaussS = () => { const u = Math.max(1e-9, rnd()), v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); };
+          const sig = 0.07;
+          const pdfI = x => 0.6 * Math.exp(-Math.pow((x - 0.7) / sig, 2) / 2) / (sig * Math.sqrt(TAU)) + 0.4;   // 섞은 분포(뾰족 + 균등)
+          C.play(true);
+          C.button("↺ 처음부터", () => { su = si = n = 0; hu = []; hi = []; });
+          F.loop(() => {
+            if (n > 4000) return;
+            for (let k = 0; k < 4; k++) {
+              const xu = rnd(); su += f(xu); lastU.push(xu);
+              let xi = rnd() < 0.6 ? 0.7 + gaussS() * sig : rnd();
+              if (xi < 0 || xi > 1) xi = rnd();
+              si += f(xi) / pdfI(xi); lastI.push(xi);
+              n++;
+            }
+            if (lastU.length > 60) { lastU = lastU.slice(-60); lastI = lastI.slice(-60); }
+            hu.push(su / n); hi.push(si / n);
+          });
+          F.draw = g => {
+            const X = x => 0.3 + x * 4.2, Yf = y => 0.3 + y * 1.1;
+            const pts = []; for (let k = 0; k <= 200; k++) { const x = k / 200; pts.push([X(x), Yf(f(x))]); }
+            g.poly(pts.concat([[X(1), Yf(0)], [X(0), Yf(0)]]), { fill: "rgba(244,211,69,0.15)", stroke: "yellow", w: 2 });
+            lastU.forEach(x => g.dot([X(x), 0.2], "orange", 3)); lastI.forEach(x => g.dot([X(x), 0.08], "teal", 3));
+            // 오른쪽: 추정값 수렴
+            const GX = k => 5 + k / Math.max(1, hu.length) * 4.7, GY = v => 2.1 + (v - truth) * 1.6;
+            g.line([5, GY(truth)], [9.7, GY(truth)], "white", { w: 1.5, dash: [4, 4] });
+            if (hu.length > 1) {
+              g.poly(hu.map((v, k) => [GX(k), clamp(GY(v), 0.1, 4.1)]), { stroke: "orange", w: 2, close: false });
+              g.poly(hi.map((v, k) => [GX(k), clamp(GY(v), 0.1, 4.1)]), { stroke: "teal", w: 2.5, close: false });
+            }
+            g.text("정답", [9.7, GY(truth)], "white", { size: 11, align: "right", dy: -9 });
+            L.set("truth", num(truth, 3)); L.set("u", n ? num(su / n, 3) : "—"); L.set("im", n ? num(si / n, 3) : "—");
+          };
+        }
+      } },
+      "렌더러는 이 원리로 ==빛 쪽, 반사가 강한 방향 쪽을 더 자주 쏩니다==. 매끈한 금속은 반사 방향 근처만, 확산면은 $cos$ 모양으로(위 코넬 박스가 그렇게 합니다) 뽑습니다.",
+
+      { use: [
+        ["엔진", "패스 트레이서와 Lumen", "UE의 Path Tracer 뷰 모드는 이 장의 방법으로 기준(정답) 이미지를 만듭니다. Lumen은 같은 간접광을 실시간으로 근사합니다."],
+        ["게임", "디노이저", "RTX 게임의 실시간 경로 추적은 픽셀당 1샘플 수준이라 DLSS Ray Reconstruction 같은 디노이저가 노이즈를 지웁니다."],
+        ["아트", "라이트맵 굽기", "GPU Lightmass 같은 라이트맵 베이커가 오프라인으로 수천 샘플을 쏴 간접광을 텍스처에 굽습니다."],
+        ["실생활", "금융·물리 시뮬레이션", "몬테카를로는 주가 위험 계산, 방사선 치료 계획, 날씨 예측 앙상블에도 쓰이는 범용 계산법입니다."]
+      ] },
+
+      { recap: [
+        ["(1/N) Σ f(x_i)", "몬테카를로 적분, 오차 ∝ 1/√N"],
+        ["경로 추적", "무작위로 튕기며 빛을 찾아 평균"],
+        ["(1/N) Σ f(x_i) / p(x_i)", "중요도 샘플링: 닮은 분포로 뽑고 확률로 나눔"],
+        ["샘플 부족 = 노이즈", "실시간은 디노이저로 보완"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\26-gpu.js ===== */
 /* 09 GPU 파이프라인과 메모리 */
 (() => {
   const STAGES = [
     { name: "정점 데이터", color: "grey", desc: "메모리에 놓인 꼭짓점 위치·UV·노멀 숫자들" },
-    { name: "버텍스 셰이더", color: "green", desc: "꼭짓점마다 한 번: 행렬을 곱해 화면 위치로 (4·5장)" },
-    { name: "래스터화", color: "teal", desc: "삼각형이 덮는 픽셀 찾기 + 값 보간 (6장) — 고정 하드웨어" },
-    { name: "픽셀 셰이더", color: "yellow", desc: "픽셀마다 한 번: 텍스처를 읽고 조명 계산 (7·8장)" },
+    { name: "버텍스 셰이더", color: "green", desc: "꼭짓점마다 한 번: 행렬을 곱해 화면 위치로 (4·8장)" },
+    { name: "래스터화", color: "teal", desc: "삼각형이 덮는 픽셀 찾기 + 값 보간 (9장) — 고정 하드웨어" },
+    { name: "픽셀 셰이더", color: "yellow", desc: "픽셀마다 한 번: 텍스처를 읽고 조명 계산 (10·12장)" },
     { name: "출력 병합", color: "pink", desc: "깊이 테스트로 가려진 픽셀 버리기 + 블렌딩" }
   ];
 
   lesson({
-    topic: "gpu", title: "GPU 파이프라인과 메모리", desc: "수천 개를 동시에", stage: "빛과 하드웨어",
+    topic: "gpu", title: "GPU 파이프라인과 메모리", desc: "수천 개를 동시에", stage: "하드웨어와 성능",
     sym: {},
     hook: "지금까지 배운 계산을 ==수백만 개 꼭짓점과 픽셀에 동시에== 하는 기계가 GPU입니다. 빠른 이유와 느려지는 이유가 모두 이 '동시에'에서 나옵니다.",
     blocks: [
@@ -4445,13 +7110,155 @@ function render() {
           };
         }
       } },
-      "이웃끼리 읽으면 캐시가 1칸뿐이어도 ==대부분 적중==하지만, 무작위로 읽으면 캐시를 늘려도 잘 맞지 않습니다. 7장의 밉맵이 성능에도 도움이 되는 이유가 이것입니다 — 멀리 있는 픽셀들이 작은 밉맵의 ==가까운 텍셀을 함께== 읽게 되니까요.",
+      "이웃끼리 읽으면 캐시가 1칸뿐이어도 ==대부분 적중==하지만, 무작위로 읽으면 캐시를 늘려도 잘 맞지 않습니다. 10장의 밉맵이 성능에도 도움이 되는 이유가 이것입니다 — 멀리 있는 픽셀들이 작은 밉맵의 ==가까운 텍셀을 함께== 읽게 되니까요.",
+
+      { use: [
+        ["엔진", "프로파일링", "`stat gpu`, RenderDoc, PIX로 어느 패스가 오래 걸리는지 보고, 셰이더 복잡도·오버드로 뷰로 겹쳐 그리기를 찾습니다."],
+        ["셰이더", "분기 줄이기", "픽셀마다 갈리는 `if`보다 `lerp`·`step`으로 섞는 쪽이 빠를 때가 많습니다. 머티리얼의 Static Switch는 분기를 컴파일 시점에 없앱니다."],
+        ["게임", "업스케일링", "DLSS·FSR·TSR은 낮은 해상도로 그려 픽셀 셰이더 횟수와 대역폭을 줄인 뒤 키웁니다."],
+        ["실생활", "AI 계산", "같은 일을 수천 개 동시에 하는 GPU 구조가 그대로 딥러닝 학습·추론에 쓰입니다."]
+      ] },
 
       { recap: [
         ["정점 → VS → 래스터 → PS → 병합", "꼭짓점 수만큼 VS, 덮인 픽셀 수만큼 PS"],
         ["워프 = 32~64개 동시 실행", "분기가 섞이면 두 갈래를 모두 실행"],
         ["픽셀 × 오버드로 × 바이트 × 패스 × fps", "쓰기 대역폭, 오버드로를 줄일 것"],
         ["이웃 텍셀 = 캐시 적중", "무작위 접근은 느림, 밉맵이 도움"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\27-culling.js ===== */
+/* 27 컬링과 공간 분할 */
+(() => {
+  const f0 = n => num(n, 0);
+  let seed0 = 3;
+  const rnd0 = () => (seed0 = (seed0 * 16807) % 2147483647) / 2147483647;
+  const OBJS = [];
+  for (let i = 0; i < 70; i++) OBJS.push([lerp(-4, 4, rnd0()), lerp(-2.1, 2.1, rnd0()), lerp(0.08, 0.22, rnd0())]);
+
+  lesson({
+    topic: "culling", title: "컬링과 공간 분할", desc: "안 보이는 건 그리지 않기", stage: "하드웨어와 성능",
+    sym: { n: "teal", d: "yellow", r: "gold" },
+    hook: "가장 빠른 그리기는 ==안 그리는 것==입니다. 화면 밖, 다른 물체 뒤, 너무 작은 것을 빨리 걸러내는 기술과, 수많은 물체 중 필요한 것만 빨리 찾는 자료구조를 봅니다.",
+    blocks: [
+      { h: "프러스텀 컬링: 시야 밖은 버린다" },
+      "위에서 본 카메라 시야(사다리꼴)입니다. 물체마다 감싸는 원(바운딩 스피어)이 ==시야의 네 평면 중 하나라도 완전히 바깥==이면 그리지 않습니다. 카메라와 시선을 움직여 보세요.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4.2, x1: 4.2, y0: -2.35, y1: 2.35 },
+        eq: ["바깥쪽 노멀 n에 대해 n·c + d > r 이면 밖   →   그림 {draw}개 / 버림 {cull}개"],
+        setup(F, C, L) {
+          const cam = [-3.2, -1.4], aim = [1, 0.5];
+          let fov = 60, far = 5;
+          F.vec(cam, "white", { snap: 0.01 });
+          F.vec(aim, "yellow", { base: () => cam, constrain: q => V.mul(V.norm(q), 0.8), snap: 0.001 });
+          C.slider({ label: "FOV", min: 20, max: 120, step: 1, value: fov, fmt: x => x + "°", onInput: x => { fov = x; } });
+          C.slider({ label: "먼 평면", min: 1.5, max: 8, value: far, onInput: x => { far = x; } });
+          F.draw = g => {
+            const f = V.norm(aim), h = fov * DEG / 2, near = 0.3;
+            const lN = V.rot(f, h + Math.PI / 2), rN = V.rot(f, -h - Math.PI / 2);          // 바깥쪽 노멀
+            const planes = [[V.mul(f, -1), near], [f, -far], [lN, 0], [rN, 0]];            // [n, 원점(카메라) 기준 거리]
+            const corner = (s, dist) => V.add(cam, V.mul(V.rot(f, s * h), dist / Math.cos(h)));
+            g.poly([corner(1, near), corner(1, far), corner(-1, far), corner(-1, near)], { fill: "rgba(244,211,69,0.08)", stroke: "rgba(244,211,69,0.6)", w: 1.5 });
+            let draw = 0, cull = 0;
+            OBJS.forEach(([x, y, r]) => {
+              const c = V.sub([x, y], cam);
+              const out = planes.some(([n, d]) => V.dot(n, c) + d > r);
+              if (out) cull++; else draw++;
+              g.circle([x, y], r, out ? "grey" : "teal", { fill: out ? "rgba(138,147,166,0.15)" : "rgba(92,208,179,0.65)", w: 1.5, alpha: out ? 0.6 : 1 });
+            });
+            g.circle(cam, 0.13, "white", { fill: PAL.bg, w: 2.5 });
+            L.set("draw", draw); L.set("cull", cull);
+          };
+        }
+      } },
+      "검사는 물체 하나당 내적 몇 번이라 매우 쌉니다. 그래도 물체가 수십만 개면 하나씩 검사하는 것조차 부담이라, 다음처럼 ==공간을 묶어서 한 번에 버립니다==.",
+
+      { h: "BVH: 묶어서 한꺼번에 버리기" },
+      "물체들을 상자로 감싸고, 상자를 둘로 나누고, 또 나눈 나무(BVH)입니다. 광선(노란 화살표)을 끌어 보세요. ==상자에 안 맞으면 그 안의 물체는 검사조차 안 합니다==. 방문한 상자만 밝게 보입니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: -4.2, x1: 4.2, y0: -2.35, y1: 2.35 },
+        eq: ["검사한 상자 {nb}개 + 물체 {no}개   vs   하나씩: 물체 {all}개"],
+        setup(F, C, L) {
+          const O = [-4, 1.6], aim = [1, -0.35];
+          let depthShow = 3;
+          F.vec(O, "white", { snap: 0.01 });
+          F.vec(aim, "yellow", { base: () => O, constrain: q => V.mul(V.norm(q), 1), snap: 0.001 });
+          C.slider({ label: "보여 줄 깊이", min: 0, max: 7, step: 1, value: depthShow, fmt: f0, onInput: x => { depthShow = x; } });
+          const items = OBJS.map(([x, y, r], i) => ({ i, c: [x, y], r }));
+          const bound = list => { const b = [[Infinity, Infinity], [-Infinity, -Infinity]]; list.forEach(o => { b[0][0] = Math.min(b[0][0], o.c[0] - o.r); b[0][1] = Math.min(b[0][1], o.c[1] - o.r); b[1][0] = Math.max(b[1][0], o.c[0] + o.r); b[1][1] = Math.max(b[1][1], o.c[1] + o.r); }); return b; };
+          function build(list, depth) {
+            const b = bound(list);
+            if (list.length <= 2) return { b, list, depth };
+            const ax = (b[1][0] - b[0][0]) > (b[1][1] - b[0][1]) ? 0 : 1;
+            const s = list.slice().sort((p, q) => p.c[ax] - q.c[ax]), m = s.length >> 1;
+            return { b, depth, kids: [build(s.slice(0, m), depth + 1), build(s.slice(m), depth + 1)] };
+          }
+          const root = build(items, 0);
+          const rayBox = (o, d, b) => { let t0 = 0, t1 = 99; for (let k = 0; k < 2; k++) { if (Math.abs(d[k]) < 1e-9) { if (o[k] < b[0][k] || o[k] > b[1][k]) return false; continue; } let a = (b[0][k] - o[k]) / d[k], c = (b[1][k] - o[k]) / d[k]; if (a > c) [a, c] = [c, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, c); if (t0 > t1) return false; } return true; };
+          const rayCirc = (o, d, c, r) => { const oc = V.sub(o, c), b = V.dot(oc, d), cc = V.dot(oc, oc) - r * r, disc = b * b - cc; return disc >= 0 && -b + Math.sqrt(disc) > 0; };
+          F.draw = g => {
+            const d = V.norm(aim);
+            let nb = 0, no = 0; const visited = new Set(), hits = new Set();
+            (function walk(n) {
+              nb++; if (!rayBox(O, d, n.b)) return; visited.add(n);
+              if (n.list) n.list.forEach(o => { no++; if (rayCirc(O, d, o.c, o.r)) hits.add(o.i); });
+              else n.kids.forEach(walk);
+            })(root);
+            (function drawNode(n) {
+              if (n.depth <= depthShow) {
+                const on = visited.has(n), b = n.b;
+                g.poly([b[0], [b[1][0], b[0][1]], b[1], [b[0][0], b[1][1]]], { stroke: on ? "orange" : "rgba(236,239,244,0.18)", w: on ? 2 : 1, fill: on ? "rgba(255,134,47,0.05)" : null });
+              }
+              if (n.kids) n.kids.forEach(drawNode);
+            })(root);
+            items.forEach(o => g.circle(o.c, o.r, hits.has(o.i) ? "pink" : "teal", { fill: hits.has(o.i) ? "rgba(227,111,200,0.8)" : "rgba(92,208,179,0.4)", w: 1.2 }));
+            g.arrow(O, V.add(O, V.mul(d, 9)), "yellow", { w: 2.5 });
+            L.set("nb", nb); L.set("no", no); L.set("all", items.length);
+          };
+        }
+      } },
+      { key: "나무 구조 덕분에 검사 횟수가 ==물체 수 $N$에서 대략 $log N$== 수준으로 줄어듭니다. 레이 트레이싱 하드웨어는 바로 이 BVH 순회를 전용 회로로 합니다." },
+
+      { h: "LOD: 작게 보이면 대충 그린다" },
+      "멀리 있는 물체는 화면에서 몇 픽셀밖에 안 됩니다. ==화면에 차지하는 크기에 맞춰 폴리곤 수를 줄인 모델==(LOD)로 바꿔 그립니다. 거리를 바꿔 보세요. 오른쪽은 실제로 화면에 보이는 크기입니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["화면 크기 ≈ 반지름 / 거리 = {sz}   →   LOD {lod}: 삼각형 {tri}개"],
+        setup(F, C, L) {
+          let dist = 3;
+          C.slider({ label: "거리", min: 1, max: 40, value: dist, fmt: x => num(x, 1), onInput: x => { dist = x; } });
+          C.play();
+          F.loop((dt, t) => { dist = 20.5 - 19.5 * Math.cos(t * 0.5); });
+          const LODS = [64, 32, 16, 8, 5];
+          F.draw = g => {
+            const sz = 1 / dist, lod = sz > 0.4 ? 0 : sz > 0.18 ? 1 : sz > 0.08 ? 2 : sz > 0.04 ? 3 : 4, seg = LODS[lod];
+            const ring = (cx, cy, R, segs, color, scaleX) => { const pts = []; for (let i = 0; i < segs; i++) { const a = i / segs * TAU; pts.push([cx + Math.cos(a) * R * scaleX, cy + Math.sin(a) * R]); } g.poly(pts, { stroke: color, w: 1.5, fill: "rgba(92,208,179,0.15)" }); pts.forEach(p => g.line([cx, cy], p, color, { w: 0.6, alpha: 0.5 })); };
+            ring(2.3, 2.15, 1.6, seg, ["teal", "green", "yellow", "orange", "red"][lod], 1);
+            g.text("LOD " + lod + " 모델", [2.3, 0.25], "white", { size: 12, bold: true });
+            const R = 1.6 * Math.min(1, 1 / dist * 2.5);
+            ring(7.2, 2.1, Math.max(0.03, R), seg, ["teal", "green", "yellow", "orange", "red"][lod], 1);
+            g.text("화면에 보이는 크기", [7.2, 0.25], "grey", { size: 12 });
+            L.set("sz", num(sz, 3)); L.set("lod", lod); L.set("tri", seg);
+          };
+        }
+      } },
+      "작게 보이는 물체에 촘촘한 삼각형을 쓰면 9장의 ==2×2 쿼드 낭비==도 커집니다. UE5의 나나이트는 이 LOD 선택을 클러스터 단위로 자동·연속적으로 합니다.",
+
+      { use: [
+        ["엔진", "가시성 컬링", "UE는 프러스텀 컬링 후 하드웨어 오클루전 쿼리·HZB(계층 깊이 버퍼)로 가려진 물체까지 걸러냅니다. `stat initviews`로 걸러진 수를 볼 수 있습니다."],
+        ["엔진", "HLOD와 나나이트", "멀리 있는 건물 묶음은 HLOD로 합쳐 하나로 그리고, 나나이트는 화면 픽셀 크기에 맞춰 클러스터 LOD를 고릅니다."],
+        ["게임", "물리·충돌 검색", "총알 판정, 근처 적 찾기도 BVH·격자·옥트리 같은 공간 분할로 후보를 좁힌 뒤 정밀 검사합니다."],
+        ["실생활", "지도 검색과 데이터베이스", "'내 주변 맛집' 검색은 공간 인덱스(R-트리·쿼드트리)로 지도 전체를 뒤지지 않고 근처만 봅니다."]
+      ] },
+
+      { recap: [
+        ["n·c + d > r", "구가 평면 바깥이면 버림 (프러스텀 컬링)"],
+        ["BVH", "상자로 묶어 한꺼번에 버림, 검사 ≈ log N"],
+        ["화면 크기 ≈ 반지름 / 거리", "LOD 선택 기준"],
+        ["안 그리기 > 빨리 그리기", "최적화의 첫 질문"]
       ] }
     ]
   });
@@ -4513,12 +7320,16 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     "shading-model":       { file: "쉐이딩모델 시스템 정리.md" },
     "substrate":           { file: "Substrate 시스템 분석.md" }
   };
-  // 홈의 학습 경로: 랩 주제(data-topic)를 단계별로 묶습니다.
-  var STAGES = [
-    { title: "공간의 언어", desc: "위치·방향·회전을 숫자로 다루기", topics: ["vector", "trig", "dotcross", "transform"] },
-    { title: "3D에서 화면으로", desc: "입체를 픽셀 격자로 옮기기", topics: ["projection", "raster", "texture"] },
-    { title: "빛과 하드웨어", desc: "색이 정해지고 GPU가 처리하는 방식", topics: ["lighting", "gpu"] }
-  ];
+  // 홈의 학습 경로·사이드바: 랩 주제를 단계(data-stage)별로 묶습니다. 단계 순서는 주제 순서를 따릅니다.
+  var STAGE_DESC = {
+    "공간의 언어": "위치·방향·회전·곡선을 숫자로 다루기",
+    "3D에서 화면으로": "메시가 픽셀 격자로 옮겨지기까지",
+    "빛과 색": "빛·재질·그림자·색 계산하기",
+    "셰이더로 그리기": "수식 한 줄로 무늬와 형태 만들기",
+    "화면 후처리": "다 그린 화면을 한 번 더 가공하기",
+    "빛을 따라가는 렌더링": "광선을 쏘아 장면 그리기",
+    "하드웨어와 성능": "수천 개를 동시에, 그리고 덜 그리기"
+  };
   var lab = window.GFXLab;
   var lessons = lab ? lab.lessons : [];
   var FILE_TO_ID = {};
@@ -4853,6 +7664,7 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     if (location.hash !== hashFor(current)) history.replaceState(null, "", hashFor(current));
     var title = current === "graphics-lab" && lessons.length ? lessons[li].dataset.title : docTitle(current);
     document.title = current === "home" ? "TechArt Archive" : title + " · TechArt Archive";
+    if (typeof paintRemote === "function") paintRemote();
   }
 
   function showDoc(id, skipScroll, lesson) {
@@ -4888,42 +7700,113 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     else if (h.lesson >= 0 && h.lesson !== activeLesson()) lab.setActive(h.lesson);
   });
 
-  // 랩 안에서는 ←/→가 주제를 넘기고, 처음·끝 주제에서 앞뒤 문서로 넘어갑니다.
-  document.addEventListener("keydown", function (e) {
-    if (e.target.matches("input, textarea, select")) return;
+  // 랩 안에서는 이전·다음이 주제를 넘기고, 처음·끝 주제에서 앞뒤 문서로 넘어갑니다.
+  function step(dir) {
     var idx = ORDER.indexOf(current);
     if (current === "graphics-lab" && lab) {
       var li = activeLesson();
-      if (e.key === "ArrowRight" && li < lessons.length - 1) { lab.setActive(li + 1); return; }
-      if (e.key === "ArrowLeft" && li > 0) { lab.setActive(li - 1); return; }
+      if (dir > 0 && li < lessons.length - 1) { lab.setActive(li + 1); return; }
+      if (dir < 0 && li > 0) { lab.setActive(li - 1); return; }
     }
-    if (e.key === "ArrowRight" && idx < ORDER.length - 1) showDoc(ORDER[idx + 1], false, 0);
-    if (e.key === "ArrowLeft" && idx > 0) showDoc(ORDER[idx - 1], false, lessons.length - 1);
+    if (dir > 0 && idx < ORDER.length - 1) showDoc(ORDER[idx + 1], false, 0);
+    if (dir < 0 && idx > 0) showDoc(ORDER[idx - 1], false, lessons.length - 1);
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.target.matches("input, textarea, select")) return;
+    if (e.key === "ArrowRight") step(1);
+    if (e.key === "ArrowLeft") step(-1);
   });
+
+  /* ---------- 리모컨: 이전·다음 주제, 그림·소제목 단위 이동, 사이드바 ---------- */
+  var remote = document.getElementById("remote");
+  function jumpTargets() {
+    var root = current === "graphics-lab" ? document.querySelector("#doc-graphics-lab .lesson.active") : docEl(current);
+    return root ? Array.prototype.slice.call(root.querySelectorAll("h2, .fig")) : [];
+  }
+  function jump(dir) {
+    var t = jumpTargets(), y = 76, pick;
+    if (dir > 0) pick = t.filter(function (el) { return el.getBoundingClientRect().top > y + 4; })[0];
+    else pick = t.filter(function (el) { return el.getBoundingClientRect().top < y - 4; }).pop();
+    if (pick) window.scrollTo({ top: window.scrollY + pick.getBoundingClientRect().top - y + 10, behavior: "smooth" });
+    else if (dir < 0) window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function paintRemote() {
+    var no = "", title = docTitle(current);
+    if (current === "graphics-lab" && lessons.length) { var li = activeLesson(); no = String(li + 1).padStart(2, "0"); title = lessons[li].dataset.title; }
+    document.getElementById("remoteNo").textContent = no;
+    document.getElementById("remoteTitle").textContent = title;
+  }
+  remote.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-r]");
+    if (!b) return;
+    var r = b.getAttribute("data-r");
+    if (r === "prev") step(-1);
+    else if (r === "next") step(1);
+    else if (r === "up") jump(-1);
+    else if (r === "down") jump(1);
+    else if (r === "where") window.scrollTo({ top: 0, behavior: "smooth" });
+    else if (r === "side") toggleSide();
+    else if (r === "mini") {
+      var folded = remote.classList.toggle("folded");
+      b.textContent = folded ? "◎" : "–";
+      b.title = folded ? "리모컨 펼치기" : "리모컨 접기";
+      try { localStorage.setItem("maindev-docs-remote", folded ? "1" : "0"); } catch (err) {}
+    }
+  });
+  try { if (localStorage.getItem("maindev-docs-remote") === "1") remote.querySelector(".mini").click(); } catch (err) {}
+
+  /* ---------- 사이드바 접기(넓은 화면) · 열기(좁은 화면) ---------- */
+  var narrow = window.matchMedia("(max-width: 860px)");
+  function toggleSide(force) {
+    if (narrow.matches) {
+      var open = force === undefined ? !sidebar.classList.contains("open") : force;
+      sidebar.classList.toggle("open", open);
+      backdrop.classList.toggle("show", open);
+      return;
+    }
+    var collapsed = force === undefined ? !document.body.classList.contains("side-collapsed") : !force;
+    document.body.classList.toggle("side-collapsed", collapsed);
+    try { localStorage.setItem("maindev-docs-side", collapsed ? "0" : "1"); } catch (err) {}
+    requestAnimationFrame(function () { if (current === "graphics-lab" && lab) lab.render(); });
+  }
+  document.getElementById("sideToggle").addEventListener("click", function () { toggleSide(false); });
+  try { if (localStorage.getItem("maindev-docs-side") === "0" && !narrow.matches) document.body.classList.add("side-collapsed"); } catch (err) {}
 
   /* ---------- 랩 주제: 사이드바 목록 · 홈 학습 경로 ---------- */
   if (lab && lab.mountHero) lab.mountHero(document.getElementById("heroFig"));
   var labNav = document.getElementById("labNav");
   var labPath = document.getElementById("labPath");
+  var stages = [];
   lessons.forEach(function (lesson, i) {
-    var b = document.createElement("button");
-    b.setAttribute("data-doc", "graphics-lab");
-    b.setAttribute("data-lesson", i);
-    b.innerHTML = '<span class="tick"></span><span class="no"></span><span class="label"></span>';
-    b.querySelector(".no").textContent = String(i + 1).padStart(2, "0");
-    b.querySelector(".label").textContent = lesson.dataset.title;
-    labNav.appendChild(b);
+    var name = lesson.dataset.stage;
+    var st = stages.filter(function (x) { return x.name === name; })[0];
+    if (!st) { st = { name: name, items: [] }; stages.push(st); }
+    st.items.push(i);
   });
-  STAGES.forEach(function (stage, s) {
+  stages.forEach(function (st, s) {
+    var grp = document.createElement("div");
+    grp.className = "group";
+    grp.innerHTML = '<div class="group-label"></div>';
+    grp.querySelector(".group-label").textContent = st.name;
+    st.items.forEach(function (i) {
+      var b = document.createElement("button");
+      b.setAttribute("data-doc", "graphics-lab");
+      b.setAttribute("data-lesson", i);
+      b.innerHTML = '<span class="tick"></span><span class="no"></span><span class="label"></span>';
+      b.querySelector(".no").textContent = String(i + 1).padStart(2, "0");
+      b.querySelector(".label").textContent = lessons[i].dataset.title;
+      grp.appendChild(b);
+    });
+    labNav.appendChild(grp);
+
     var sec = document.createElement("section");
     sec.className = "stage";
     sec.innerHTML = '<div class="stage-head"><span class="no"></span><span class="t"></span><span class="d"></span></div><div class="lesson-cards"></div>';
     sec.querySelector(".no").textContent = "STAGE " + (s + 1);
-    sec.querySelector(".t").textContent = stage.title;
-    sec.querySelector(".d").textContent = stage.desc;
-    stage.topics.forEach(function (topic) {
-      var i = lessonIndex(topic);
-      if (i < 0) return;
+    sec.querySelector(".t").textContent = st.name;
+    sec.querySelector(".d").textContent = STAGE_DESC[st.name] || "";
+    st.items.forEach(function (i) {
+      var topic = lessons[i].dataset.topic;
       var a = document.createElement("a");
       a.className = "card";
       a.href = "#graphics-lab/" + topic;
@@ -4946,10 +7829,7 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     sidebar.classList.remove("open");
     backdrop.classList.remove("show");
   }
-  menuBtn.addEventListener("click", function () {
-    sidebar.classList.toggle("open");
-    backdrop.classList.toggle("show", sidebar.classList.contains("open"));
-  });
+  menuBtn.addEventListener("click", function () { toggleSide(true); });
   backdrop.addEventListener("click", closeSidebar);
 
   /* ---------- Reading progress ---------- */

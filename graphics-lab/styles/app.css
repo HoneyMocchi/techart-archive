@@ -126,7 +126,8 @@
 }
 .fig-title { padding: 10px 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: #8A93A6; }
 .fig-stage { position: relative; }
-.fig-canvas { display: block; width: 100%; touch-action: none; }
+/* 세로 스크롤은 브라우저에 맡기고, 핸들을 잡은 터치만 스크립트가 가로챕니다(fig.js의 touchstart) */
+.fig-canvas { display: block; width: 100%; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .fig-ctl {
   display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
   padding: 12px 16px; background: var(--fig-panel); border-top: 1px solid var(--fig-line);
@@ -134,7 +135,7 @@
 }
 .ctl-slider { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 200px; }
 .ctl-label { white-space: nowrap; color: #C9CFDA; }
-.ctl-slider input { flex: 1; accent-color: #58C4DD; min-width: 80px; }
+.ctl-slider input { flex: 1; accent-color: #58C4DD; min-width: 80px; height: 28px; }
 .ctl-slider output { min-width: 3.6em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: #ECEFF4; }
 .ctl-seg { display: inline-flex; border: 1px solid #333A4B; border-radius: 9px; overflow: hidden; }
 .ctl-seg button, .ctl-btn {
@@ -180,6 +181,18 @@
 .recap-eq { flex: 0 0 auto; min-width: 15rem; }
 .recap-eq .math { font-size: 1.12em; }
 .recap-d { color: var(--muted); font-size: 15px; flex: 1 1 14rem; }
+
+/* ---------- 실전 활용 ---------- */
+.uses { max-width: 60rem; }
+.use-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-top: 0.6em; }
+.use { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; }
+.use-tag {
+  display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; padding: 1px 8px; border-radius: 999px;
+  color: var(--c-teal); border: 1px solid currentColor; margin-bottom: 6px;
+}
+.use-t { font-weight: 800; font-size: 15.5px; line-height: 1.45; margin-bottom: 4px; }
+.use-d { font-size: 14px; line-height: 1.65; color: var(--muted); }
+.use-d strong, .use-d mark { color: var(--ink); }
 
 /* ---------- 이전·다음 ---------- */
 .lesson-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 40px 0 8px; max-width: 46rem; }
