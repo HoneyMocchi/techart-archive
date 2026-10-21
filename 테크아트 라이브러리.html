@@ -4546,7 +4546,7 @@ function render() {
           };
         }
       } },
-      "'레벨 색칠'로 보면 ==거리에 따라 자동으로 작은 밉맵이 골라지는 것==이 보입니다. GPU는 옆 픽셀과의 UV 차이(미분)로 이 레벨을 계산합니다. 밉맵은 용량을 1/3만 더 쓰고 화질과 캐시 효율을 함께 얻습니다.",
+      "'레벨 색칠'로 보면 ==거리에 따라 자동으로 작은 밉맵이 골라지는 것==이 보입니다. GPU는 옆 픽셀과의 UV 차이(미분)로 이 레벨을 계산합니다. 밉맵은 용량을 1/3만 더 쓰고 화질과 캐시 효율을 함께 얻습니다. 생성 필터·트라이리니어·비등방은 53장에서 자세히 봅니다.",
 
       { h: "UV를 움직이면 애니메이션" },
       "UV는 그냥 숫자라서 ==셰이더에서 더하고 돌리면== 텍스처가 흐르고 돕니다. 물결, 컨베이어 벨트, 마법진이 이렇게 만들어집니다.",
@@ -6783,10 +6783,10 @@ function render() {
           };
         }
       } },
-      "$Q$가 너무 크면 파도 꼭대기에서 ==표면이 자기 자신을 뚫고 고리를 만듭니다==. 실제 바다 셰이더는 방향·파장이 다른 게르스트너 파도 여러 개를 더하고, 노멀도 같은 식의 미분으로 구합니다.",
+      "$Q$가 너무 크면 파도 꼭대기에서 ==표면이 자기 자신을 뚫고 고리를 만듭니다==. 실제 바다 셰이더는 방향·파장이 다른 게르스트너 파도 여러 개를 더하고, 노멀도 같은 식의 미분으로 구합니다(58장에서 여러 파도를 합친 바다로 확장합니다).",
 
       { h: "버텍스 애니메이션 텍스처 (VAT)" },
-      "복잡한 시뮬레이션(천 찢어짐, 건물 붕괴)은 실시간으로 못 푸니 ==미리 계산한 정점 위치를 텍스처에 저장==합니다. 가로 = 정점 번호, 세로 = 프레임, 색 = 위치 오프셋. 버텍스 셰이더가 현재 프레임 줄을 읽어 정점을 옮깁니다.",
+      "복잡한 시뮬레이션(천 찢어짐, 건물 붕괴)은 실시간으로 못 푸니 ==미리 계산한 정점 위치를 텍스처에 저장==합니다. 가로 = 정점 번호, 세로 = 프레임, 색 = 위치 오프셋. 버텍스 셰이더가 현재 프레임 줄을 읽어 정점을 옮깁니다. 소프트·리지드 방식과 메모리 계산은 57장에서 다룹니다.",
       { fig: {
         aspect: 0.5, view: { x0: 0, x1: 10, y0: 0, y1: 5 },
         eq: ["위치 = 기본 위치 + 텍스처(정점 번호, 프레임)   — 프레임 {f} / 31"],
@@ -10559,6 +10559,1032 @@ function render() {
 })();
 
 
+/* ===== js\lessons\53-mipmap.js ===== */
+/* 53 밉맵 심화 */
+(() => {
+  const f2 = n => num(n, 2);
+  const N = 64;
+  // 원본: 가는 줄무늬 + 원형 무늬 (고주파가 많은 텍스처)
+  const SRC = [];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const r = Math.hypot(i - 40, j - 30); SRC.push(((i >> 1) % 2 === 0 ? 0.85 : 0.15) * (i < 24 ? 1 : 0) + (i >= 24 ? (Math.sin(r * r * 0.02) > 0 ? 0.9 : 0.1) : 0)); }
+  function build(method) {
+    const lv = [SRC];
+    for (let k = 1; k <= 5; k++) {
+      const p = lv[k - 1], ps = N >> (k - 1), s = ps >> 1, c = [];
+      for (let j = 0; j < s; j++) for (let i = 0; i < s; i++) {
+        if (method === "point") { c.push(p[(2 * j) * ps + 2 * i]); continue; }
+        if (method === "box") { c.push((p[2 * j * ps + 2 * i] + p[2 * j * ps + 2 * i + 1] + p[(2 * j + 1) * ps + 2 * i] + p[(2 * j + 1) * ps + 2 * i + 1]) / 4); continue; }
+        // 넓은 커널(4×4, 가우시안 비슷한 가중치)
+        let acc = 0, ws = 0; const w = [0.125, 0.375, 0.375, 0.125];
+        for (let dj = 0; dj < 4; dj++) for (let di = 0; di < 4; di++) { const x = clamp(2 * i - 1 + di, 0, ps - 1), y = clamp(2 * j - 1 + dj, 0, ps - 1), ww = w[di] * w[dj]; acc += p[y * ps + x] * ww; ws += ww; }
+        c.push(acc / ws);
+      }
+      lv.push(c);
+    }
+    return lv;
+  }
+  const LV = { point: build("point"), box: build("box"), kaiser: build("wide") };
+
+  lesson({
+    topic: "mipmap", title: "밉맵 심화", desc: "만들기·고르기·섞기", stage: "GPU 심화",
+    sym: { "λ": "orange", u: "green", v: "red" },
+    hook: "10장에서 밉맵이 왜 필요한지 봤습니다. 실무에서는 ==어떻게 줄일지(생성 필터), 어느 단계를 읽을지(LOD 계산), 단계 사이를 어떻게 섞을지(트라이리니어·비등방)== 세 가지를 고릅니다. 하나라도 틀리면 지글거리거나 흐려집니다.",
+    blocks: [
+      { h: "만들기: 어떤 필터로 줄이나" },
+      "고주파 무늬가 있는 원본을 단계별로 줄였습니다(같은 크기로 확대해 표시). ==픽셀을 그냥 건너뛰면==(점 버리기) 무늬가 엉뚱한 굵은 줄로 바뀌는 에일리어싱이 생기고, 평균을 내면 회색으로 수렴합니다. 넓은 커널은 박스보다 조금 더 부드럽고 덜 각집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["밉 {k}: {s}×{s}   ·   {m}"],
+        setup(F, C, L) {
+          let method = "box", k = 2;
+          C.seg({ options: [{ value: "point", label: "점 버리기" }, { value: "box", label: "박스 (2×2 평균)" }, { value: "kaiser", label: "넓은 커널 (4×4)" }], value: method, onChange: x => { method = x; } });
+          C.slider({ label: "밉 단계", min: 0, max: 5, step: 1, value: k, fmt: x => num(x, 0), onInput: x => { k = x; } });
+          F.draw = g => {
+            const s = N >> k, img = LV[method][k];
+            g.field(256, (x, y) => {
+              if (x < 2) { const i = Math.floor(x / 2 * N), j = Math.floor((2 - y) / 2 * N), v = SRC[j * N + i] * 255; return [v, v, v * 0.95, 255]; }
+              const i = Math.floor((x - 2) / 2 * s), j = Math.floor((2 - y) / 2 * s), v = img[j * s + i] * 255; return [v, v, v * 0.95, 255];
+            }, { smooth: false });
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            g.text("원본 64×64", [1, 1.93], "white", { size: 11, bold: true }); g.text(`밉 ${k} (확대 표시)`, [3, 1.93], "white", { size: 11, bold: true });
+            L.set("k", k); L.set("s", s); L.set("m", { point: "정보를 버림 → 줄무늬가 가짜 무늬로(에일리어싱)", box: "4개 평균 → 무난, 대부분의 엔진 기본", kaiser: "주변까지 가중 평균 → 더 부드럽고 반짝임이 적음" }[method]);
+          };
+        }
+      } },
+
+      { h: "고르기와 섞기: 트라이리니어·비등방" },
+      "기울어진 바닥입니다. GPU는 픽셀마다 UV 미분(21장)으로 LOD $λ$를 구합니다. ==한 단계만 읽으면 단계 경계에 선이 보이고(바이리니어), 두 단계를 섞으면 매끄럽고(트라이리니어), 비스듬한 방향으로 여러 번 읽으면 먼 곳도 선명합니다(비등방)==. '레벨 색칠'로 확인하세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["λ = log2(max(|∂uv/∂x|, |∂uv/∂y|) · 크기) + 바이어스   ·   {m}"],
+        setup(F, C, L) {
+          let mode = "tri", bias = 0, color = false, aniso = 8;
+          C.seg({ options: [{ value: "bi", label: "바이리니어 (한 단계)" }, { value: "tri", label: "트라이리니어" }, { value: "aniso", label: "비등방" }], value: mode, onChange: x => { mode = x; } });
+          C.slider({ label: "밉 바이어스", min: -2, max: 2, value: bias, onInput: x => { bias = x; } });
+          C.seg({ options: [{ value: 0, label: "결과" }, { value: 1, label: "레벨 색칠" }], value: 0, onChange: x => { color = !!x; } });
+          const LC = [[88, 196, 221], [92, 208, 179], [131, 193, 103], [244, 211, 69], [240, 172, 95], [252, 98, 85]];
+          const tex = (u, v, lvf) => {           // 체크 무늬의 밉 = 대비가 줄어든 체크 (해석적 근사)
+            const l = clamp(lvf, 0, 5), contrast = clamp(1 - Math.max(0, l - 2.2) / 2.2, 0, 1);
+            const chk = (Math.floor(u * 16) + Math.floor(v * 16)) % 2 ? 1 : 0;
+            return lerp(0.5, chk, contrast);
+          };
+          F.draw = g => {
+            const H = 0.95;
+            g.field(280, (x, y) => {
+              if (y > H - 0.02) return [20, 24, 32, 255];
+              const z = 0.9 / (H - y), u = x * z * 0.3, v = z * 0.6;
+              const px = 4 / 280;
+              const dudx = px * z * 0.3, dvdy = px * 0.6 * 0.9 / Math.pow(H - y, 2);   // 화면 x·y 한 픽셀당 UV 변화
+              const big = Math.max(dudx, dvdy) * 16 * 64, small = Math.min(dudx, dvdy) * 16 * 64;
+              let lam;
+              if (mode === "aniso") lam = Math.log2(Math.max(small, big / aniso)) + bias;
+              else lam = Math.log2(big) + bias;
+              lam = Math.max(0, lam);
+              const lv = mode === "bi" ? Math.round(lam) : lam;
+              if (color) { const a = Math.min(5, Math.floor(lv)), b = Math.min(5, a + 1), t = lv - Math.floor(lv); return LC[a].map((c, i) => lerp(c, LC[b][i], mode === "bi" ? 0 : t)).concat(255); }
+              const val = tex(u, v, lv);
+              return [lerp(40, 236, val), lerp(46, 239, val), lerp(60, 244, val), 255];
+            });
+            L.set("m", { bi: "가장 가까운 단계 하나 → 단계 경계에 선(밴드)", tri: "위아래 두 단계를 λ의 소수부로 섞음 → 매끄럽지만 먼 곳이 흐림", aniso: "짧은 축 기준으로 단계를 고르고 긴 축으로 여러 번(최대 8×) 읽음 → 먼 곳도 선명" }[mode]);
+          };
+        }
+      } },
+
+      { h: "왜 먼 바닥은 흐려지나: 픽셀 발자국" },
+      "픽셀 하나가 텍스처 위에서 덮는 영역(발자국)은 비스듬히 볼수록 ==한쪽으로 길쭉한 타원==이 됩니다. 등방 필터는 긴 축에 맞춰 큰 원으로 읽어 흐려지고, 비등방 필터는 짧은 축 크기로 긴 축을 따라 여러 번 읽습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -4, x1: 4, y0: -2, y1: 2 },
+        eq: ["긴 축 / 짧은 축 = {ratio}   →   등방 λ = {li},  비등방 λ = {la} ({n}번 읽기)"],
+        setup(F, C, L) {
+          let tilt = 1.1, maxA = 16;
+          C.slider({ label: "바닥 기울기 (시선과의 각)", min: 0, max: 1.5, value: tilt, fmt: x => num(x / DEG, 0) + "°", onInput: x => { tilt = x; } });
+          C.seg({ options: [{ value: 2, label: "2×" }, { value: 4, label: "4×" }, { value: 8, label: "8×" }, { value: 16, label: "16×" }], value: 16, onChange: x => { maxA = +x; } });
+          F.draw = g => {
+            g.grid(0.5, { minor: false, axes: false, color: "rgba(88,196,221,0.12)" });
+            const minor = 0.5, major = minor / Math.max(0.06, Math.cos(tilt)), ratio = major / minor, n = Math.min(maxA, Math.ceil(ratio));
+            const e = []; for (let k = 0; k <= 48; k++) { const a = k / 48 * TAU; e.push([Math.cos(a) * minor, Math.sin(a) * major]); }
+            g.poly(e, { fill: "rgba(244,211,69,0.15)", stroke: "yellow", w: 2 });
+            g.circle([0, 0], major, "orange", { w: 1.5, dash: [5, 4] });
+            for (let k = 0; k < n; k++) { const t = n === 1 ? 0 : (k / (n - 1) - 0.5) * 2 * (major - minor); g.circle([0, t], minor, "teal", { w: 1.2, alpha: 0.8 }); }
+            g.text("등방: 긴 축 크기의 원 (흐림)", [2.4, 1.6], "orange", { size: 11 }); g.text("비등방: 작은 원 여러 개", [2.4, 1.3], "teal", { size: 11 });
+            L.set("ratio", num(ratio, 1)); L.set("li", num(Math.log2(major / 0.05), 1)); L.set("la", num(Math.log2(Math.max(minor, major / n) / 0.05), 1)); L.set("n", n);
+          };
+        }
+      } },
+      { key: "밉 바이어스를 음수로 주면 선명해지지만 지글거리고, 양수면 부드럽지만 흐립니다. ==업스케일러(TSR·DLSS)를 쓸 때는 렌더 해상도가 낮으므로 음수 바이어스를 줘서== 최종 해상도에 맞는 디테일을 읽게 합니다." },
+
+      { use: [
+        ["엔진", "텍스처 밉 설정", "UE 텍스처의 Mip Gen Settings(SimpleAverage·Sharpen·Blur·NoMipmaps), Filter(트라이리니어·Anisotropic), Max Anisotropy가 이 장의 선택지입니다."],
+        ["엔진", "밉 바이어스와 업스케일", "TSR·DLSS 사용 시 엔진이 자동으로 음수 밉 바이어스를 줍니다. 커스텀 셰이더에서 SampleBias·SampleLevel을 쓸 때 이것을 놓치면 흐려집니다."],
+        ["TA", "노멀·마스크 밉 주의", "노멀 맵 밉은 평균 후 다시 정규화해야 하고(길이가 줄면 거칠기 보정에 활용), 알파 테스트 텍스처는 밉에서 알파 범위를 보존(coverage)해야 잎이 멀리서 사라지지 않습니다."],
+        ["실생활", "지도 줌 레벨", "온라인 지도의 줌 단계 타일이 밉맵이고, 줌 사이를 부드럽게 넘어가는 애니메이션이 트라이리니어 섞기와 같습니다."]
+      ] },
+
+      { recap: [
+        ["박스·넓은 커널 > 점 버리기", "밉 생성 필터: 에일리어싱 방지"],
+        ["λ = log2(UV 미분 · 크기) + 바이어스", "LOD 선택"],
+        ["트라이리니어", "두 단계 섞기: 경계선 제거"],
+        ["비등방: 짧은 축 λ + 긴 축으로 N번", "비스듬한 면을 선명하게"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\54-bitpack.js ===== */
+/* 54 비트 패킹 */
+(() => {
+  const f2 = n => num(n, 2);
+  const LAYOUTS = {
+    rgb10a2: { name: "RGB10A2 (노멀 + 플래그)", fields: [["x", 10, "red"], ["y", 10, "green"], ["z", 10, "blue"], ["플래그", 2, "gold"]] },
+    gbuf: { name: "G버퍼 한 칸 (재질 ID·거칠기·금속성·AO)", fields: [["재질 ID", 4, "purple"], ["거칠기", 8, "green"], ["금속성", 8, "blue"], ["AO", 8, "orange"], ["예약", 4, "grey"]] },
+    half2: { name: "half 2개 (UV 하나)", fields: [["u (half)", 16, "green"], ["v (half)", 16, "red"]] }
+  };
+  // 옥타헤드럴 인코딩
+  const octEnc = n => { const s = Math.abs(n[0]) + Math.abs(n[1]) + Math.abs(n[2]); let x = n[0] / s, y = n[1] / s; if (n[2] < 0) { const ox = (1 - Math.abs(y)) * Math.sign(x || 1), oy = (1 - Math.abs(x)) * Math.sign(y || 1); x = ox; y = oy; } return [x, y]; };
+  const octDec = ([x, y]) => { let z = 1 - Math.abs(x) - Math.abs(y), a = x, b = y; if (z < 0) { a = (1 - Math.abs(y)) * Math.sign(x || 1); b = (1 - Math.abs(x)) * Math.sign(y || 1); } return V3.norm([a, b, z]); };
+  const q = (v, bits) => { const m = (1 << bits) - 1; return Math.round(clamp(v, 0, 1) * m) / m; };
+
+  lesson({
+    topic: "bitpack", title: "비트 패킹", desc: "32비트에 여러 값을 담기", stage: "GPU 심화",
+    sym: { n: "yellow" },
+    hook: "GPU 메모리와 대역폭은 늘 부족합니다. 0~1 사이 값 하나에 32비트 float를 쓰는 대신 ==필요한 정밀도만큼의 비트만 떼어 한 정수에 나눠 담으면== G버퍼·정점·인스턴스 데이터가 절반 이하로 줄어듭니다.",
+    blocks: [
+      { h: "32비트를 칸으로 나누기" },
+      "값을 바꾸면 각 칸의 비트가 바뀝니다. 저장은 ==시프트와 OR==, 꺼낼 때는 ==시프트와 AND(마스크)== 입니다. 레이아웃을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 32, y0: 0, y1: 13.4 },
+        eq: ["{eq}", "16진수 = 0x{hex}"],
+        setup(F, C, L) {
+          let key = "gbuf";
+          const vals = [0.3, 0.6, 0.2, 0.9, 0];
+          C.seg({ options: Object.keys(LAYOUTS).map(k => ({ value: k, label: LAYOUTS[k].name })), value: key, onChange: x => { key = x; } });
+          [0, 1, 2, 3].forEach(i => C.slider({ label: "값 " + (i + 1), min: 0, max: 1, value: vals[i], onInput: x => { vals[i] = x; } }));
+          F.draw = g => {
+            const Lt = LAYOUTS[key];
+            let bit = 32, word = 0, parts = [];
+            Lt.fields.forEach(([name, w, c], fi) => {
+              const m = Math.pow(2, w) - 1, iv = Math.round(clamp(vals[fi] ?? 0, 0, 1) * m);
+              bit -= w;
+              word += iv * Math.pow(2, bit);
+              for (let b = 0; b < w; b++) {
+                const on = Math.floor(iv / Math.pow(2, b)) % 2;
+                const x = 31 - (bit + b);
+                g.poly([[x + 0.06, 6], [x + 0.94, 6], [x + 0.94, 8.6], [x + 0.06, 8.6]], { fill: hexA(PAL[c], on ? 0.9 : 0.18), stroke: hexA(PAL[c], 0.8), w: 1 });
+                g.text(String(on), [x + 0.5, 7.3], on ? "#10131A" : "grey", { size: 12, bold: true, halo: false });
+              }
+              g.text(name, [31 - bit - w / 2 + 0.5, 9.6], c, { size: 12, bold: true });
+              g.text(`${w}비트 · ${iv}/${m}`, [31 - bit - w / 2 + 0.5, 4.9], "grey", { size: 11 });
+              parts.push(`(${name} << ${bit})`);
+            });
+            for (let b = 0; b < 32; b += 4) g.text(String(31 - b), [b + 0.5, 11.2], "grey", { size: 9 });
+            L.set("eq", "$패킹 = " + parts.join(" | ") + "$   꺼내기: $(패킹 >> 위치) & (2^비트 − 1)$");
+            L.set("hex", Math.round(word).toString(16).toUpperCase().padStart(8, "0"));
+          };
+        }
+      } },
+
+      { h: "비트를 줄이면 생기는 계단" },
+      "0~1 값을 $n$비트에 담으면 단계가 $2^n$개뿐입니다. 위는 그라데이션, 아래는 노멀을 $n$비트로 저장한 구의 조명입니다. ==8비트 노멀은 하이라이트에 계단==이 보이고 10비트면 거의 사라집니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["단계 = 2^{b} = {lv}개,   최대 오차 = 1 / (2 · ({lv} − 1)) = {err}"],
+        setup(F, C, L) {
+          let bits = 6;
+          C.slider({ label: "비트 수", min: 2, max: 12, step: 1, value: bits, fmt: x => x + "비트", onInput: x => { bits = x; } });
+          F.draw = g => {
+            const Ld = V3.norm([0.4, 0.5, 0.75]), H = V3.norm(V3.add(Ld, [0, 0, 1]));
+            g.field(260, (x, y) => {
+              if (y > 0.55) { const v = q((x + 2) / 4, bits); return [v * 255, v * 240, v * 220, 255]; }
+              const c = [0, -0.25], R = 0.68, nx = (x - c[0]) / R, ny = (y - c[1]) / R, r2 = nx * nx + ny * ny;
+              if (r2 > 1) return [16, 19, 26, 255];
+              let n = [nx, ny, Math.sqrt(1 - r2)];
+              n = V3.norm(n.map(v => q(v * 0.5 + 0.5, bits) * 2 - 1));
+              const d = Math.max(0, V3.dot(n, Ld)), s = Math.pow(Math.max(0, V3.dot(n, H)), 120);
+              return [Math.min(255, 50 + 160 * d + 255 * s), Math.min(255, 70 + 150 * d + 255 * s), Math.min(255, 110 + 120 * d + 255 * s), 255];
+            });
+            const lv = Math.pow(2, bits);
+            L.set("b", bits); L.set("lv", lv); L.set("err", num(1 / (2 * (lv - 1)), 4));
+          };
+        }
+      } },
+
+      { h: "노멀은 두 숫자면 충분: 옥타헤드럴 인코딩" },
+      "단위 노멀은 길이가 1이라 자유도가 둘뿐입니다. 구를 ==팔면체로 펴서 정사각형에 펼치면== $(x, y)$ 두 값으로 담을 수 있고, 같은 비트 수에서 $xyz$ 셋을 담는 것보다 오차가 작습니다. 방향을 바꿔 정사각형 위의 위치를 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2.1, x1: 2.1, y0: -1.05, y1: 1.05 },
+        eq: ["n = ({nx}, {ny}, {nz})   →   oct = ({ox}, {oy})   ·   {b}비트 복원 오차 {err}°"],
+        setup(F, C, L) {
+          let az = 0.8, el = -0.3, bits = 8;
+          C.slider({ label: "방향 수평각", min: -3.14, max: 3.14, value: az, fmt: x => num(x / DEG, 0) + "°", onInput: x => { az = x; } });
+          C.slider({ label: "방향 높이", min: -1.5, max: 1.5, value: el, fmt: x => num(x / DEG, 0) + "°", onInput: x => { el = x; } });
+          C.slider({ label: "성분당 비트", min: 3, max: 12, step: 1, value: bits, fmt: x => x + "비트", onInput: x => { bits = x; } });
+          F.draw = g => {
+            const n = [Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el)];
+            // 왼쪽: 펼친 정사각형 (z ≥ 0 은 가운데 마름모, z < 0 은 네 모서리 삼각형)
+            const O = [-1.05, 0], S = 0.95;
+            g.field(220, (x, y) => {
+              const u = (x - O[0]) / S, v = (y - O[1]) / S;
+              if (Math.abs(u) > 1 || Math.abs(v) > 1) return null;
+              const d = octDec([u, v]);
+              return [(d[0] * 0.5 + 0.5) * 255, (d[1] * 0.5 + 0.5) * 255, (d[2] * 0.5 + 0.5) * 255, 255];
+            }, { rect: { x0: O[0] - S, x1: O[0] + S, y0: -S, y1: S }, smooth: true });
+            g.poly([[O[0], S], [O[0] + S, 0], [O[0], -S], [O[0] - S, 0]], { stroke: "white", w: 1.5, dash: [4, 4] });
+            const m = (1 << bits) - 1, oc = octEnc(n), qc = oc.map(v => Math.round((v * 0.5 + 0.5) * m) / m * 2 - 1);
+            if (bits <= 6) for (let k = 0; k <= m; k++) { const t = k / m * 2 - 1; g.line([O[0] + t * S, -S], [O[0] + t * S, S], "rgba(16,19,26,0.35)", { w: 1 }); g.line([O[0] - S, t * S], [O[0] + S, t * S], "rgba(16,19,26,0.35)", { w: 1 }); }
+            g.circle([O[0] + oc[0] * S, oc[1] * S], 0.05, "white", { fill: "white", w: 0 });
+            g.circle([O[0] + qc[0] * S, qc[1] * S], 0.06, "pink", { w: 2 });
+            g.text("펼친 팔면체 (색 = 방향)", [O[0], S], "white", { size: 11, bold: true, dy: -8 });
+            // 오른쪽: 구 위 방향
+            const c2 = [1.15, 0];
+            g.circle(c2, 0.8, "grey", { w: 1.5 });
+            g.arrow(c2, V.add(c2, [n[0] * 0.8, n[2] * 0.8]), "yellow", { w: 3, label: "n" });
+            const dq = octDec(qc), err = Math.acos(clamp(V3.dot(dq, n), -1, 1)) / DEG;
+            L.set("nx", f2(n[0])); L.set("ny", f2(n[1])); L.set("nz", f2(n[2])); L.set("ox", f2(oc[0])); L.set("oy", f2(oc[1])); L.set("b", bits); L.set("err", num(err, 3));
+          };
+        }
+      } },
+      { key: "패킹의 원칙은 ==값마다 필요한 정밀도를 먼저 정하고, 그만큼만 비트를 주는 것==입니다. 노멀은 옥타헤드럴 10~12비트, 색은 8비트, 플래그는 1~2비트, 깊이는 24~32비트처럼요." },
+
+      { use: [
+        ["엔진", "G버퍼 포맷", "UE의 G버퍼는 노멀(10:10:10:2), 기본색·거칠기·금속성·셰이딩 모델 ID를 채널마다 쪼개 담습니다. 이 프로젝트의 ToonLit도 CustomData 8비트 채널에 프로필 ID와 값을 나눠 담습니다."],
+        ["셰이더", "비트 연산", "HLSL의 `f32tof16`, `asuint`, `<<`, `&`, `firstbithigh`, `countbits`로 패킹·플래그 검사를 합니다. 나나이트·가상 섀도우 맵의 페이지 테이블도 비트 패킹 덩어리입니다."],
+        ["TA", "정점 데이터 압축", "정점 노멀·탄젠트를 옥타헤드럴로, UV를 half로, 버텍스 컬러를 8비트로 줄이면 메시 메모리와 정점 대역폭이 크게 줄어듭니다."],
+        ["실생활", "IP 주소와 색 코드", "#FF8800 같은 색 코드는 RGB 8비트 세 개를 24비트에 패킹한 것이고, IP 주소도 8비트 네 개를 32비트에 담은 것입니다."]
+      ] },
+
+      { recap: [
+        ["(a << n) | b", "패킹: 시프트와 OR"],
+        ["(x >> n) & (2^k − 1)", "꺼내기: 시프트와 마스크"],
+        ["n비트 = 2^n 단계", "필요한 정밀도만큼만"],
+        ["옥타헤드럴 인코딩", "노멀을 두 값으로, 같은 비트에서 더 정확"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\55-morton.js ===== */
+/* 55 모턴(Z-order) 배치와 텍셀 메모리 */
+(() => {
+  const morton = (x, y) => { let m = 0; for (let b = 0; b < 8; b++) { m |= ((x >> b) & 1) << (2 * b); m |= ((y >> b) & 1) << (2 * b + 1); } return m; };
+  const bin = (v, n) => v.toString(2).padStart(n, "0");
+
+  lesson({
+    topic: "morton", title: "모턴 순서와 텍셀 배치", desc: "2D를 1D 메모리에 가깝게", stage: "GPU 심화",
+    sym: { x: "green", y: "red" },
+    hook: "텍스처는 2D지만 메모리는 1D 줄입니다. 한 줄씩 저장하면(행 우선) ==위아래로 이웃한 텍셀이 메모리에서 멀리 떨어집니다==. GPU는 텍셀을 ==Z 모양(모턴 순서)으로 섞어 저장==해서, 화면의 작은 사각형이 읽는 텍셀들이 메모리에서도 가깝게 모이게 합니다.",
+    blocks: [
+      { h: "모턴 순서: x와 y의 비트를 번갈아 섞기" },
+      "16×16 격자를 메모리 순서대로 이은 선입니다. 행 우선은 한 줄을 끝까지 갔다가 돌아오고, 모턴은 ==작은 Z를 그리며 2×2 → 4×4 → 8×8 덩어리를 차례로 채웁니다==. 흰 점을 끌어 그 칸의 번호가 어떻게 만들어지는지 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 34, y0: 0, y1: 17 },
+        eq: ["x = {xb},  y = {yb}   →   모턴 = {mb} = {m}   (행 우선 = {r})"],
+        setup(F, C, L) {
+          let upto = 256;
+          const P = [5, 9];
+          F.handle({ color: "white", get: () => [0.5 + P[0] + 0.5, 0.5 + (15 - P[1]) + 0.5], set: (x, y) => { P[0] = clamp(Math.floor(x - 0.5), 0, 15); P[1] = clamp(15 - Math.floor(y - 0.5), 0, 15); } });
+          C.slider({ label: "그린 순서 수", min: 2, max: 256, step: 1, value: upto, fmt: x => num(x, 0), onInput: x => { upto = x; } });
+          const cell = (ox, i, j) => [ox + i + 0.5, 0.5 + (15 - j) + 0.5];
+          F.draw = g => {
+            [[0.5, "행 우선"], [17.5, "모턴 (Z 순서)"]].forEach(([ox, name], side) => {
+              for (let i = 0; i <= 16; i++) { g.line([ox + i, 0.5], [ox + i, 16.5], "rgba(88,196,221,0.12)", { w: 1 }); g.line([ox, 0.5 + i], [ox + 16, 0.5 + i], "rgba(88,196,221,0.12)", { w: 1 }); }
+              const order = [];
+              for (let k = 0; k < 256; k++) order.push(side === 0 ? [k % 16, Math.floor(k / 16)] : (() => { let x = 0, y = 0; for (let b = 0; b < 4; b++) { x |= ((k >> (2 * b)) & 1) << b; y |= ((k >> (2 * b + 1)) & 1) << b; } return [x, y]; })());
+              for (let k = 1; k < upto; k++) { const a = cell(ox, ...order[k - 1]), b = cell(ox, ...order[k]); g.line(a, b, `hsl(${k / 256 * 300},80%,60%)`, { w: 1.6 }); }
+              g.text(name, [ox + 8, 16.6], "white", { size: 12, bold: true, base: "bottom" });
+            });
+            g.circle(cell(0.5, P[0], P[1]), 0.45, "white", { w: 2 }); g.circle(cell(17.5, P[0], P[1]), 0.45, "white", { w: 2 });
+            const m = morton(P[0], P[1]);
+            L.set("xb", bin(P[0], 4)); L.set("yb", bin(P[1], 4));
+            const xb = bin(P[0], 4), yb = bin(P[1], 4); let mb = ""; for (let b = 0; b < 4; b++) mb += yb[b] + xb[b];
+            L.set("mb", mb); L.set("m", m); L.set("r", P[1] * 16 + P[0]);
+          };
+        }
+      } },
+      { key: "모턴 번호는 ==y와 x의 비트를 한 자리씩 번갈아 끼워 넣은 수==입니다. 계산이 비트 연산뿐이라 하드웨어가 주소 변환을 공짜로 합니다." },
+
+      { h: "캐시 줄이 몇 개나 필요한가" },
+      "메모리는 64바이트(텍셀 16개) 단위 ==캐시 줄==로 읽힙니다. 같은 색 칸이 같은 캐시 줄입니다. 노란 사각형(화면의 픽셀 타일이 읽는 텍셀 영역)을 끌어 보세요. 행 우선은 세로로 길수록 줄 수가 늘고, 모턴은 ==어느 방향이든 비슷하게 적습니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 34, y0: 0, y1: 17 },
+        eq: ["읽는 텍셀 {n}개   →   캐시 줄: 행 우선 {a}개 · 모턴 {b}개"],
+        setup(F, C, L) {
+          let shape = "square";
+          const P = [4, 5];
+          F.handle({ color: "yellow", get: () => [0.5 + P[0], 0.5 + (16 - P[1])], set: (x, y) => { P[0] = clamp(Math.round(x - 0.5), 0, 15); P[1] = clamp(Math.round(16 - (y - 0.5)), 0, 15); } });
+          C.seg({ options: [{ value: "square", label: "4×4 정사각형" }, { value: "row", label: "16×1 가로줄" }, { value: "col", label: "1×16 세로줄" }, { value: "diag", label: "2×8 세로 띠" }], value: shape, onChange: x => { shape = x; } });
+          F.draw = g => {
+            const [w, h] = { square: [4, 4], row: [16, 1], col: [1, 16], diag: [2, 8] }[shape];
+            const x0 = clamp(P[0], 0, 16 - w), y0 = clamp(P[1], 0, 16 - h);
+            const lineR = (i, j) => Math.floor((j * 16 + i) / 16), lineM = (i, j) => Math.floor(morton(i, j) / 16);
+            const setA = new Set(), setB = new Set();
+            for (let j = y0; j < y0 + h; j++) for (let i = x0; i < x0 + w; i++) { setA.add(lineR(i, j)); setB.add(lineM(i, j)); }
+            [[0.5, lineR, setA, "행 우선"], [17.5, lineM, setB, "모턴"]].forEach(([ox, fn, set, name]) => {
+              for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+                const ln = fn(i, j), hit = set.has(ln);
+                g.poly([[ox + i, 0.5 + (15 - j)], [ox + i + 1, 0.5 + (15 - j)], [ox + i + 1, 1.5 + (15 - j)], [ox + i, 1.5 + (15 - j)]], { fill: `hsla(${ln * 47 % 360},60%,${hit ? 55 : 30}%,${hit ? 0.95 : 0.35})`, stroke: "rgba(16,19,26,0.4)", w: 0.5 });
+              }
+              g.poly([[ox + x0, 0.5 + 16 - y0], [ox + x0 + w, 0.5 + 16 - y0], [ox + x0 + w, 0.5 + 16 - y0 - h], [ox + x0, 0.5 + 16 - y0 - h]], { stroke: "yellow", w: 2.5 });
+              g.text(`${name}: ${set.size}줄`, [ox + 8, 16.6], "white", { size: 12, bold: true, base: "bottom" });
+            });
+            L.set("n", w * h); L.set("a", setA.size); L.set("b", setB.size);
+          };
+        }
+      } },
+      "픽셀 셰이더는 화면의 작은 사각형(2×2 쿼드, 8×8 타일) 단위로 실행되므로, 그 픽셀들이 읽는 텍셀도 ==작은 사각형 영역==입니다. 모턴 배치에서는 이 영역이 거의 항상 적은 캐시 줄에 들어갑니다(34장 캐시 그림과 같은 이야기).",
+
+      { h: "텍스처가 아닌 곳의 모턴" },
+      "모턴 번호로 점들을 정렬하면 ==2D 공간에서 가까운 점이 배열에서도 가깝게== 모입니다. 그래서 GPU에서 BVH를 빠르게 짓거나(35장), 파티클을 공간 순서로 정렬할 때 씁니다. 정렬된 순서대로 이은 선을 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["이웃한 두 점 사이 평균 거리: 입력 순서 {a}  ·  모턴 정렬 {b}"],
+        setup(F, C, L) {
+          let n = 120, sorted = true;
+          C.slider({ label: "점 개수", min: 20, max: 400, step: 10, value: n, fmt: x => num(x, 0), onInput: x => { n = x; } });
+          C.seg({ options: [{ value: 0, label: "입력 순서" }, { value: 1, label: "모턴 순서로 정렬" }], value: 1, onChange: x => { sorted = !!x; } });
+          F.draw = g => {
+            let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            const pts = Array.from({ length: n }, () => [rnd() * 2, rnd()]);
+            const key = p => morton(Math.floor(p[0] / 2 * 255), Math.floor(p[1] * 255));
+            const ord = sorted ? pts.slice().sort((a, b) => key(a) - key(b)) : pts;
+            const avg = arr => arr.slice(1).reduce((s, p, i) => s + V.len(V.sub(p, arr[i])), 0) / (arr.length - 1);
+            g.poly(ord, { stroke: sorted ? "teal" : "rgba(252,98,85,0.6)", w: 1.2, close: false });
+            ord.forEach((p, i) => g.dot(p, `hsl(${i / n * 300},80%,60%)`, 3.5));
+            L.set("a", num(avg(pts), 3)); L.set("b", num(avg(pts.slice().sort((a, b) => key(a) - key(b))), 3));
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "텍스처 스위즐·타일링", "GPU 드라이버는 텍스처를 업로드할 때 자동으로 모턴·타일 배치로 바꿉니다(콘솔은 이 배치를 직접 다루기도 함). 그래서 CPU에서 텍스처를 직접 읽고 쓰는 것은 느립니다."],
+        ["셰이더", "컴퓨트 셰이더 스레드 배치", "컴퓨트에서 스레드 ID를 2D로 바꿀 때 행 대신 모턴·타일 순서로 매핑하면 텍스처 읽기의 캐시 적중률이 올라갑니다."],
+        ["엔진", "LBVH·공간 정렬", "GPU 레이트레이싱 가속 구조와 파티클 충돌의 공간 해시는 모턴 코드로 정렬한 뒤 짓습니다."],
+        ["실생활", "지도 타일과 데이터베이스", "지도의 쿼드키(Quadkey)와 위치 데이터베이스의 지오해시가 같은 '비트 번갈아 섞기'입니다."]
+      ] },
+
+      { recap: [
+        ["모턴 = y, x 비트를 번갈아 섞기", "Z 순서 곡선"],
+        ["2D 이웃 ≈ 1D 이웃", "작은 사각형 읽기가 적은 캐시 줄에"],
+        ["행 우선은 세로 읽기에 약함", "모턴은 방향에 둔감"],
+        ["모턴 정렬", "BVH 생성·공간 정렬"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\56-compiler.js ===== */
+/* 56 셰이더 컴파일러 최적화 */
+(() => {
+  const f0 = n => num(n, 0);
+  const MONO = '"Cascadia Code", Consolas, monospace';
+  function code(g, lines, x, y, lh) {
+    const c = g.c;
+    lines.forEach((ln, k) => {
+      const yy = y + k * lh;
+      c.font = `500 13px ${MONO}`; c.textAlign = "left"; c.textBaseline = "middle";
+      const col = ln.s === "gone" ? "rgba(138,147,166,0.55)" : ln.s === "fold" ? PAL.teal : ln.s === "new" ? PAL.yellow : "#ECEFF4";
+      c.fillStyle = col; c.fillText(ln.t, x, yy);
+      if (ln.s === "gone") { const w = c.measureText(ln.t).width; c.strokeStyle = "rgba(252,98,85,0.8)"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, yy); c.lineTo(x + w, yy); c.stroke(); }
+      if (ln.note) { c.font = `500 12px ${UI_FONT}`; c.fillStyle = ln.s === "gone" ? PAL.red : PAL.grey; c.fillText(ln.note, x + 330, yy); }
+    });
+  }
+
+  lesson({
+    topic: "compiler", title: "셰이더 컴파일러 최적화", desc: "상수 폴딩부터 점유율까지", stage: "GPU 심화",
+    sym: {},
+    hook: "머티리얼 그래프나 HLSL은 그대로 GPU에서 돌지 않습니다. 컴파일러가 ==미리 계산할 수 있는 것은 계산해 두고(상수 폴딩), 결과에 영향 없는 것은 지우고(죽은 코드 제거), 비싼 연산은 싼 연산으로 바꿉니다==. 무엇이 최적화되고 무엇이 안 되는지 알면 셰이더를 쓰는 방식이 바뀝니다.",
+    blocks: [
+      { h: "상수 폴딩과 죽은 코드 제거" },
+      "왼쪽 코드를 컴파일러가 어떻게 줄이는지 봅니다. ==파라미터가 컴파일 시점 상수인지==, 정적 스위치가 켜졌는지에 따라 남는 명령이 달라집니다. 버튼을 바꿔 보세요. [[teal:청록]]은 미리 계산된 줄, 취소선은 지워진 줄입니다.",
+      { fig: {
+        aspect: 0.56, view: { x0: 0, x1: 10, y0: 0, y1: 5.6 },
+        eq: ["명령 수: 최적화 전 {a} → 후 {b}"],
+        setup(F, C, L) {
+          let constAB = true, detail = false, view = 1;
+          C.seg({ options: [{ value: 1, label: "a, b = 상수" }, { value: 0, label: "a, b = 런타임 파라미터" }], value: 1, onChange: x => { constAB = !!x; } });
+          C.seg({ options: [{ value: 0, label: "USE_DETAIL 끔" }, { value: 1, label: "켬" }], value: 0, onChange: x => { detail = !!x; } });
+          C.seg({ options: [{ value: 0, label: "원본" }, { value: 1, label: "최적화 후" }], value: 1, onChange: x => { view = x; } });
+          F.draw = g => {
+            const opt = view === 1;
+            const lines = [
+              { t: constAB ? "const float a = 0.5;" : "float a = Param.a;", s: "" },
+              { t: constAB ? "const float b = 2.0;" : "float b = Param.b;", s: "" },
+              { t: "float  k = a * b;", s: opt && constAB ? "fold" : "", note: opt && constAB ? "→ k = 1.0 (미리 계산)" : "" },
+              { t: "float3 c = tex * k;", s: opt && constAB ? "fold" : "", note: opt && constAB ? "→ c = tex (×1 제거)" : "" },
+              { t: "float  w = pow(x, 2.0);", s: opt ? "fold" : "", note: opt ? "→ x * x (거듭제곱 → 곱셈)" : "" },
+              { t: "c = c + w * 0.0;", s: opt ? "gone" : "", note: opt ? "×0 → 통째로 제거" : "" },
+              { t: "#if USE_DETAIL", s: "" },
+              { t: "    c *= Sample(Detail, uv * 8);", s: opt && !detail ? "gone" : "", note: opt && !detail ? "정적 스위치 꺼짐 → 텍스처 읽기까지 제거" : "" },
+              { t: "#endif", s: "" },
+              { t: "float unused = sin(t) * cos(t);", s: opt ? "gone" : "", note: opt ? "결과에 안 쓰임 → 제거" : "" },
+              { t: "return c * 1.0 + sin(0.0);", s: opt ? "fold" : "", note: opt ? "→ return c" : "" }
+            ];
+            code(g, lines, F.toS([0.3, 0])[0], 30, 26);
+            const before = 2 + 1 + 3 + 1 + 3 + 1 + (detail ? 2 + 3 : 2 + 3) + 4 + 4;
+            let after = 3 + 1;                                     // tex 곱, x*x
+            if (!constAB) after += 1 + 3;                          // a*b, tex*k
+            if (detail) after += 3 + 4;                            // uv*8, 샘플, 곱
+            L.set("a", before); L.set("b", after);
+          };
+        }
+      } },
+      { key: "그래서 머티리얼에서 ==상수로 둘 수 있는 값은 상수로, 켜고 끌 기능은 정적 스위치로== 두면 컴파일러가 알아서 지웁니다. 런타임 파라미터는 편하지만 그 계산은 매 픽셀 남습니다(대신 퍼뮤테이션은 늘지 않음 — 46장의 거래)." },
+
+      { h: "강도 줄이기: 비싼 연산을 싼 연산으로" },
+      "자주 보는 변환을 골라 보세요. 컴파일러가 대부분 해 주지만, ==의미가 미세하게 달라지는 변환(정밀도·NaN 처리)==은 직접 써 줘야 할 때가 있습니다. 막대는 대략의 사이클입니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["{before}   →   {after}"],
+        setup(F, C, L) {
+          const T = {
+            div: ["$x / 4$", "$x · 0.25$", 8, 1, "나눗셈은 곱셈보다 몇 배 비쌈. 상수로 나누기는 역수 곱으로"],
+            pow2: ["$pow(x, 2)$", "$x · x$", 12, 1, "pow는 exp2(log2(x)·y): 두 번의 초월함수"],
+            pow5: ["$pow(x, 5)$", "$x2 = x·x;  x4 = x2·x2;  x4·x$", 12, 3, "작은 정수 거듭제곱은 곱셈 사슬로 (슐릭 프레넬의 단골)"],
+            mad: ["$a · b + c$", "$mad(a, b, c)$", 2, 1, "곱하고 더하기는 명령 하나 (FMA)"],
+            len: ["$length(v) < r$", "$dot(v, v) < r · r$", 9, 3, "비교만 할 때는 제곱근을 피함"],
+            norm: ["$normalize(lerp(n1, n2, t))$ 를 매번", "보간 끝난 뒤 한 번만 normalize", 18, 9, "정규화는 rsqrt + 곱셈 3개: 반복을 줄이기"],
+            trig: ["$sin(x)^2 + cos(x)^2$", "$1$", 16, 0, "항등식은 컴파일러가 모를 수 있음 → 직접 정리"]
+          };
+          let key = "pow5";
+          C.seg({ options: [{ value: "div", label: "나눗셈" }, { value: "pow2", label: "pow 2" }, { value: "pow5", label: "pow 5" }, { value: "mad", label: "MAD" }, { value: "len", label: "length 비교" }, { value: "norm", label: "normalize" }, { value: "trig", label: "항등식" }], value: key, onChange: x => { key = x; } });
+          F.draw = g => {
+            const [b, a, cb, ca, note] = T[key], mx = 18;
+            g.poly([[1.5, 2.6], [1.5 + cb / mx * 8, 2.6], [1.5 + cb / mx * 8, 3.3], [1.5, 3.3]], { fill: PAL.orange });
+            g.poly([[1.5, 1.5], [1.5 + Math.max(0.05, ca / mx * 8), 1.5], [1.5 + Math.max(0.05, ca / mx * 8), 2.2], [1.5, 2.2]], { fill: PAL.teal });
+            g.text("전", [1.3, 2.95], "white", { size: 12, bold: true, align: "right" }); g.text("후", [1.3, 1.85], "white", { size: 12, bold: true, align: "right" });
+            g.text(`≈ ${cb} 사이클`, [1.6 + cb / mx * 8, 2.95], "grey", { size: 11, align: "left" }); g.text(`≈ ${ca} 사이클`, [1.6 + Math.max(0.05, ca / mx * 8), 1.85], "grey", { size: 11, align: "left" });
+            g.text(note, [5, 0.7], "white", { size: 12 });
+            L.set("before", b); L.set("after", a);
+          };
+        }
+      } },
+
+      { h: "레지스터 압박과 점유율" },
+      "GPU는 메모리를 기다리는 동안 ==다른 워프로 바꿔 계산==해서 시간을 숨깁니다(34장). 그런데 셰이더가 변수를 많이 쓰면(레지스터 많이) 한 번에 올릴 수 있는 워프 수(점유율)가 줄어 숨길 거리가 사라집니다. 레지스터 수와 메모리 대기 시간을 바꿔 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 40, y0: 0, y1: 12 },
+        eq: ["레지스터 {r}개 → 동시 워프 {w}개   ·   ALU 가동률 {u}%"],
+        setup(F, C, L) {
+          let regs = 64, lat = 24;
+          C.slider({ label: "스레드당 레지스터", min: 16, max: 256, step: 8, value: regs, fmt: f0, onInput: x => { regs = x; } });
+          C.slider({ label: "메모리 대기(사이클)", min: 4, max: 60, step: 2, value: lat, fmt: f0, onInput: x => { lat = x; } });
+          F.draw = g => {
+            const waves = Math.max(1, Math.min(10, Math.floor(256 / regs))), alu = 4, T = 38;
+            // 간단한 스케줄링: 매 사이클 준비된 워프 하나가 ALU 4사이클 실행 후 메모리 대기
+            const ready = Array(waves).fill(0); let busy = 0;
+            const rows = [];
+            for (let w = 0; w < waves; w++) rows.push([]);
+            let t = 0;
+            while (t < T) {
+              let pick = -1; for (let w = 0; w < waves; w++) if (ready[w] <= t) { pick = w; break; }
+              if (pick < 0) { t++; continue; }
+              rows[pick].push([t, t + alu, "alu"]); rows[pick].push([t + alu, t + alu + lat, "mem"]);
+              ready[pick] = t + alu + lat; busy += Math.min(alu, T - t); t += alu;
+            }
+            rows.forEach((r, w) => r.forEach(([a, b, k]) => { if (a >= T) return; const y = 10.6 - w * 1.0; g.poly([[1 + a, y], [1 + Math.min(T, b), y], [1 + Math.min(T, b), y + 0.75], [1 + a, y + 0.75]], { fill: k === "alu" ? PAL.teal : "rgba(138,147,166,0.25)" }); }));
+            for (let w = 0; w < waves; w++) g.text("워프 " + (w + 1), [0.9, 10.95 - w], "grey", { size: 10, align: "right" });
+            g.text("청록 = 계산, 회색 = 메모리 대기", [39, 0.4], "grey", { size: 11, align: "right" });
+            L.set("r", regs); L.set("w", waves); L.set("u", f0(busy / T * 100));
+          };
+        }
+      } },
+      { key: "루프 펼치기·큰 배열·긴 수식은 계산을 줄여도 ==레지스터를 늘려 점유율을 떨어뜨릴 수== 있습니다. 컴파일러 통계(VGPR 수)를 보고, 텍스처를 많이 읽는 셰이더일수록 레지스터를 아끼는 쪽이 유리합니다." },
+
+      { use: [
+        ["엔진", "머티리얼 통계와 코드 보기", "UE 머티리얼 에디터의 Stats(명령 수·샘플러 수)와 Window → Shader Code → HLSL Code, 플랫폼 통계(Platform Stats)로 최적화 결과를 확인합니다."],
+        ["엔진", "상수 폴딩되는 노드", "Constant 노드끼리의 연산, Static Switch Parameter, Feature Level Switch는 컴파일 시 접힙니다. Scalar Parameter는 접히지 않습니다."],
+        ["TA", "셰이더 분석 툴", "RenderDoc·PIX·Radeon GPU Analyzer·NVIDIA Nsight로 실제 ISA 명령 수, VGPR 수, 점유율을 확인하고 병목을 찾습니다."],
+        ["실생활", "일반 프로그래밍과 같다", "C++ 컴파일러의 -O2 최적화도 같은 상수 폴딩·죽은 코드 제거·강도 줄이기를 합니다. GPU는 레지스터·점유율이라는 제약이 하나 더 있을 뿐입니다."]
+      ] },
+
+      { recap: [
+        ["상수 폴딩", "컴파일 시점에 계산 가능한 것은 미리"],
+        ["죽은 코드 제거 · 정적 스위치", "쓰이지 않는 계산과 텍스처 읽기 삭제"],
+        ["pow → 곱셈, 나눗셈 → 역수 곱, MAD", "강도 줄이기"],
+        ["레지스터 ↑ → 점유율 ↓", "메모리 대기를 숨길 워프가 줄어듦"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\57-vat.js ===== */
+/* 57 버텍스 애니메이션 텍스처(VAT) 심화 */
+(() => {
+  const f0 = n => num(n, 0);
+  const MB = b => (b >= 1048576 ? num(b / 1048576, 1) + " MB" : num(b / 1024, 0) + " KB");
+
+  lesson({
+    topic: "vat", title: "애니메이션 텍스처(VAT) 심화", desc: "시뮬레이션을 텍스처로 굽기", stage: "고급 효과 제작",
+    sym: { t: "teal", f: "orange" },
+    hook: "25장에서 VAT의 개념을 봤습니다. 실무에서는 ==무엇을 저장할지(정점 위치냐, 조각의 회전이냐), 몇 비트로 저장할지, 프레임 사이를 어떻게 이을지==를 정하는 것이 일입니다. 같은 효과도 방식에 따라 메모리가 수십 배 차이 납니다.",
+    blocks: [
+      { h: "소프트 바디: 정점마다 위치 오프셋" },
+      "깃발처럼 형태가 자유롭게 변하는 시뮬레이션은 ==정점마다, 프레임마다 위치 오프셋==을 저장합니다. 값의 범위(최소·최대)로 0~1에 맞춰 넣고, 셰이더에서 되돌립니다. 저장 정밀도를 낮추면 정점이 떨리는 것을 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["위치 = 기본 + lerp(최소, 최대, 텍스처(정점, 프레임))   ·   {bits}비트, 프레임 {f}"],
+        setup(F, C, L) {
+          let bits = 16, interp = true, frame = 0;
+          C.play(true);
+          C.slider({ label: "저장 비트", min: 4, max: 16, step: 1, value: bits, fmt: x => x + "비트", onInput: x => { bits = x; } });
+          C.seg({ options: [{ value: 1, label: "프레임 사이 보간" }, { value: 0, label: "끊어서" }], value: 1, onChange: x => { interp = !!x; } });
+          F.loop(() => {});
+          const NX = 12, NY = 6, NF = 24;
+          const sim = (i, j, f) => { const u = i / (NX - 1), v = j / (NY - 1), t = f / NF * TAU; return [0.06 * u * Math.sin(t * 2 + u * 5), 0.18 * u * Math.sin(t + u * 4 + v * 1.5), 0]; };
+          const qz = (x, mn, mx) => { const m = (1 << bits) - 1, k = Math.round((x - mn) / (mx - mn) * m) / m; return mn + k * (mx - mn); };
+          F.draw = g => {
+            const ft = F.t * 8, f0i = Math.floor(ft) % NF, f1i = (f0i + 1) % NF, tt = interp ? ft - Math.floor(ft) : 0;
+            frame = f0i;
+            const P = (i, j) => { const a = sim(i, j, f0i), b = sim(i, j, f1i); const o = [0, 1].map(k => qz(lerp(a[k], b[k], tt), -0.2, 0.2)); return [1.0 + i / (NX - 1) * 2.4 + o[0], 0.55 + j / (NY - 1) * 1.0 + o[1]]; };
+            g.line([0.98, 0.3], [0.98, 1.9], "grey", { w: 3 });
+            for (let j = 0; j < NY - 1; j++) for (let i = 0; i < NX - 1; i++) g.poly([P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)], { fill: (i + j) % 2 ? "rgba(252,98,85,0.75)" : "rgba(236,239,244,0.75)", stroke: "rgba(16,19,26,0.3)", w: 0.5 });
+            // 텍스처 미리보기
+            for (let f = 0; f < NF; f++) for (let k = 0; k < NX * NY; k++) { const o = sim(k % NX, Math.floor(k / NX), f); g.poly([[3.55 + k / (NX * NY) * 0.4, 1.9 - f / NF * 1.6], [3.55 + (k + 1) / (NX * NY) * 0.4, 1.9 - f / NF * 1.6], [3.55 + (k + 1) / (NX * NY) * 0.4, 1.9 - (f + 1) / NF * 1.6], [3.55 + k / (NX * NY) * 0.4, 1.9 - (f + 1) / NF * 1.6]], { fill: `rgb(${Math.round(128 + o[0] * 600)},${Math.round(128 + o[1] * 600)},128)` }); }
+            g.text("위치 텍스처", [3.75, 1.92], "grey", { size: 10, dy: -4 });
+            L.set("bits", bits); L.set("f", frame);
+          };
+        }
+      } },
+
+      { h: "리지드 바디: 조각마다 위치 + 회전" },
+      "벽이 부서지는 파괴는 조각 하나하나가 ==모양은 그대로 움직이고 돌기만== 합니다. 그래서 정점마다가 아니라 ==조각마다 피벗 위치와 회전(쿼터니언)== 두 텍셀만 저장합니다. 정점 셰이더는 자기 조각 번호로 그 두 값을 읽어 회전·이동합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["정점 = 조각 위치(f) + 회전(f) · (정점 − 피벗)   ·   프레임 {f} / 47"],
+        setup(F, C, L) {
+          let fr = 0;
+          C.play(true);
+          const fs = C.slider({ label: "프레임", min: 0, max: 47, step: 1, value: 0, fmt: f0, onInput: x => { fr = x; } });
+          F.loop((dt, t) => { fr = Math.floor(t * 14) % 48; fs.set(fr); });
+          let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+          const pieces = [];
+          for (let j = 0; j < 5; j++) for (let i = 0; i < 6; i++) { const cx = 0.4 + i * 0.22 + 0.11 + (j % 2) * 0.05, cy = 0.35 + j * 0.24 + 0.12; pieces.push({ c: [cx, cy], w: 0.1, h: 0.11, vx: (rnd() - 0.3) * 0.9, vy: rnd() * 0.6, spin: (rnd() - 0.5) * 8, delay: (1 - (cx - 0.4) / 1.4) * 8 + rnd() * 4 }); }
+          F.draw = g => {
+            g.line([0.1, 0.25], [3.9, 0.25], "grey", { w: 2 });
+            pieces.forEach((p, k) => {
+              const t = Math.max(0, fr - p.delay) / 24;
+              const pos = [p.c[0] + p.vx * t, Math.max(0.25 + p.h, p.c[1] + p.vy * t - 2.2 * t * t)], ang = p.spin * t * (pos[1] <= 0.25 + p.h + 1e-3 ? 0.3 : 1);
+              const corners = [[-p.w, -p.h], [p.w, -p.h], [p.w, p.h], [-p.w, p.h]].map(q => V.add(pos, V.rot(q, ang)));
+              g.poly(corners, { fill: `hsl(${20 + k * 3},45%,${45 + (k % 3) * 6}%)`, stroke: "rgba(16,19,26,0.6)", w: 1 });
+            });
+            // 조각 텍스처: 조각 30개 × 프레임 48 × 2텍셀
+            g.text("조각 텍스처: 30조각 × 48프레임 × (위치 + 회전)", [2.9, 1.92], "grey", { size: 11 });
+            L.set("f", fr);
+          };
+        }
+      } },
+
+      { h: "메모리 계산기" },
+      "같은 길이의 효과라도 방식에 따라 텍스처 크기가 크게 다릅니다. 숫자를 바꿔 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["소프트: 정점 {v} × 프레임 {f} × {b}B {nrm}= {soft}   ·   리지드: 조각 {p} × 프레임 {f} × 2 × {b}B = {rigid}"],
+        setup(F, C, L) {
+          let v = 4000, fr = 120, p = 60, fmt = 8, nrm = true;
+          C.slider({ label: "정점 수", min: 200, max: 20000, step: 100, value: v, fmt: f0, onInput: x => { v = x; } });
+          C.slider({ label: "프레임 수", min: 10, max: 300, step: 10, value: fr, fmt: f0, onInput: x => { fr = x; } });
+          C.slider({ label: "조각 수 (리지드)", min: 10, max: 500, step: 10, value: p, fmt: f0, onInput: x => { p = x; } });
+          C.seg({ options: [{ value: 8, label: "RGBA16F (8B)" }, { value: 4, label: "RGBA8 (4B)" }], value: 8, onChange: x => { fmt = +x; } });
+          C.seg({ options: [{ value: 1, label: "노멀도 저장" }, { value: 0, label: "위치만" }], value: 1, onChange: x => { nrm = !!x; } });
+          F.draw = g => {
+            const soft = v * fr * fmt * (nrm ? 2 : 1), rigid = p * fr * 2 * fmt, mx = Math.max(soft, rigid, 1);
+            [[soft, "소프트 (정점마다)", PAL.orange, 2.8], [rigid, "리지드 (조각마다)", PAL.teal, 1.5]].forEach(([b, n, c, y]) => {
+              const w = Math.max(0.05, b / mx * 6.5);
+              g.poly([[2.6, y], [2.6 + w, y], [2.6 + w, y + 0.8], [2.6, y + 0.8]], { fill: c });
+              g.text(n, [2.5, y + 0.4], "white", { size: 12, bold: true, align: "right" }); g.text(MB(b), [2.7 + w, y + 0.4], "white", { size: 12, align: "left" });
+            });
+            L.set("v", v); L.set("f", fr); L.set("b", fmt); L.set("nrm", nrm ? "× 2 (노멀) " : ""); L.set("soft", MB(soft)); L.set("p", p); L.set("rigid", MB(rigid));
+          };
+        }
+      } },
+      { key: "VAT 텍스처는 ==필터링을 끄고(Nearest), 밉도 끄고, sRGB도 끕니다==. 텍셀 하나가 정확히 정점 하나·프레임 하나여야 하기 때문입니다. 대신 프레임 사이 보간은 셰이더에서 두 줄을 읽어 직접 합니다." },
+
+      { use: [
+        ["툴", "Houdini Labs VAT", "Houdini의 Vertex Animation Textures ROP가 소프트·리지드·유체·파티클 모드로 텍스처와 데이터 테이블을 굽고, UE·Unity용 머티리얼 함수를 함께 줍니다."],
+        ["엔진", "UE 머티리얼 함수", "UE에는 VAT용 머티리얼 함수(정점 ID로 UV 계산 → WPO·노멀 출력)를 연결합니다. 바운드 확장과 정적 메시의 UV2(정점 번호)가 필요합니다."],
+        ["게임", "군중과 파괴", "수백 명 군중의 걷기 애니메이션을 VAT로 돌리면 스켈레탈 메시보다 훨씬 쌉니다(뼈 계산 없음, 인스턴싱 가능). 건물 붕괴·천 찢어짐도 단골입니다."],
+        ["TA", "정밀도 체크", "큰 움직임(수 m)을 8비트에 담으면 정점이 덜덜 떨립니다. 범위를 조각별로 나누거나 16비트 HDR 텍스처를 씁니다(36장 부동소수점, 54장 비트 패킹)."]
+      ] },
+
+      { recap: [
+        ["위치 = 기본 + lerp(최소, 최대, 텍셀)", "소프트 바디 VAT: 정점마다"],
+        ["피벗 + 쿼터니언, 조각마다", "리지드 바디 VAT: 메모리 수십 배 절약"],
+        ["Nearest · 밉 없음 · sRGB 끔", "VAT 텍스처 설정"],
+        ["두 프레임 읽어 lerp", "부드러운 재생"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\58-ocean.js ===== */
+/* 58 게르스트너 바다 */
+(() => {
+  const f2 = n => num(n, 2);
+  const srgb = v => Math.round(255 * Math.pow(clamp(v, 0, 1), 1 / 2.2));
+  // 파도 목록: [방향각, 파장, 진폭, 가파름]
+  function makeWaves(n, wind, steep) {
+    const W = [];
+    for (let i = 0; i < n; i++) {
+      const a = wind + (((i * 7919) % 13) / 13 - 0.5) * 1.6, L = 9 / Math.pow(1.45, i), A = L * 0.035;
+      W.push({ d: [Math.cos(a), Math.sin(a)], k: TAU / L, A, w: Math.sqrt(9.8 * TAU / L), Q: steep / (n * 0.6) });
+    }
+    return W;
+  }
+  // 게르스트너: 수평 변위 + 높이, 그리고 해석적 노멀과 야코비안
+  function gerstner(W, x, z, t) {
+    let dx = 0, dz = 0, h = 0, nx = 0, nz = 0, ny = 1, jxx = 1, jzz = 1, jxz = 0;
+    W.forEach(w => {
+      const ph = w.k * (w.d[0] * x + w.d[1] * z) - w.w * t, c = Math.cos(ph), s = Math.sin(ph), QA = w.Q * w.A, WA = w.k * w.A;
+      dx += QA * w.d[0] * c; dz += QA * w.d[1] * c; h += w.A * s;
+      nx -= w.d[0] * WA * c; nz -= w.d[1] * WA * c; ny -= w.Q * WA * s;
+      jxx -= w.Q * WA * w.d[0] * w.d[0] * s; jzz -= w.Q * WA * w.d[1] * w.d[1] * s; jxz -= w.Q * WA * w.d[0] * w.d[1] * s;
+    });
+    return { p: [x + dx, h, z + dz], n: V3.norm([nx, ny, nz]), J: jxx * jzz - jxz * jxz };
+  }
+
+  lesson({
+    topic: "ocean", title: "게르스트너 바다", desc: "파도 여러 개를 더하기", stage: "고급 효과 제작",
+    sym: { Q: "pink", A: "gold", k: "orange", "ω": "teal", d: "yellow", J: "purple" },
+    hook: "25장의 게르스트너 파도 하나는 너무 규칙적입니다. 바다는 ==방향·파장이 다른 파도 여러 개의 합==입니다. 여기에 해석적으로 구한 노멀, 프레넬 반사, 마루에 생기는 거품까지 더하면 실시간 바다가 됩니다.",
+    blocks: [
+      { h: "파도를 겹치면 바다가 된다" },
+      "위에서 내려다본 높이입니다(밝을수록 높음). 파도 개수를 늘려 보세요. ==파장이 짧을수록 진폭도 작게== 주면 큰 너울 위에 잔물결이 얹힙니다. 바람 방향을 돌리면 파도 방향들이 함께 돕니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 40, y0: 0, y1: 20 },
+        eq: ["높이 = Σ A_i · sin(k_i · (d_i · p) − ω_i t),   ω = √(g · k)   (파도 {n}개)"],
+        setup(F, C, L) {
+          let n = 5, wind = 0.4, steep = 0.6;
+          C.play(true);
+          C.slider({ label: "파도 개수", min: 1, max: 12, step: 1, value: n, fmt: x => num(x, 0), onInput: x => { n = x; } });
+          C.slider({ label: "바람 방향", min: -3.14, max: 3.14, value: wind, fmt: x => num(x / DEG, 0) + "°", onInput: x => { wind = x; } });
+          F.loop(() => {});
+          F.draw = g => {
+            const W = makeWaves(n, wind, steep), t = F.t;
+            g.field(F.playing ? 140 : 200, (x, y) => { const r = gerstner(W, x, y, t), v = clamp(0.5 + r.p[1] * 1.2, 0, 1); return [lerp(10, 120, v), lerp(40, 190, v), lerp(80, 230, v), 255]; });
+            g.arrow([3, 3], [3 + Math.cos(wind) * 4, 3 + Math.sin(wind) * 4], "white", { w: 2.5, label: "바람" });
+            L.set("n", n);
+          };
+        }
+      } },
+      "파도 속도가 $ω = √(g·k)$ 인 것(분산 관계)이 중요합니다. ==긴 파도가 빨리 가고 짧은 파도가 느리게== 가야 실제 바다처럼 보입니다. 모든 파도를 같은 속도로 움직이면 무늬가 통째로 미끄러집니다.",
+
+      { h: "노멀과 거품: 미분을 식으로" },
+      "게르스트너는 식이 정해져 있어 ==노멀을 해석적으로== 구할 수 있습니다. 그리고 수평으로 점들이 모이는 정도(야코비안 $J$)가 0 근처로 떨어지는 곳 — 파도가 접히는 마루 — 에 거품을 칠합니다. 가파름을 올려 보세요.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 20, y0: -2.4, y1: 2.4 },
+        eq: ["J = (∂x'/∂x)(∂z'/∂z) − (∂x'/∂z)^2   ·   J < {thr} 이면 거품   ·   최소 J = {jm}"],
+        setup(F, C, L) {
+          let steep = 0.9, thr = 0.35;
+          C.play(true);
+          C.slider({ label: "가파름 Q", min: 0, max: 1.4, value: steep, onInput: x => { steep = x; } });
+          C.slider({ label: "거품 문턱", min: 0, max: 0.8, value: thr, onInput: x => { thr = x; } });
+          F.loop(() => {});
+          F.draw = g => {
+            const W = makeWaves(3, 0, steep).map(w => ({ ...w, d: [1, 0] })), t = F.t;
+            const pts = [], foam = [];
+            let jm = 9;
+            for (let x = -2; x <= 22; x += 0.05) { const r = gerstner(W, x, 0, t); pts.push([r.p[0], r.p[1] * 6]); jm = Math.min(jm, r.J); if (r.J < thr) foam.push([r.p[0], r.p[1] * 6]); }
+            g.poly(pts.concat([[22, -2.4], [-2, -2.4]]), { fill: "rgba(30,90,140,0.7)", stroke: "blue", w: 2 });
+            foam.forEach(p => g.dot(p, "white", 3));
+            for (let x = 0.5; x < 20; x += 1.5) { const r = gerstner(W, x, 0, t), p = [r.p[0], r.p[1] * 6], nn = V.norm([r.n[0], r.n[1] * 0.2 + r.n[1] * 0.8]); g.arrow(p, V.add(p, V.mul(V.norm([r.n[0] * 6, r.n[1]]), 0.9)), "yellow", { w: 1.5, head: 6 }); void nn; }
+            L.set("thr", f2(thr)); L.set("jm", f2(jm));
+          };
+        }
+      } },
+
+      { h: "바다 셰이딩: 프레넬 + 바닷속 색 + 거품" },
+      "같은 파도로 바다를 그립니다. 멀리 비스듬한 곳은 ==프레넬(16장)로 하늘이 비치고==, 가까이 정면은 ==물속 색==이 보입니다. 해 방향으로는 반사 하이라이트, 마루에는 거품이 얹힙니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["색 = lerp(물속 색, 하늘 반사, F) + 해 하이라이트 + 거품(J)"],
+        setup(F, C, L) {
+          let steep = 0.7, sunAz = 0.2, n = 6;
+          C.play(true);
+          C.slider({ label: "가파름", min: 0, max: 1.3, value: steep, onInput: x => { steep = x; } });
+          C.slider({ label: "해 방향", min: -1, max: 1, value: sunAz, onInput: x => { sunAz = x; } });
+          F.loop(() => {});
+          F.draw = g => {
+            const W = makeWaves(n, 1.4, steep), t = F.t, Ld = V3.norm([Math.sin(sunAz), 0.25, Math.cos(sunAz)]);
+            g.field(F.playing ? 120 : 220, (x, y) => {
+              const rd = V3.norm([x * 0.6, y * 0.6 - 0.25, 1]);
+              if (rd[1] >= -0.005) { const s = Math.pow(Math.max(0, V3.dot(rd, Ld)), 200) * 4; return [srgb(0.45 + s), srgb(0.62 + s), srgb(0.9 + s * 0.8), 255]; }
+              const tt = 2.2 / -rd[1], px = rd[0] * tt, pz = rd[2] * tt;
+              const r = gerstner(W, px, pz, t), nN = r.n, cosv = Math.max(0, -V3.dot(rd, nN));
+              const Fr = 0.02 + 0.98 * Math.pow(1 - cosv, 5);
+              const refl = V3.sub(rd, V3.mul(nN, 2 * V3.dot(rd, nN)));
+              const sky = [0.45 + 0.3 * Math.max(0, refl[1]), 0.6 + 0.25 * Math.max(0, refl[1]), 0.9], deep = [0.02, 0.12, 0.18], sss = [0.05, 0.35, 0.35];
+              const water = deep.map((c, i) => c + sss[i] * Math.max(0, r.p[1] * 2.5));
+              const spec = Math.pow(Math.max(0, V3.dot(refl, Ld)), 300) * 6;
+              const foam = clamp((0.4 - r.J) * 3, 0, 1);
+              const fog = clamp(tt / 120, 0, 1);
+              const c = water.map((w, i) => lerp(lerp(w, sky[i], Fr) + spec, 0.9, foam));
+              return c.map((v, i) => srgb(lerp(v, [0.6, 0.72, 0.9][i], fog))).concat(255);
+            });
+          };
+        }
+      } },
+      { key: "실시간 바다는 보통 ==큰 파도는 게르스트너 몇 개, 잔물결은 노멀 맵이나 FFT(스펙트럼) 시뮬레이션==으로 나눕니다. 게르스트너는 식이 단순해 CPU에서도 같은 높이를 계산할 수 있어 배가 파도를 타는 물리와 맞추기 쉽습니다." },
+
+      { use: [
+        ["엔진", "Water 플러그인", "UE Water 시스템의 Gerstner Wave 에셋이 이 장의 파도 목록(방향·파장·진폭·가파름)이고, 버퍼에 담아 WPO와 물리 부력에 같이 씁니다."],
+        ["게임", "항해와 해전", "배의 흔들림·부력을 계산하려면 CPU에서도 같은 높이가 필요합니다. 게르스트너는 식이 짧아 CPU·GPU가 같은 답을 내기 쉽습니다."],
+        ["TA", "FFT 바다와 조합", "AAA 바다는 FFT(필립스·JONSWAP 스펙트럼)로 수천 개 파도를 합성하고, 해안선·배 주변은 게르스트너·플로우맵으로 손봅니다."],
+        ["실생활", "실제 파도의 원운동", "물 입자는 파도를 따라 앞으로 흘러가지 않고 제자리에서 원을 그립니다. 수영할 때 파도 위에서 위아래로만 흔들리는 이유입니다."]
+      ] },
+
+      { recap: [
+        ["Σ 게르스트너 파도", "방향·파장·진폭이 다른 파도의 합"],
+        ["ω = √(g·k)", "분산 관계: 긴 파도가 빠름"],
+        ["해석적 노멀 · 야코비안 J", "J가 작은 마루 = 거품"],
+        ["lerp(물속, 하늘, 프레넬)", "바다 셰이딩의 기본"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\59-caustic.js ===== */
+/* 59 코스틱 */
+(() => {
+  const f2 = n => num(n, 2);
+  const fract = x => x - Math.floor(x);
+  // 수면 높이(1D·2D)와 기울기
+  const h1 = (x, t, A) => A * (Math.sin(x * 2.1 + t * 1.3) * 0.6 + Math.sin(x * 4.7 - t * 1.9) * 0.3 + Math.sin(x * 9.3 + t * 2.7) * 0.1);
+  const h2 = (x, z, t, A) => A * (Math.sin(x * 2.2 + t * 1.2) * 0.4 + Math.sin(z * 2.7 - t * 1.5) * 0.35 + Math.sin((x + z) * 4.1 + t * 2.1) * 0.15 + Math.sin((x - z * 0.7) * 6.3 - t * 2.6) * 0.1);
+  function refractDown(n, eta) {               // 위에서 수직으로 내려오는 빛 (0, −1) 을 노멀 n 으로 굴절
+    const d = [0, -1, 0], c = -V3.dot(n, d), k = 1 - eta * eta * (1 - c * c);
+    return V3.add(V3.mul(d, eta), V3.mul(n, eta * c - Math.sqrt(Math.max(0, k))));
+  }
+
+  lesson({
+    topic: "caustic", title: "코스틱", desc: "굴절된 빛이 모이는 무늬", stage: "고급 효과 제작",
+    sym: { A: "gold", J: "purple", d: "blue" },
+    hook: "수영장 바닥에서 일렁이는 빛 그물이 코스틱입니다. 물결 진 수면이 ==렌즈 수천 개처럼 빛을 굴절시켜(16장) 어떤 곳엔 모으고 어떤 곳엔 흩어서== 생깁니다. 밝기는 '빛 다발이 얼마나 좁아졌는가'로 계산됩니다.",
+    blocks: [
+      { h: "빛 다발이 모이는 곳이 밝다" },
+      "옆에서 본 물입니다. 위에서 고르게 내려온 빛줄기가 물결에 굴절되어 바닥에 닿습니다. ==줄기가 몰린 곳은 밝고 벌어진 곳은 어둡습니다==. 아래 막대는 바닥 위치별로 도착한 줄기 수입니다. 재생해 보세요.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 10, y0: -2.6, y1: 2.4 },
+        eq: ["물결 세기 {a},  물 깊이 {d}  →  가장 밝은 곳은 평균의 {mx}배"],
+        setup(F, C, L) {
+          let A = 0.12, depth = 2, rays = 90;
+          C.play(true);
+          C.slider({ label: "물결 세기", min: 0, max: 0.3, value: A, onInput: x => { A = x; } });
+          C.slider({ label: "물 깊이", min: 0.5, max: 3, value: depth, onInput: x => { depth = x; } });
+          C.slider({ label: "빛줄기 수", min: 20, max: 300, step: 10, value: rays, fmt: x => num(x, 0), onInput: x => { rays = x; } });
+          F.loop(() => {});
+          F.draw = g => {
+            const t = F.t, top = 1.2, bottom = top - depth;
+            const surf = []; for (let x = 0; x <= 10; x += 0.05) surf.push([x, top + h1(x, t, A)]);
+            g.poly(surf.concat([[10, bottom], [0, bottom]]), { fill: "rgba(88,196,221,0.18)" });
+            g.poly(surf, { stroke: "blue", w: 2, close: false });
+            g.line([0, bottom], [10, bottom], "grey", { w: 2 });
+            const bins = new Array(50).fill(0);
+            for (let k = 0; k < rays; k++) {
+              const x = (k + 0.5) / rays * 10, y = top + h1(x, t, A), e = 0.01, dh = (h1(x + e, t, A) - h1(x - e, t, A)) / (2 * e);
+              const n = V3.norm([-dh, 1, 0]), d = refractDown(n, 1 / 1.33);
+              const s = (bottom - y) / d[1], hx = x + d[0] * s;
+              g.line([x, 2.4], [x, y], "gold", { w: 1, alpha: 0.35 });
+              g.line([x, y], [hx, bottom], "gold", { w: 1, alpha: 0.55 });
+              if (hx >= 0 && hx < 10) bins[Math.floor(hx / 10 * 50)]++;
+            }
+            const avg = rays / 50, mx = Math.max(...bins);
+            bins.forEach((b, i) => { const v = b / avg; g.poly([[i * 0.2, bottom - 0.05], [i * 0.2 + 0.2, bottom - 0.05], [i * 0.2 + 0.2, bottom - 0.05 - v * 0.25], [i * 0.2, bottom - 0.05 - v * 0.25]], { fill: `rgba(244,211,69,${clamp(0.3 + v * 0.25, 0, 1)})` }); });
+            L.set("a", f2(A)); L.set("d", f2(depth)); L.set("mx", num(mx / avg, 1));
+          };
+        }
+      } },
+      { key: "바닥의 밝기 = ==수면의 작은 면적 ÷ 그 면적이 바닥에 도착한 넓이==입니다. 빛 다발이 한 점으로 모이는 곳(넓이 → 0)은 이론상 무한히 밝아지는데, 이 밝은 선들이 코스틱의 그물 무늬입니다." },
+
+      { h: "면적 변화로 계산하기 (위에서 본 바닥)" },
+      "수면을 작은 칸으로 나눠 ==각 칸의 네 모서리를 굴절시켜 바닥에 떨어뜨리고, 바닥에서의 넓이로 원래 넓이를 나누면== 그 칸이 바닥에 주는 밝기입니다. 오프라인 없이도 실시간으로 계산할 수 있습니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["밝기 ∝ 수면 칸 넓이 / 바닥 넓이   ·   칸 {n}×{m}"],
+        setup(F, C, L) {
+          let A = 0.012, depth = 0.6, res = 150;
+          C.play(true);
+          C.slider({ label: "물결 세기", min: 0, max: 0.04, step: 0.001, value: A, onInput: x => { A = x; } });
+          C.slider({ label: "물 깊이", min: 0.1, max: 1.5, value: depth, onInput: x => { depth = x; } });
+          C.slider({ label: "칸 해상도", min: 60, max: 220, step: 10, value: res, fmt: x => num(x, 0), onInput: x => { res = x; } });
+          F.loop(() => {});
+          F.draw = g => {
+            const t = F.t * 0.8, Wd = 96, Hd = 48, acc = new Float32Array(Wd * Hd);
+            const nx = res, nz = Math.round(res / 2), cw = 2 / nx, ch = 1 / nz;
+            const H = (x, z) => h2(x * 4, z * 4, t, A);   // 칸 안에 물결이 여러 번 들어가도록 촘촘하게
+            const land = (x, z) => { const e = 0.002, hx = (H(x + e, z) - H(x - e, z)) / (2 * e), hz = (H(x, z + e) - H(x, z - e)) / (2 * e); const n = V3.norm([-hx * 3, 1, -hz * 3]), d = refractDown(n, 1 / 1.33), s = depth / -d[1]; return [x + d[0] * s, z + d[2] * s]; };
+            const P = [];
+            for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) P.push(land(i * cw, j * ch));
+            for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+              const a = P[j * (nx + 1) + i], b = P[j * (nx + 1) + i + 1], c = P[(j + 1) * (nx + 1) + i + 1], d = P[(j + 1) * (nx + 1) + i];
+              const area = Math.abs((b[0] - a[0]) * (d[1] - a[1]) - (d[0] - a[0]) * (b[1] - a[1])) + 1e-6, I = cw * ch / area;
+              // 칸 중심이 떨어진 곳 주변 네 픽셀에 바이리니어로 나눠 쌓기
+              const cx = (((a[0] + c[0]) / 2 % 2) + 2) % 2 / 2 * Wd - 0.5, cz = (((a[1] + c[1]) / 2 % 1) + 1) % 1 * Hd - 0.5;
+              const ix = Math.floor(cx), iz = Math.floor(cz), fx = cx - ix, fz = cz - iz, val = Math.min(I, 30) * (Wd * Hd) / (nx * nz);
+              [[0, 0, (1 - fx) * (1 - fz)], [1, 0, fx * (1 - fz)], [0, 1, (1 - fx) * fz], [1, 1, fx * fz]].forEach(([di, dj, w]) => { acc[(((iz + dj) % Hd + Hd) % Hd) * Wd + ((ix + di) % Wd + Wd) % Wd] += val * w; });
+            }
+            g.field(Wd, (x, y, i, j) => {
+              const v = acc[(Hd - 1 - j) * Wd + i] * 0.25;
+              return [clamp(30 + v * 200, 0, 255), clamp(70 + v * 210, 0, 255), clamp(90 + v * 190, 0, 255), 255];
+            }, { rows: Hd, smooth: true });
+            L.set("n", nx); L.set("m", nz);
+          };
+        }
+      } },
+      "물이 얕으면 빛이 모이기 전에 바닥에 닿아 무늬가 흐리고, ==적당히 깊을 때 가장 날카로운 그물==이 생깁니다. 더 깊으면 다시 흐려집니다. 물결 세기와 깊이를 함께 움직여 보세요.",
+
+      { h: "게임의 코스틱: 움직이는 텍스처 두 장" },
+      "실시간 게임은 대부분 ==미리 만든 코스틱 텍스처 두 장을 다른 방향으로 흘리고, 두 값의 최솟값(또는 곱)==을 바닥에 투영합니다. 같은 무늬가 반복되지 않고 일렁입니다. 색 번짐(RGB를 조금씩 어긋나게)을 켜면 더 그럴듯합니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 2, y0: 0, y1: 1 },
+        eq: ["코스틱 = min(T(uv · s + t·v1), T(uv · s · 1.3 + t·v2)) · 세기"],
+        setup(F, C, L) {
+          let chroma = true, scale = 4;
+          C.play(true);
+          C.seg({ options: [{ value: 1, label: "색 번짐 켜기" }, { value: 0, label: "끄기" }], value: 1, onChange: x => { chroma = !!x; } });
+          C.slider({ label: "무늬 크기", min: 2, max: 8, value: scale, onInput: x => { scale = x; } });
+          F.loop(() => {});
+          // 보로노이 경계 기반 코스틱 텍스처 근사 (칸 번호를 4로 감아 이음매 없이 반복)
+          const vor = (x, y) => { const ix = Math.floor(x), iy = Math.floor(y), w = q => ((q % 4) + 4) % 4; let d1 = 9, d2 = 9; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const h = fract(Math.sin(w(ix + i) * 127.1 + w(iy + j) * 311.7) * 43758.5), h2b = fract(Math.sin(w(ix + i) * 269.5 + w(iy + j) * 183.3) * 43758.5); const d = Math.hypot(ix + i + h - x, iy + j + h2b - y); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; } return Math.pow(clamp(1 - (d2 - d1) * 3, 0, 1), 3); };
+          // 코스틱 텍스처를 한 번만 구워 두고(실제 게임처럼) 바이리니어·반복으로 읽습니다
+          const TN = 64, TEX = new Float32Array(TN * TN);
+          for (let j = 0; j < TN; j++) for (let i = 0; i < TN; i++) { const x = i / TN * 4, y = j / TN * 4; TEX[j * TN + i] = vor(x, y); }
+          const samp = (u, v) => { const x = (((u % 1) + 1) % 1) * TN, y = (((v % 1) + 1) % 1) * TN, i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, A = (a, b) => TEX[(b % TN) * TN + (a % TN)]; return lerp(lerp(A(i, j), A(i + 1, j), fx), lerp(A(i, j + 1), A(i + 1, j + 1), fx), fy); };
+          F.draw = g => {
+            const t = F.t;
+            g.field(F.playing ? 130 : 200, (x, y) => {
+              const tex = o => Math.min(samp(x * scale / 4 + t * 0.07 + o, y * scale / 4 + t * 0.05), samp(x * scale * 1.3 / 4 - t * 0.06 + o, y * scale * 1.3 / 4 + t * 0.04 + 0.37));
+              const c = chroma ? [tex(0.02), tex(0), tex(-0.02)] : [tex(0), tex(0), tex(0)];
+              const floor = [0.25, 0.42, 0.5];
+              return floor.map((b, i) => clamp((b + c[i] * 1.4) * 255, 0, 255)).concat(255);
+            });
+          };
+        }
+      } },
+
+      { use: [
+        ["엔진", "라이트 함수·데칼", "UE에서는 디렉셔널 라이트의 Light Function이나 데칼(42장)에 코스틱 텍스처를 흘려 수영장·해저 바닥을 비춥니다. Water 플러그인에는 수면 노멀로 계산하는 코스틱 옵션도 있습니다."],
+        ["게임", "수중 연출", "물속 장면은 코스틱 + 볼륨 안개(19장) + 빛줄기(갓 레이) 조합이 표준입니다. 깊이에 따라 코스틱 세기를 줄입니다."],
+        ["영상", "유리와 보석", "오프라인 렌더러는 포톤 매핑·경로 추적(32장)으로 유리잔 그림자 속의 밝은 코스틱까지 계산합니다."],
+        ["실생활", "유리컵 그림자", "햇빛 아래 물컵 그림자 속 밝은 곡선, 반지의 반사광 무늬도 같은 원리의 코스틱입니다."]
+      ] },
+
+      { recap: [
+        ["굴절로 빛 다발이 모임", "코스틱의 원리"],
+        ["밝기 ∝ 원래 넓이 / 바닥 넓이", "면적 변화(야코비안)로 계산"],
+        ["깊이가 적당할 때 가장 날카로움", "초점 거리와 같은 이야기"],
+        ["min(흐르는 텍스처 두 장)", "게임의 값싼 코스틱"]
+      ] }
+    ]
+  });
+})();
+
+
+/* ===== js\lessons\60-volume.js ===== */
+/* 60 볼륨 텍스처와 볼류메트릭 */
+(() => {
+  const f2 = n => num(n, 2);
+  const MB = b => (b >= 1048576 ? num(b / 1048576, 1) + " MB" : num(b / 1024, 0) + " KB");
+  const fract = x => x - Math.floor(x);
+  const hash3 = (x, y, z) => fract(Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453);
+  // 16³ 볼륨: 3D 값 노이즈를 구워 둠 (반복 가능)
+  const N = 16, VOL = new Float32Array(N * N * N);
+  for (let k = 0; k < N; k++) for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const v = (a, b, c, s) => { const P = 16 / s; const x = a / s, y = b / s, z = c / s, xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), fx = x - xi, fy = y - yi, fz = z - zi, sm = t => t * t * (3 - 2 * t), H = (p, q, r) => hash3(((p % P) + P) % P, ((q % P) + P) % P, ((r % P) + P) % P);
+      const l = (a1, a2, t) => a1 + (a2 - a1) * sm(t);
+      return l(l(l(H(xi, yi, zi), H(xi + 1, yi, zi), fx), l(H(xi, yi + 1, zi), H(xi + 1, yi + 1, zi), fx), fy), l(l(H(xi, yi, zi + 1), H(xi + 1, yi, zi + 1), fx), l(H(xi, yi + 1, zi + 1), H(xi + 1, yi + 1, zi + 1), fx), fy), fz); };
+    VOL[(k * N + j) * N + i] = 0.6 * v(i, j, k, 4) + 0.4 * v(i, j, k, 2);
+  }
+  const at = (i, j, k) => VOL[((((k % N) + N) % N) * N + (((j % N) + N) % N)) * N + (((i % N) + N) % N)];
+  function sample3(x, y, z, tri = true) {            // 좌표: 텍셀 단위, 반복
+    if (!tri) return at(Math.floor(x), Math.floor(y), Math.floor(z));
+    const xi = Math.floor(x - 0.5), yi = Math.floor(y - 0.5), zi = Math.floor(z - 0.5), fx = x - 0.5 - xi, fy = y - 0.5 - yi, fz = z - 0.5 - zi;
+    const l = lerp;
+    return l(l(l(at(xi, yi, zi), at(xi + 1, yi, zi), fx), l(at(xi, yi + 1, zi), at(xi + 1, yi + 1, zi), fx), fy), l(l(at(xi, yi, zi + 1), at(xi + 1, yi, zi + 1), fx), l(at(xi, yi + 1, zi + 1), at(xi + 1, yi + 1, zi + 1), fx), fy), fz);
+  }
+
+  lesson({
+    topic: "volume", title: "볼륨 텍스처와 볼류메트릭", desc: "3D 텍스처로 구름·안개 그리기", stage: "고급 효과 제작",
+    sym: { "σ": "teal", T: "blue", u: "green", v: "red", w: "blue" },
+    hook: "2D 텍스처가 $(u, v)$로 읽는 그림이라면, 볼륨 텍스처는 ==$(u, v, w)$로 읽는 덩어리==입니다. 구름·연기·안개의 밀도, 3D LUT(45장), 거리장(23장)이 모두 볼륨 텍스처이고, 광선을 따라 여러 번 읽어 쌓으면 볼류메트릭 렌더링이 됩니다.",
+    blocks: [
+      { h: "볼륨 = 슬라이스의 묶음" },
+      "16×16×16 노이즈 볼륨을 펼쳐 16장의 슬라이스로 보여 줍니다(2D 아틀라스로 저장하는 '의사 볼륨'과 같은 배치). 깊이 $w$를 움직이면 오른쪽 단면이 바뀝니다. ==w 방향 보간을 끄면 슬라이스가 바뀔 때마다 뚝뚝 튑니다==.",
+      { fig: {
+        aspect: 0.5, view: { x0: 0, x1: 4, y0: 0, y1: 2 },
+        eq: ["w = {w} → 슬라이스 {a} 와 {b} 를 {t} : {t2} 로 섞음"],
+        setup(F, C, L) {
+          let w = 5.3, tri = true;
+          C.play();
+          const ws = C.slider({ label: "깊이 w (슬라이스)", min: 0, max: 15.99, value: w, onInput: x => { w = x; } });
+          C.seg({ options: [{ value: 1, label: "3선형 (w도 보간)" }, { value: 0, label: "슬라이스만 (w 보간 없음)" }], value: 1, onChange: x => { tri = !!x; } });
+          F.loop(dt => { w = (w + dt * 2) % 16; ws.set(w); });
+          F.draw = g => {
+            g.field(256, (x, y) => {
+              if (x < 2) {   // 4×4 아틀라스
+                const cx = Math.floor(x / 0.5), cy = Math.floor((2 - y) / 0.5), k = cy * 4 + cx;
+                const i = Math.floor((x % 0.5) / 0.5 * N), j = Math.floor(((2 - y) % 0.5) / 0.5 * N), v = at(i, j, k);
+                return [v * 230, v * 235, v * 245, 255];
+              }
+              const u = (x - 2) / 2 * N, vv = (2 - y) / 2 * N;
+              const v = tri ? sample3(u, vv, w) : sample3(u, vv, Math.floor(w) + 0.5, true);
+              return [v * 230, v * 235, v * 245, 255];
+            }, { smooth: false });
+            for (let k = 0; k <= 4; k++) { g.line([k * 0.5, 0], [k * 0.5, 2], "rgba(16,19,26,0.8)", { w: 1 }); g.line([0, k * 0.5], [2, k * 0.5], "rgba(16,19,26,0.8)", { w: 1 }); }
+            const a = Math.floor(w), cx = a % 4, cy = Math.floor(a / 4);
+            g.poly([[cx * 0.5, 2 - cy * 0.5], [cx * 0.5 + 0.5, 2 - cy * 0.5], [cx * 0.5 + 0.5, 1.5 - cy * 0.5], [cx * 0.5, 1.5 - cy * 0.5]], { stroke: "yellow", w: 2.5 });
+            g.line([2, 0], [2, 2], "white", { w: 2 });
+            const t = w - Math.floor(w);
+            L.set("w", f2(w)); L.set("a", a); L.set("b", (a + 1) % 16); L.set("t", f2(tri ? 1 - t : 1)); L.set("t2", f2(tri ? t : 0));
+          };
+        }
+      } },
+
+      { h: "광선을 따라 쌓기: 구름 레이마칭" },
+      "상자 안을 볼륨 노이즈로 채운 구름입니다. 픽셀마다 광선을 쏘아 ==일정 간격으로 밀도를 읽고, 투과율을 줄여 가며 빛을 쌓습니다==(19장 안개의 일반판). 각 걸음에서 해 쪽으로 몇 번 더 읽어 그림자도 넣었습니다. 걸음 수를 줄이면 줄무늬가 생깁니다.",
+      { fig: {
+        aspect: 0.5, view: { x0: -2, x1: 2, y0: -1, y1: 1 },
+        eq: ["T ← T · e^(−σ · 밀도 · Δs),   색 += T · 밀도 · 빛   (걸음 {n}번)"],
+        setup(F, C, L) {
+          let steps = 16, cover = 0.45, dens = 3, sunA = 0.6;
+          C.slider({ label: "걸음 수", min: 4, max: 64, step: 1, value: steps, fmt: x => num(x, 0), onInput: x => { steps = x; } });
+          C.slider({ label: "구름 양", min: 0.2, max: 0.8, value: cover, onInput: x => { cover = x; } });
+          C.slider({ label: "밀도 σ", min: 0.5, max: 8, value: dens, onInput: x => { dens = x; } });
+          C.slider({ label: "해 방향", min: -1.4, max: 1.4, value: sunA, onInput: x => { sunA = x; } });
+          C.play();
+          let drift = 0;
+          F.loop(dt => { drift += dt * 0.6; });
+          F.draw = g => {
+            const Ld = V3.norm([Math.sin(sunA), 0.6, Math.cos(sunA) * 0.4]);
+            const dAt = p => { if (Math.abs(p[0]) > 1.6 || Math.abs(p[1]) > 0.7 || Math.abs(p[2]) > 1.6) return 0; const v = sample3((p[0] + drift) * 4, (p[1]) * 4 + 8, p[2] * 4); const edge = clamp((0.7 - Math.abs(p[1])) * 3, 0, 1); return Math.max(0, (v - (1 - cover)) * 2.5) * edge; };
+            g.field(F.playing ? 90 : 130, (x, y) => {
+              const ro = [0, 0.2, -3.2], rd = V3.norm([x * 0.55, y * 0.55, 1]);
+              const t0 = (-1.6 - ro[2]) / rd[2], t1 = (1.6 - ro[2]) / rd[2], ds = (t1 - t0) / steps;
+              let T = 1, col = 0;
+              for (let s = 0; s < steps; s++) {
+                const p = V3.add(ro, V3.mul(rd, t0 + (s + 0.5) * ds)), d = dAt(p);
+                if (d <= 0) continue;
+                let ld = 0; for (let k = 1; k <= 2; k++) ld += dAt(V3.add(p, V3.mul(Ld, k * 0.25)));
+                const light = Math.exp(-dens * ld * 0.25) * 1.1 + 0.15;
+                const a = 1 - Math.exp(-dens * d * ds);
+                col += T * a * light; T *= 1 - a;
+                if (T < 0.02) break;
+              }
+              const sky = [0.32 + 0.25 * (1 - y), 0.5 + 0.2 * (1 - y), 0.85];
+              return sky.map((c, i) => clamp((c * T + col * [1, 0.97, 0.92][i]) * 255, 0, 255)).concat(255);
+            });
+            L.set("n", steps);
+          };
+        }
+      } },
+      "광선마다 수십 번 × 그림자 몇 번씩 읽으므로 비쌉니다. 실시간에서는 ==낮은 해상도로 그리고, 걸음 시작점을 픽셀마다 흔든 뒤(지터) TAA로 누적==(30장)해서 적은 걸음으로 줄무늬 없이 그립니다.",
+
+      { h: "볼륨 텍스처의 메모리" },
+      "해상도가 두 배면 메모리는 ==여덟 배==입니다. 볼륨은 금방 커지므로 해상도·포맷을 신중히 고릅니다.",
+      { fig: {
+        aspect: 0.42, view: { x0: 0, x1: 10, y0: 0, y1: 4.2, stretch: true },
+        eq: ["{r}³ × {b} B = {mem}   (같은 메모리의 2D 텍스처 ≈ {eq2}²)"],
+        setup(F, C, L) {
+          let p = 6, b = 1;
+          C.slider({ label: "해상도", min: 4, max: 9, step: 1, value: p, fmt: x => Math.pow(2, x) + "³", onInput: x => { p = x; } });
+          C.seg({ options: [{ value: 1, label: "R8 (1B)" }, { value: 2, label: "R16F (2B)" }, { value: 4, label: "RGBA8 (4B)" }, { value: 8, label: "RGBA16F (8B)" }], value: 1, onChange: x => { b = +x; } });
+          F.draw = g => {
+            const r = Math.pow(2, p), mem = r * r * r * b;
+            const s = clamp(Math.log2(r) / 9, 0.1, 1) * 2.6, o = [1.3, 0.6], d = s * 0.45;
+            g.poly([o, [o[0] + s, o[1]], [o[0] + s, o[1] + s], [o[0], o[1] + s]], { fill: "rgba(88,196,221,0.25)", stroke: "blue", w: 1.5 });
+            g.poly([[o[0], o[1] + s], [o[0] + d, o[1] + s + d * 0.6], [o[0] + s + d, o[1] + s + d * 0.6], [o[0] + s, o[1] + s]], { fill: "rgba(88,196,221,0.4)", stroke: "blue", w: 1.5 });
+            g.poly([[o[0] + s, o[1]], [o[0] + s + d, o[1] + d * 0.6], [o[0] + s + d, o[1] + s + d * 0.6], [o[0] + s, o[1] + s]], { fill: "rgba(88,196,221,0.15)", stroke: "blue", w: 1.5 });
+            const w = clamp(Math.log2(mem) / 31, 0, 1) * 4.5;
+            g.poly([[5.2, 1.6], [5.2 + w, 1.6], [5.2 + w, 2.4], [5.2, 2.4]], { fill: mem > 64 * 1048576 ? PAL.red : mem > 8 * 1048576 ? PAL.orange : PAL.green });
+            g.text(MB(mem), [5.3 + w, 2.0], "white", { size: 13, bold: true, align: "left" });
+            L.set("r", r); L.set("b", b); L.set("mem", MB(mem)); L.set("eq2", num(Math.sqrt(r * r * r), 0));
+          };
+        }
+      } },
+      { key: "그래서 볼륨은 ==작게(32³~128³) 만들어 반복해서 쓰고==, 큰 형태는 2D 맵이나 수식으로, 세부는 작은 반복 볼륨 노이즈로 나눕니다. 실시간 구름이 '날씨 맵(2D) + 작은 3D 노이즈 두 장' 구조인 이유입니다." },
+
+      { use: [
+        ["엔진", "볼륨 텍스처 에셋", "UE에서 2D 아틀라스(슬라이스 격자)를 Volume Texture 에셋으로 바꾸고 머티리얼의 Texture Sample(3D UVW)로 읽습니다. 볼류메트릭 클라우드·Heterogeneous Volume이 이를 씁니다."],
+        ["엔진", "볼류메트릭 클라우드·포그", "UE Volumetric Cloud는 날씨 맵 + 3D 노이즈를 레이마칭하고, Volumetric Fog는 화면을 3D 격자(froxel)로 나눠 칸마다 산란을 계산합니다."],
+        ["TA", "의사 볼륨(플립북) 활용", "3D 텍스처를 지원하지 않는 환경에서는 2D 아틀라스에 슬라이스를 펼쳐 두 슬라이스를 직접 읽어 섞습니다(이 장 첫 그림의 방식)."],
+        ["실생활", "CT·MRI", "의료 CT·MRI 영상은 볼륨 데이터이고, 3D 뷰어는 같은 레이마칭으로 뼈·장기를 반투명하게 보여 줍니다."]
+      ] },
+
+      { recap: [
+        ["텍스처(u, v, w)", "볼륨 = 슬라이스 묶음, 3선형 보간"],
+        ["T ← T · e^(−σ·밀도·Δs)", "레이마칭으로 밀도 쌓기"],
+        ["해 쪽으로 몇 번 더 읽기", "볼륨 그림자"],
+        ["해상도 2배 = 메모리 8배", "작은 반복 볼륨 + 2D 맵"]
+      ] }
+    ]
+  });
+})();
+
+
 /* ===== js\app.js ===== */
 buildLab();
 // 단독 실행 시 #3 처럼 번호로 주제를 고를 수 있습니다(라이브러리에서는 라이브러리가 주소를 맡습니다).
@@ -10625,6 +11651,8 @@ window.GFXLab = { setActive: i => setActive(i, true), render, lessons: lab.secti
     "빛을 따라가는 렌더링": "광선을 쏘아 장면 그리기",
     "하드웨어와 성능": "수천 개를 동시에, 그리고 덜 그리기",
     "테크아트 실전": "텍스처·베이킹·머티리얼·이펙트·최적화 작업",
+    "GPU 심화": "밉·비트·메모리 배치·컴파일러가 하는 일",
+    "고급 효과 제작": "VAT·바다·코스틱·볼륨",
     "TA 도구 상자": "실무에 바로 꺼내 쓰는 수학과 기법"
   };
   var lab = window.GFXLab;
